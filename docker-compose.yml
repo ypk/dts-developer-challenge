@@ -1,4 +1,4 @@
-version: '3.8'
+name: "dts-developer-challenge"
 
 services:
   app:
@@ -11,4 +11,4 @@ services:
     volumes:
       - ./:/app
       - /app/node_modules
-    command: npm run dev
+    command: npm run docker:dev
