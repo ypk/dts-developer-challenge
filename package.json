@@ -34,11 +34,5 @@
     "prettier": "^3.5.3",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.8.3"
-  },
-  "lint-staged": {
-    "src/**/*.{js,ts}": [
-      "prettier --write",
-      "eslint --fix"
-    ]
   }
 }
