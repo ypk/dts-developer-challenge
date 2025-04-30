@@ -1,0 +1,15 @@
+# Dependency directories
+node_modules
+
+# Logs
+npm-debug.log
+
+# Compiled binary addons
+dist
+
+# dotenv environment variable files
+.env
+
+# Git
+.git
+.gitignore
