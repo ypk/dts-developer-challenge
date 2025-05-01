@@ -8,7 +8,25 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3000
+      - DATABASE_URL=postgresql://dts-case-dbadmin:jAoKpQLmb5FfTuy9aq5rkWHMc9z79egCDxjHFF@localhost:5432/dts-case-mgmt?schema=public
+      - SHADOW_DATABASE_URL=postgresql://dts-case-dbadmin:jAoKpQLmb5FfTuy9aq5rkWHMc9z79egCDxjHFF@localhost:5432/dts-case-mgmt_shadow?schema=public
     volumes:
       - ./:/app
       - /app/node_modules
     command: npm run docker:dev
+    depends_on:
+      - db
+
+  db:
+    image: postgres:17.1-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=dts-case-dbadmin
+      - POSTGRES_PASSWORD=jAoKpQLmb5FfTuy9aq5rkWHMc9z79egCDxjHFF
+      - POSTGRES_DB=dts-case-mgmt
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
