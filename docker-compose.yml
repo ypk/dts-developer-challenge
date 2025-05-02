@@ -2,31 +2,52 @@ name: "dts-developer-challenge"
 
 services:
   app:
-    build: .
+    build:
+      context: .
+      target: production
+    env_file:
+      - .env.production
     ports:
-      - "3000:3000"
+      - "${PORT}:${PORT}"
     environment:
-      - NODE_ENV=development
-      - PORT=3000
-      - DATABASE_URL=postgresql://dts-case-dbadmin:jAoKpQLmb5FfTuy9aq5rkWHMc9z79egCDxjHFF@localhost:5432/dts-case-mgmt?schema=public
-      - SHADOW_DATABASE_URL=postgresql://dts-case-dbadmin:jAoKpQLmb5FfTuy9aq5rkWHMc9z79egCDxjHFF@localhost:5432/dts-case-mgmt_shadow?schema=public
-    volumes:
-      - ./:/app
-      - /app/node_modules
-    command: npm run docker:dev
+      - NODE_ENV=${NODE_ENV}
+      - PORT=${PORT}
+      - DATABASE_URL=${DATABASE_URL}
     depends_on:
-      - db
+      migrate:
+        condition: service_completed_successfully
+
+  migrate:
+    build:
+      context: .
+      target: production
+    env_file:
+      - .env.production
+    command: npm run prisma:migrate && npm run prisma:dev:seed
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - SHADOW_DATABASE_URL=${SHADOW_DATABASE_URL}
+    depends_on:
+      db: 
+        condition: service_healthy
 
   db:
     image: postgres:17.1-alpine
+    env_file:
+      - .env.production
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT}:5432"
     environment:
-      - POSTGRES_USER=dts-case-dbadmin
-      - POSTGRES_PASSWORD=jAoKpQLmb5FfTuy9aq5rkWHMc9z79egCDxjHFF
-      - POSTGRES_DB=dts-case-mgmt
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:

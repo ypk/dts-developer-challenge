@@ -1,0 +1,50 @@
+name: "dts-developer-challenge"
+
+services:
+  app:
+    build:
+      target: development
+    env_file:
+      - .env.development
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - PORT=${PORT}
+      - DATABASE_URL=${DATABASE_URL}
+      - SHADOW_DATABASE_URL=${SHADOW_DATABASE_URL}
+    command: npm run dev
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+
+  migrate:
+    build:
+      target: development
+    env_file:
+      - .env.development
+    command: npm run prisma:dev:migrate
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - DATABASE_URL=${DATABASE_URL}
+    depends_on:
+      db:
+        condition: service_healthy
+  seed:
+    build:
+      target: development
+    env_file:
+      - .env.development
+    command: npm run prisma:dev:seed
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - PORT=${POSTGRES_PORT}
+      - DATABASE_URL=${DATABASE_URL}
+      - SHADOW_DATABASE_URL=${SHADOW_DATABASE_URL}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+  db:
+    ports:
+      - "${POSTGRES_PORT}:5432"
