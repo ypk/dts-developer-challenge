@@ -1,10 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { caseRepository } from '../../repositories/caseRepository.ts';
-import { prisma, CaseStatus } from '../../lib/prisma.ts';
-
-jest.mock('../../lib/prisma.js', () => ({
-  __esModule: true,
-  default: {
+jest.mock('../../lib/prisma.ts', () => ({
+  prisma: {
     case: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
@@ -13,7 +9,15 @@ jest.mock('../../lib/prisma.js', () => ({
       delete: jest.fn(),
     },
   },
+  CaseStatus: {
+    PENDING: 'PENDING',
+    IN_PROGRESS: 'IN_PROGRESS',
+    COMPLETED: 'COMPLETED',
+  },
 }));
+
+import { prisma, CaseStatus } from '../../lib/prisma.ts';
+import { caseRepository } from '../../repositories/caseRepository.ts';
 
 describe('Case Repository', () => {
   beforeEach(() => {
