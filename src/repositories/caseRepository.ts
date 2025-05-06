@@ -1,4 +1,3 @@
-// src/repositories/caseRepository.ts
 import prisma from '../lib/prisma.js';
 import { Case, CaseStatus, Prisma } from '@prisma/client';
 

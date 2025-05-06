@@ -1,4 +1,3 @@
-// src/services/caseService.ts
 import { Case, CaseStatus, Prisma } from '@prisma/client';
 import { caseRepository } from '../repositories/caseRepository.js';
 import { NotFoundError } from '../utils/errorHander.ts';

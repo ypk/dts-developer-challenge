@@ -1,6 +1,3 @@
- 
- 
- 
 /* eslint-disable no-console */
 import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 import { Response } from 'express';
