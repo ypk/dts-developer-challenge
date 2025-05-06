@@ -2,8 +2,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Request, Response } from 'express';
 import { CaseStatus } from '../lib/prisma.ts';
-import { caseService } from '../services/caseService.js';
-import { sendSuccess, sendError, sendBadRequest, sendNoContent } from '../utils/responseHandler.js';
+import { caseService } from '../services/caseService.ts';
+import { sendSuccess, sendError, sendBadRequest, sendNoContent } from '../utils/responseHandler.ts';
 import { validateAndParseId, handleNotFoundError } from '../utils/caseHelper.ts';
 
 export const caseController = {

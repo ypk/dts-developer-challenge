@@ -1,5 +1,5 @@
 import { Case, CaseStatus, Prisma } from '../lib/prisma.ts';
-import { caseRepository } from '../repositories/caseRepository.js';
+import { caseRepository } from '../repositories/caseRepository.ts';
 import { NotFoundError } from '../utils/errorHandler.ts';
 
 export const caseService = {

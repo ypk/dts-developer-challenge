@@ -6,7 +6,7 @@ import {
   sendNoContent,
   sendError,
   sendBadRequest,
-} from '../../utils/responseHandler.js';
+} from '../../utils/responseHandler.ts';
 
 interface MockResponse {
   status: jest.Mock;

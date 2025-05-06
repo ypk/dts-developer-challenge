@@ -4,7 +4,7 @@ import { caseService } from '../../services/caseService.ts';
 import { caseRepository } from '../../repositories/caseRepository.ts';
 import { NotFoundError } from '../../utils/errorHandler.ts';
 
-jest.mock('../../repositories/caseRepository.js', () => ({
+jest.mock('../../repositories/caseRepository.ts', () => ({
   caseRepository: {
     findAll: jest.fn(),
     findById: jest.fn(),
