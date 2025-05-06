@@ -1,6 +1,4 @@
- 
- 
-import { NotFoundError, ValidationError, DatabaseError } from '../../utils/errorHander.ts';
+import { NotFoundError, ValidationError, DatabaseError } from '../../utils/errorHandler.ts';
 
 describe('Error Handler', () => {
   describe('NotFoundError', () => {

@@ -1,6 +1,6 @@
 import { Case, CaseStatus, Prisma } from '@prisma/client';
 import { caseRepository } from '../repositories/caseRepository.js';
-import { NotFoundError } from '../utils/errorHander.ts';
+import { NotFoundError } from '../utils/errorHandler.ts';
 
 export const caseService = {
   async getAllCases(): Promise<Case[]> {

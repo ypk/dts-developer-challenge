@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
- 
 import { Request, Response } from 'express';
 import { CaseStatus } from '@prisma/client';
 import { caseService } from '../services/caseService.js';
 import { sendSuccess, sendError, sendBadRequest, sendNoContent } from '../utils/responseHandler.js';
-import { NotFoundError } from '../utils/errorHander.ts';
+import { validateAndParseId, handleNotFoundError } from '../utils/caseHelper.ts';
 
 export const caseController = {
   getAllCases: async (req: Request, res: Response): Promise<void> => {
@@ -24,11 +23,8 @@ export const caseController = {
 
   getCaseById: async (req: Request, res: Response): Promise<void> => {
     try {
-      const id = parseInt(req.params.id);
-
-      if (isNaN(id)) {
-        return sendBadRequest(res, 'Invalid case ID');
-      }
+      const id = validateAndParseId(req, res);
+      if (id === null) return;
 
       try {
         const caseData = await caseService.getCaseById(id);
@@ -38,9 +34,7 @@ export const caseController = {
           data: caseData,
         });
       } catch (error) {
-        if (error instanceof NotFoundError) {
-          return sendError(res, error.message, error, 404);
-        }
+        if (handleNotFoundError(error, res)) return;
         throw error;
       }
     } catch (error) {
@@ -78,11 +72,8 @@ export const caseController = {
 
   updateCase: async (req: Request, res: Response): Promise<void> => {
     try {
-      const id = parseInt(req.params.id);
-
-      if (isNaN(id)) {
-        return sendBadRequest(res, 'Invalid case ID');
-      }
+      const id = validateAndParseId(req, res);
+      if (id === null) return;
 
       if (!req.body || Object.keys(req.body).length === 0) {
         return sendBadRequest(res, 'Request body is required');
@@ -105,9 +96,7 @@ export const caseController = {
           data: updatedCase,
         });
       } catch (error) {
-        if (error instanceof NotFoundError) {
-          return sendError(res, error.message, error, 404);
-        }
+        if (handleNotFoundError(error, res)) return;
         throw error;
       }
     } catch (error) {
@@ -117,11 +106,8 @@ export const caseController = {
 
   updateCaseStatus: async (req: Request, res: Response): Promise<void> => {
     try {
-      const id = parseInt(req.params.id);
-
-      if (isNaN(id)) {
-        return sendBadRequest(res, 'Invalid case ID');
-      }
+      const id = validateAndParseId(req, res);
+      if (id === null) return;
 
       const { status } = req.body;
 
@@ -129,7 +115,6 @@ export const caseController = {
         return sendBadRequest(res, 'Status is required');
       }
 
-      // Validate status
       if (!Object.values(CaseStatus).includes(status)) {
         return sendBadRequest(
           res,
@@ -145,9 +130,7 @@ export const caseController = {
           data: updatedCase,
         });
       } catch (error) {
-        if (error instanceof NotFoundError) {
-          return sendError(res, error.message, error, 404);
-        }
+        if (handleNotFoundError(error, res)) return;
         throw error;
       }
     } catch (error) {
@@ -157,19 +140,14 @@ export const caseController = {
 
   deleteCase: async (req: Request, res: Response): Promise<void> => {
     try {
-      const id = parseInt(req.params.id);
-
-      if (isNaN(id)) {
-        return sendBadRequest(res, 'Invalid case ID');
-      }
+      const id = validateAndParseId(req, res);
+      if (id === null) return;
 
       try {
         await caseService.deleteCase(id);
         sendNoContent(res);
       } catch (error) {
-        if (error instanceof NotFoundError) {
-          return sendError(res, error.message, error, 404);
-        }
+        if (handleNotFoundError(error, res)) return;
         throw error;
       }
     } catch (error) {
