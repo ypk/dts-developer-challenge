@@ -1,7 +1,4 @@
- 
 /* eslint-disable no-console */
- 
- 
 import express from 'express';
 import dotenv from 'dotenv';
 import routes from './routes/index.ts';

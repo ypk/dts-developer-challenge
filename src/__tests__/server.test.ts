@@ -1,8 +1,5 @@
 /* eslint-disable no-console */
- 
- 
- 
- 
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 
@@ -20,7 +17,6 @@ type MockExpressFn = {
 };
 
 const mockExpress = jest.fn(() => mockApp) as unknown as MockExpressFn;
-
 mockExpress.json = jest.fn(() => jsonMiddleware);
 
 const mockDotenv = {
@@ -32,58 +28,59 @@ jest.mock('dotenv', () => mockDotenv);
 jest.mock('../routes/index.ts', () => 'mock-routes');
 jest.mock('../utils/swagger.ts', () => ({ setupSwagger: jest.fn() }));
 
-describe('Server Initialization', () => {
+describe('Server', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.resetModules();
   });
 
-  describe('Server Setup', () => {
-    it('should set up the server correctly', async () => {
-      await import('../server.ts');
-      expect(mockExpress).toHaveBeenCalled();
-      expect(mockDotenv.config).toHaveBeenCalled();
-      expect(mockExpress.json).toHaveBeenCalled();
-      expect(mockApp.use).toHaveBeenCalledWith(jsonMiddleware);
+  it('should set up the server correctly', async () => {
+    await import('../server.ts');
 
-      const { setupSwagger } = await import('../utils/swagger.ts');
-      expect(setupSwagger).toHaveBeenCalledWith(mockApp);
+    expect(mockExpress).toHaveBeenCalled();
 
-      const apiRouteCall = mockApp.use.mock.calls.find((call) => call[0] === '/api');
-      expect(apiRouteCall).toBeDefined();
+    expect(mockDotenv.config).toHaveBeenCalled();
 
-      if (!apiRouteCall) {
-        throw new Error('API route not found');
-      }
+    expect(mockExpress.json).toHaveBeenCalled();
+    expect(mockApp.use).toHaveBeenCalledWith(jsonMiddleware);
 
-      expect(apiRouteCall[0]).toBe('/api');
-      expect(apiRouteCall[1]).toBeDefined();
-      expect(mockApp.get).toHaveBeenCalledWith('/health', expect.any(Function));
+    const { setupSwagger } = await import('../utils/swagger.ts');
+    expect(setupSwagger).toHaveBeenCalledWith(mockApp);
 
-      const healthCheckCall = mockApp.get.mock.calls.find((call) => call[0] === '/health');
+    const apiRouteCalls = mockApp.use.mock.calls.filter((call: any[]) => call[0] === '/api');
+    expect(apiRouteCalls.length).toBeGreaterThan(0);
 
-      if (!healthCheckCall) {
-        throw new Error('Health check endpoint not found');
-      }
+    expect(apiRouteCalls[0]?.[1]).toBeDefined();
 
-      const healthCheckHandler = healthCheckCall[1] as (
-        req: any,
-        res: { status: (code: number) => any; json: (data: any) => void },
-      ) => void;
+    const healthCheckCalls = mockApp.get.mock.calls.filter((call: any[]) => call[0] === '/health');
+    expect(healthCheckCalls.length).toBeGreaterThan(0);
 
-      const mockRes = {
-        status: jest.fn().mockReturnThis(),
-        json: jest.fn(),
-      };
+    const healthCheckHandler = healthCheckCalls[0]?.[1] as
+      | ((
+          req: unknown,
+          res: { status: (code: number) => { json: (data: unknown) => void } },
+        ) => void)
+      | undefined;
 
-      healthCheckHandler({}, mockRes);
+    if (!healthCheckHandler) {
+      throw new Error('Health check endpoint not found');
+    }
 
-      expect(mockRes.status).toHaveBeenCalledWith(200);
-      expect(mockRes.json).toHaveBeenCalledWith({ status: 'ok' });
-    });
+    const mockRes = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+
+    healthCheckHandler(
+      {},
+      mockRes as { status: (code: number) => { json: (data: unknown) => void } },
+    );
+
+    expect(mockRes.status).toHaveBeenCalledWith(200);
+    expect(mockRes.json).toHaveBeenCalledWith({ status: 'ok' });
   });
 
-  describe('Server Startup', () => {
+  describe('Server startup', () => {
     const originalNodeEnv = process.env.NODE_ENV;
     const originalPort = process.env.PORT;
 
@@ -109,9 +106,10 @@ describe('Server Initialization', () => {
 
       await import('../server.ts');
 
-      expect(mockApp.listen).toHaveBeenCalled();
-      expect(mockApp.listen.mock.calls[0][0]).toBe(3000);
-      expect(typeof mockApp.listen.mock.calls[0][1]).toBe('function');
+      const listenCalls = mockApp.listen.mock.calls;
+      expect(listenCalls.length).toBeGreaterThan(0);
+      expect(listenCalls[0]?.[0]).toBe(3000);
+      expect(typeof listenCalls[0]?.[1]).toBe('function');
 
       console.log = originalConsoleLog;
     });
@@ -125,9 +123,10 @@ describe('Server Initialization', () => {
 
       await import('../server.ts');
 
-      expect(mockApp.listen).toHaveBeenCalled();
-      expect(mockApp.listen.mock.calls[0][0]).toBe('4000');
-      expect(typeof mockApp.listen.mock.calls[0][1]).toBe('function');
+      const listenCalls = mockApp.listen.mock.calls;
+      expect(listenCalls.length).toBeGreaterThan(0);
+      expect(listenCalls[0]?.[0]).toBe('4000');
+      expect(typeof listenCalls[0]?.[1]).toBe('function');
 
       console.log = originalConsoleLog;
     });
@@ -141,7 +140,12 @@ describe('Server Initialization', () => {
 
       await import('../server.ts');
 
-      const listenCallback = mockApp.listen.mock.calls[0][1] as () => void;
+      const listenCalls = mockApp.listen.mock.calls;
+      const listenCallback = listenCalls[0]?.[1] as (() => void) | undefined;
+
+      if (!listenCallback) {
+        throw new Error('Listen callback not found');
+      }
 
       listenCallback();
 

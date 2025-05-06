@@ -1,9 +1,5 @@
- 
 /* eslint-disable @typescript-eslint/unbound-method */
- 
-
 jest.mock('@prisma/client', () => {
-  // Create mock functions with explicit type casting
   const mockConnect = jest.fn().mockResolvedValue(undefined as void);
   const mockDisconnect = jest.fn().mockResolvedValue(undefined as void);
   const mockCount = jest.fn().mockResolvedValue(0 as number);
