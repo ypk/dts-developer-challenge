@@ -3,7 +3,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Request, Response } from 'express';
 
-// Use arrow functions to avoid 'this' binding issues
 export const caseController = {
   getAllCases: async (req: Request, res: Response): Promise<void> => {
     try {

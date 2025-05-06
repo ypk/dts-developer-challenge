@@ -1,4 +1,3 @@
- 
 import { Router } from 'express';
 import { caseController } from '../controllers/caseController.js';
 
