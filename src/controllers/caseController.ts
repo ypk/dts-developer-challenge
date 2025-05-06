@@ -1,185 +1,179 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+ 
 import { Request, Response } from 'express';
+import { CaseStatus } from '@prisma/client';
+import { caseService } from '../services/caseService.js';
+import { sendSuccess, sendError, sendBadRequest, sendNoContent } from '../utils/responseHandler.js';
+import { NotFoundError } from '../utils/errorHander.ts';
 
-// Use arrow functions to avoid 'this' binding issues
 export const caseController = {
   getAllCases: async (req: Request, res: Response): Promise<void> => {
     try {
-      const response = await Promise.resolve({
-        message: 'Get all cases - Not implemented yet',
-      });
-      res.status(200).json({
-        success: true,
-        ...response,
+      const cases = await caseService.getAllCases();
+
+      sendSuccess(res, {
+        message: 'Cases retrieved successfully',
+        count: cases.length,
+        data: cases,
       });
     } catch (error) {
-      console.error('Error getting all cases:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to retrieve cases',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
+      sendError(res, 'Failed to retrieve cases', error);
     }
   },
 
   getCaseById: async (req: Request, res: Response): Promise<void> => {
     try {
-      const id = req.params.id;
+      const id = parseInt(req.params.id);
 
-      if (!id) {
-        res.status(400).json({
-          success: false,
-          message: 'Case ID is required',
-        });
-        return;
+      if (isNaN(id)) {
+        return sendBadRequest(res, 'Invalid case ID');
       }
 
-      const response = await Promise.resolve({
-        message: `Get case with ID ${id} - Not implemented yet`,
-      });
-      res.status(200).json({
-        success: true,
-        ...response,
-      });
+      try {
+        const caseData = await caseService.getCaseById(id);
+
+        sendSuccess(res, {
+          message: 'Case retrieved successfully',
+          data: caseData,
+        });
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          return sendError(res, error.message, error, 404);
+        }
+        throw error;
+      }
     } catch (error) {
-      console.error('Error getting case by ID:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to retrieve case',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
+      sendError(res, 'Failed to retrieve case', error);
     }
   },
 
   createCase: async (req: Request, res: Response): Promise<void> => {
     try {
-      if (!req.body || Object.keys(req.body).length === 0) {
-        res.status(400).json({
-          success: false,
-          message: 'Request body is required',
-        });
-        return;
+      const { title, description, status, dueDate } = req.body;
+
+      if (!title) {
+        return sendBadRequest(res, 'Title is required');
       }
 
-      const response = await Promise.resolve({
-        message: 'Create case - Not implemented yet',
-        data: req.body,
+      const newCase = await caseService.createCase({
+        title,
+        description,
+        status: status || CaseStatus.PENDING,
+        dueDate: dueDate ? new Date(dueDate) : undefined,
       });
-      res.status(201).json({
-        success: true,
-        ...response,
-      });
+
+      sendSuccess(
+        res,
+        {
+          message: 'Case created successfully',
+          data: newCase,
+        },
+        201,
+      );
     } catch (error) {
-      console.error('Error creating case:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to create case',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
+      sendError(res, 'Failed to create case', error);
     }
   },
 
   updateCase: async (req: Request, res: Response): Promise<void> => {
     try {
-      const id = req.params.id;
+      const id = parseInt(req.params.id);
 
-      if (!id) {
-        res.status(400).json({
-          success: false,
-          message: 'Case ID is required',
-        });
-        return;
+      if (isNaN(id)) {
+        return sendBadRequest(res, 'Invalid case ID');
       }
 
       if (!req.body || Object.keys(req.body).length === 0) {
-        res.status(400).json({
-          success: false,
-          message: 'Request body is required',
-        });
-        return;
+        return sendBadRequest(res, 'Request body is required');
       }
 
-      const response = await Promise.resolve({
-        message: `Update case with ID ${id} - Not implemented yet`,
-        data: req.body,
-      });
-      res.status(200).json({
-        success: true,
-        ...response,
-      });
+      const { title, description, status, dueDate } = req.body;
+
+      const updateData = {
+        ...(title !== undefined && { title }),
+        ...(description !== undefined && { description }),
+        ...(status !== undefined && { status }),
+        ...(dueDate !== undefined && { dueDate: new Date(dueDate) }),
+      };
+
+      try {
+        const updatedCase = await caseService.updateCase(id, updateData);
+
+        sendSuccess(res, {
+          message: 'Case updated successfully',
+          data: updatedCase,
+        });
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          return sendError(res, error.message, error, 404);
+        }
+        throw error;
+      }
     } catch (error) {
-      console.error('Error updating case:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to update case',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
+      sendError(res, 'Failed to update case', error);
     }
   },
 
   updateCaseStatus: async (req: Request, res: Response): Promise<void> => {
     try {
-      const id = req.params.id;
+      const id = parseInt(req.params.id);
 
-      if (!id) {
-        res.status(400).json({
-          success: false,
-          message: 'Case ID is required',
-        });
-        return;
+      if (isNaN(id)) {
+        return sendBadRequest(res, 'Invalid case ID');
       }
 
-      if (!req.body || !req.body.status) {
-        res.status(400).json({
-          success: false,
-          message: 'Status is required in request body',
-        });
-        return;
+      const { status } = req.body;
+
+      if (!status) {
+        return sendBadRequest(res, 'Status is required');
       }
 
-      const response = await Promise.resolve({
-        message: `Update status of case with ID ${id} - Not implemented yet`,
-        data: req.body,
-      });
-      res.status(200).json({
-        success: true,
-        ...response,
-      });
+      // Validate status
+      if (!Object.values(CaseStatus).includes(status)) {
+        return sendBadRequest(
+          res,
+          `Invalid status. Must be one of: ${Object.values(CaseStatus).join(', ')}`,
+        );
+      }
+
+      try {
+        const updatedCase = await caseService.updateCaseStatus(id, status);
+
+        sendSuccess(res, {
+          message: 'Case status updated successfully',
+          data: updatedCase,
+        });
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          return sendError(res, error.message, error, 404);
+        }
+        throw error;
+      }
     } catch (error) {
-      console.error('Error updating case status:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to update case status',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
+      sendError(res, 'Failed to update case status', error);
     }
   },
 
   deleteCase: async (req: Request, res: Response): Promise<void> => {
     try {
-      const id = req.params.id;
+      const id = parseInt(req.params.id);
 
-      if (!id) {
-        res.status(400).json({
-          success: false,
-          message: 'Case ID is required',
-        });
-        return;
+      if (isNaN(id)) {
+        return sendBadRequest(res, 'Invalid case ID');
       }
 
-      await Promise.resolve({
-        message: `Delete case with ID ${id} - Not implemented yet`,
-      });
-      res.status(204).send();
+      try {
+        await caseService.deleteCase(id);
+        sendNoContent(res);
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          return sendError(res, error.message, error, 404);
+        }
+        throw error;
+      }
     } catch (error) {
-      console.error('Error deleting case:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to delete case',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
+      sendError(res, 'Failed to delete case', error);
     }
   },
 };
