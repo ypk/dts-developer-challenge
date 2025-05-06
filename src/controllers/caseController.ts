@@ -2,111 +2,184 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Request, Response } from 'express';
-import { sendSuccess, sendError, sendBadRequest, sendNoContent } from '../utils/responseHandler.js';
 
+// Use arrow functions to avoid 'this' binding issues
 export const caseController = {
-  async getAllCases(req: Request, res: Response) {
+  getAllCases: async (req: Request, res: Response): Promise<void> => {
     try {
       const response = await Promise.resolve({
         message: 'Get all cases - Not implemented yet',
       });
-      sendSuccess(res, response);
+      res.status(200).json({
+        success: true,
+        ...response,
+      });
     } catch (error) {
-      sendError(res, 'Failed to retrieve cases', error);
+      console.error('Error getting all cases:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve cases',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
   },
 
-  async getCaseById(req: Request, res: Response) {
+  getCaseById: async (req: Request, res: Response): Promise<void> => {
     try {
       const id = req.params.id;
 
       if (!id) {
-        return sendBadRequest(res, 'Case ID is required');
+        res.status(400).json({
+          success: false,
+          message: 'Case ID is required',
+        });
+        return;
       }
 
       const response = await Promise.resolve({
         message: `Get case with ID ${id} - Not implemented yet`,
       });
-      sendSuccess(res, response);
+      res.status(200).json({
+        success: true,
+        ...response,
+      });
     } catch (error) {
-      sendError(res, 'Failed to retrieve case', error);
+      console.error('Error getting case by ID:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve case',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
   },
 
-  async createCase(req: Request, res: Response) {
+  createCase: async (req: Request, res: Response): Promise<void> => {
     try {
       if (!req.body || Object.keys(req.body).length === 0) {
-        return sendBadRequest(res, 'Request body is required');
+        res.status(400).json({
+          success: false,
+          message: 'Request body is required',
+        });
+        return;
       }
 
       const response = await Promise.resolve({
         message: 'Create case - Not implemented yet',
         data: req.body,
       });
-      sendSuccess(res, response, 201);
+      res.status(201).json({
+        success: true,
+        ...response,
+      });
     } catch (error) {
-      sendError(res, 'Failed to create case', error);
+      console.error('Error creating case:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to create case',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
   },
 
-  async updateCase(req: Request, res: Response) {
+  updateCase: async (req: Request, res: Response): Promise<void> => {
     try {
       const id = req.params.id;
 
       if (!id) {
-        return sendBadRequest(res, 'Case ID is required');
+        res.status(400).json({
+          success: false,
+          message: 'Case ID is required',
+        });
+        return;
       }
 
       if (!req.body || Object.keys(req.body).length === 0) {
-        return sendBadRequest(res, 'Request body is required');
+        res.status(400).json({
+          success: false,
+          message: 'Request body is required',
+        });
+        return;
       }
 
       const response = await Promise.resolve({
         message: `Update case with ID ${id} - Not implemented yet`,
         data: req.body,
       });
-      sendSuccess(res, response);
+      res.status(200).json({
+        success: true,
+        ...response,
+      });
     } catch (error) {
-      sendError(res, 'Failed to update case', error);
+      console.error('Error updating case:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update case',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
   },
 
-  async updateCaseStatus(req: Request, res: Response) {
+  updateCaseStatus: async (req: Request, res: Response): Promise<void> => {
     try {
       const id = req.params.id;
 
       if (!id) {
-        return sendBadRequest(res, 'Case ID is required');
+        res.status(400).json({
+          success: false,
+          message: 'Case ID is required',
+        });
+        return;
       }
 
       if (!req.body || !req.body.status) {
-        return sendBadRequest(res, 'Status is required in request body');
+        res.status(400).json({
+          success: false,
+          message: 'Status is required in request body',
+        });
+        return;
       }
 
       const response = await Promise.resolve({
         message: `Update status of case with ID ${id} - Not implemented yet`,
         data: req.body,
       });
-      sendSuccess(res, response);
+      res.status(200).json({
+        success: true,
+        ...response,
+      });
     } catch (error) {
-      sendError(res, 'Failed to update case status', error);
+      console.error('Error updating case status:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update case status',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
   },
 
-  async deleteCase(req: Request, res: Response) {
+  deleteCase: async (req: Request, res: Response): Promise<void> => {
     try {
       const id = req.params.id;
 
       if (!id) {
-        return sendBadRequest(res, 'Case ID is required');
+        res.status(400).json({
+          success: false,
+          message: 'Case ID is required',
+        });
+        return;
       }
 
       await Promise.resolve({
         message: `Delete case with ID ${id} - Not implemented yet`,
       });
-      sendNoContent(res);
+      res.status(204).send();
     } catch (error) {
-      sendError(res, 'Failed to delete case', error);
+      console.error('Error deleting case:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to delete case',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
   },
 };
