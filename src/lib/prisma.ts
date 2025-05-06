@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { PrismaClient } from '@prisma/client';
+ 
+ 
+import { Case, Prisma, PrismaClient, CaseStatus } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export default prisma;
+export { CaseStatus, Case, prisma, Prisma };

@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { CaseStatus } from '@prisma/client';
 import { caseRepository } from '../../repositories/caseRepository.ts';
-import prisma from '../../lib/prisma.ts';
+import { prisma, CaseStatus } from '../../lib/prisma.ts';
 
 jest.mock('../../lib/prisma.js', () => ({
   __esModule: true,

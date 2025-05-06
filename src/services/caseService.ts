@@ -1,4 +1,4 @@
-import { Case, CaseStatus, Prisma } from '@prisma/client';
+import { Case, CaseStatus, Prisma } from '../lib/prisma.ts';
 import { caseRepository } from '../repositories/caseRepository.js';
 import { NotFoundError } from '../utils/errorHandler.ts';
 

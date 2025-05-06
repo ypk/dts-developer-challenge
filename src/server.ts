@@ -1,11 +1,21 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+ 
 /* eslint-disable no-console */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+ 
+ 
 import express from 'express';
 import dotenv from 'dotenv';
+import routes from './routes/index.ts';
+import { setupSwagger } from './utils/swagger.ts';
 
-import prisma from './lib/prisma.js';
+/**
+ * @swagger
+ * info:
+ *   title: Case Management API
+ *   description: API for managing case information
+ *   version: 1.0.0
+ *   contact:
+ *     name: HMCTS
+ */
 
 dotenv.config();
 
@@ -14,26 +24,20 @@ const port = process.env.PORT || 3000;
 
 app.use(express.json());
 
-app.get('/', async (req: express.Request, res: express.Response) => {
-  try {
-    const count: number = await prisma.case.count();
-    res.json({
-      success: true,
-      count,
-      message: `Found ${count} cases in the database`,
-    });
-  } catch (error) {
-    console.error('Error counting cases:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error counting cases in the database',
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-  }
+if (typeof setupSwagger === 'function') {
+  setupSwagger(app);
+}
+
+app.use('/api', routes);
+
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
 });
+
 if (process.env.NODE_ENV !== 'test') {
   app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
+    console.log(`API Documentation available at http://localhost:${port}/api-docs`);
   });
 }
 

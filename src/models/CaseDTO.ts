@@ -1,4 +1,4 @@
-import { CaseStatus } from '@prisma/client';
+import { CaseStatus } from '../lib/prisma.ts';
 
 export interface CreateCaseDto {
   title: string;

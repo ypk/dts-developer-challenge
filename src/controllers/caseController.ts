@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Request, Response } from 'express';
-import { CaseStatus } from '@prisma/client';
+import { CaseStatus } from '../lib/prisma.ts';
 import { caseService } from '../services/caseService.js';
 import { sendSuccess, sendError, sendBadRequest, sendNoContent } from '../utils/responseHandler.js';
 import { validateAndParseId, handleNotFoundError } from '../utils/caseHelper.ts';

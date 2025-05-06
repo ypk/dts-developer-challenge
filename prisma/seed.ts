@@ -1,12 +1,10 @@
-import { PrismaClient, CaseStatus } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma, CaseStatus} from '../src/lib/prisma';
 
 function getRelativeDate(days: number): Date {
     return new Date(Date.now() + days * 24 * 60 * 60 * 1000);
 }
 
-async function main() {
+async function seedDatabase() {
     await prisma.case.deleteMany({});
 
     const cases = [
@@ -54,7 +52,7 @@ async function main() {
     console.log(`Seeding completed. Created ${cases.length} cases.`);
 };
 
-main()
+seedDatabase()
     .catch((e) => {
         console.error(e);
         process.exit(1);

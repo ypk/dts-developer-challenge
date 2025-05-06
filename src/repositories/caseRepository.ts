@@ -1,5 +1,4 @@
-import prisma from '../lib/prisma.js';
-import { Case, CaseStatus, Prisma } from '@prisma/client';
+import { prisma, CaseStatus, Case, Prisma } from '../lib/prisma.js';
 
 export const caseRepository = {
   async findAll(): Promise<Case[]> {
