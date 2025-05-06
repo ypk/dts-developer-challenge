@@ -1,12 +1,8 @@
 /* eslint-disable @typescript-eslint/unbound-method */
- 
- 
- 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import request from 'supertest';
 
-// Create a more permissive mock type
 type AnyMock = {
   mockResolvedValue: (value: any) => any;
   mockRejectedValue: (value: any) => any;
@@ -35,7 +31,6 @@ describe('Server', () => {
 
   describe('GET /', () => {
     it('should return case count when database query succeeds', async () => {
-      // Use a more permissive type assertion
       (prisma.case.count as unknown as AnyMock).mockResolvedValue(5);
 
       const response = await request(app).get('/');
