@@ -1,86 +1,156 @@
-/* eslint-disable @typescript-eslint/unbound-method */
+/* eslint-disable no-console */
+ 
+ 
+ 
+ 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals';
-import request from 'supertest';
+import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 
-type AnyMock = {
-  mockResolvedValue: (value: any) => any;
-  mockRejectedValue: (value: any) => any;
+const mockApp = {
+  use: jest.fn(),
+  get: jest.fn(),
+  listen: jest.fn(),
 };
 
-jest.mock('../lib/prisma.js', () => ({
-  __esModule: true,
-  default: {
-    case: {
-      count: jest.fn(),
-    },
-  },
-}));
+const jsonMiddleware = jest.fn();
 
-import prisma from '../lib/prisma.js';
-import app from '../server.js';
+type MockExpressFn = {
+  (): typeof mockApp;
+  json: jest.Mock;
+};
 
-describe('Server', () => {
+const mockExpress = jest.fn(() => mockApp) as unknown as MockExpressFn;
+
+mockExpress.json = jest.fn(() => jsonMiddleware);
+
+const mockDotenv = {
+  config: jest.fn(),
+};
+
+jest.mock('express', () => mockExpress);
+jest.mock('dotenv', () => mockDotenv);
+jest.mock('../routes/index.ts', () => 'mock-routes');
+jest.mock('../utils/swagger.ts', () => ({ setupSwagger: jest.fn() }));
+
+describe('Server Initialization', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-  });
-
-  afterEach(() => {
     jest.resetModules();
   });
 
-  describe('GET /', () => {
-    it('should return case count when database query succeeds', async () => {
-      (prisma.case.count as unknown as AnyMock).mockResolvedValue(5);
+  describe('Server Setup', () => {
+    it('should set up the server correctly', async () => {
+      await import('../server.ts');
+      expect(mockExpress).toHaveBeenCalled();
+      expect(mockDotenv.config).toHaveBeenCalled();
+      expect(mockExpress.json).toHaveBeenCalled();
+      expect(mockApp.use).toHaveBeenCalledWith(jsonMiddleware);
 
-      const response = await request(app).get('/');
+      const { setupSwagger } = await import('../utils/swagger.ts');
+      expect(setupSwagger).toHaveBeenCalledWith(mockApp);
 
-      expect(response.status).toBe(200);
-      expect(response.body).toEqual({
-        success: true,
-        count: 5,
-        message: 'Found 5 cases in the database',
-      });
+      const apiRouteCall = mockApp.use.mock.calls.find((call) => call[0] === '/api');
+      expect(apiRouteCall).toBeDefined();
 
-      expect(prisma.case.count).toHaveBeenCalledTimes(1);
-    });
+      if (!apiRouteCall) {
+        throw new Error('API route not found');
+      }
 
-    it('should return 500 when database query fails', async () => {
-      const errorMessage = 'Database connection failed';
-      (prisma.case.count as unknown as AnyMock).mockRejectedValue(new Error(errorMessage));
+      expect(apiRouteCall[0]).toBe('/api');
+      expect(apiRouteCall[1]).toBeDefined();
+      expect(mockApp.get).toHaveBeenCalledWith('/health', expect.any(Function));
 
-      const response = await request(app).get('/');
+      const healthCheckCall = mockApp.get.mock.calls.find((call) => call[0] === '/health');
 
-      expect(response.status).toBe(500);
-      expect(response.body).toEqual({
-        success: false,
-        message: 'Error counting cases in the database',
-        error: errorMessage,
-      });
+      if (!healthCheckCall) {
+        throw new Error('Health check endpoint not found');
+      }
 
-      expect(prisma.case.count).toHaveBeenCalledTimes(1);
-    });
+      const healthCheckHandler = healthCheckCall[1] as (
+        req: any,
+        res: { status: (code: number) => any; json: (data: any) => void },
+      ) => void;
 
-    it('should return 500 with unknown error when error is not an instance of Error', async () => {
-      (prisma.case.count as unknown as AnyMock).mockRejectedValue('Some string error');
+      const mockRes = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+      };
 
-      const response = await request(app).get('/');
+      healthCheckHandler({}, mockRes);
 
-      expect(response.status).toBe(500);
-      expect(response.body).toEqual({
-        success: false,
-        message: 'Error counting cases in the database',
-        error: 'Unknown error',
-      });
-
-      expect(prisma.case.count).toHaveBeenCalledTimes(1);
+      expect(mockRes.status).toHaveBeenCalledWith(200);
+      expect(mockRes.json).toHaveBeenCalledWith({ status: 'ok' });
     });
   });
 
-  // Test that the server doesn't start when NODE_ENV is 'test'
-  describe('Server initialization', () => {
-    it('should not call app.listen when NODE_ENV is test', () => {
-      expect(process.env.NODE_ENV).toBe('test');
+  describe('Server Startup', () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    const originalPort = process.env.PORT;
+
+    afterEach(() => {
+      process.env.NODE_ENV = originalNodeEnv;
+      process.env.PORT = originalPort;
+    });
+
+    it('should not start server when NODE_ENV is test', async () => {
+      process.env.NODE_ENV = 'test';
+
+      await import('../server.ts');
+
+      expect(mockApp.listen).not.toHaveBeenCalled();
+    });
+
+    it('should start server with default port when NODE_ENV is not test', async () => {
+      const originalConsoleLog = console.log;
+      console.log = jest.fn();
+
+      process.env.NODE_ENV = 'development';
+      delete process.env.PORT;
+
+      await import('../server.ts');
+
+      expect(mockApp.listen).toHaveBeenCalled();
+      expect(mockApp.listen.mock.calls[0][0]).toBe(3000);
+      expect(typeof mockApp.listen.mock.calls[0][1]).toBe('function');
+
+      console.log = originalConsoleLog;
+    });
+
+    it('should start server with specified port when PORT env var is set', async () => {
+      const originalConsoleLog = console.log;
+      console.log = jest.fn();
+
+      process.env.NODE_ENV = 'development';
+      process.env.PORT = '4000';
+
+      await import('../server.ts');
+
+      expect(mockApp.listen).toHaveBeenCalled();
+      expect(mockApp.listen.mock.calls[0][0]).toBe('4000');
+      expect(typeof mockApp.listen.mock.calls[0][1]).toBe('function');
+
+      console.log = originalConsoleLog;
+    });
+
+    it('should log server startup message', async () => {
+      const originalConsoleLog = console.log;
+      console.log = jest.fn();
+
+      process.env.NODE_ENV = 'development';
+      process.env.PORT = '3000';
+
+      await import('../server.ts');
+
+      const listenCallback = mockApp.listen.mock.calls[0][1] as () => void;
+
+      listenCallback();
+
+      expect(console.log).toHaveBeenCalledWith('Server is running on port 3000');
+      expect(console.log).toHaveBeenCalledWith(
+        'API Documentation available at http://localhost:3000/api-docs',
+      );
+
+      console.log = originalConsoleLog;
     });
   });
 });

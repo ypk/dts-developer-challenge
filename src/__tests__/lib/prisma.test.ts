@@ -1,21 +1,34 @@
+ 
 /* eslint-disable @typescript-eslint/unbound-method */
-import { PrismaClient } from '@prisma/client';
+ 
 
 jest.mock('@prisma/client', () => {
+  // Create mock functions with explicit type casting
+  const mockConnect = jest.fn().mockResolvedValue(undefined as void);
+  const mockDisconnect = jest.fn().mockResolvedValue(undefined as void);
+  const mockCount = jest.fn().mockResolvedValue(0 as number);
+
   const mockPrismaClient = jest.fn().mockImplementation(() => ({
-    $connect: jest.fn().mockResolvedValue(undefined),
-    $disconnect: jest.fn().mockResolvedValue(undefined),
+    $connect: mockConnect,
+    $disconnect: mockDisconnect,
     case: {
-      count: jest.fn().mockResolvedValue(0),
+      count: mockCount,
     },
   }));
 
+  const mockCaseStatus = {
+    PENDING: 'PENDING',
+    IN_PROGRESS: 'IN_PROGRESS',
+    COMPLETED: 'COMPLETED',
+  };
+
   return {
     PrismaClient: mockPrismaClient,
+    CaseStatus: mockCaseStatus,
   };
 });
 
-describe('Prisma Client', () => {
+describe('Prisma Module', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -24,31 +37,40 @@ describe('Prisma Client', () => {
     jest.resetModules();
   });
 
-  it('should export a PrismaClient instance', async () => {
-    const prisma = (await import('../../lib/prisma.js')).default;
+  it('should export prisma client instance', async () => {
+    const { PrismaClient } = await import('@prisma/client');
+    const { prisma: exportedPrisma } = await import('../../lib/prisma.ts');
 
     expect(PrismaClient).toHaveBeenCalledTimes(1);
+    expect(exportedPrisma).toBeDefined();
+    expect(typeof exportedPrisma.$connect).toBe('function');
+    expect(typeof exportedPrisma.$disconnect).toBe('function');
+    expect(typeof exportedPrisma.case.count).toBe('function');
+  });
 
-    expect(prisma).toBeDefined();
-    expect(typeof prisma.$connect).toBe('function');
-    expect(typeof prisma.$disconnect).toBe('function');
-    expect(typeof prisma.case.count).toBe('function');
+  it('should export CaseStatus enum', async () => {
+    const { CaseStatus: exportedCaseStatus } = await import('../../lib/prisma.ts');
+
+    expect(exportedCaseStatus).toBeDefined();
+    expect(exportedCaseStatus.PENDING).toBe('PENDING');
+    expect(exportedCaseStatus.IN_PROGRESS).toBe('IN_PROGRESS');
+    expect(exportedCaseStatus.COMPLETED).toBe('COMPLETED');
   });
 
   it('should be able to connect to the database', async () => {
-    const prisma = (await import('../../lib/prisma.js')).default;
+    const { prisma } = await import('../../lib/prisma.ts');
 
     await expect(prisma.$connect()).resolves.not.toThrow();
   });
 
   it('should be able to disconnect from the database', async () => {
-    const prisma = (await import('../../lib/prisma.js')).default;
+    const { prisma } = await import('../../lib/prisma.ts');
 
     await expect(prisma.$disconnect()).resolves.not.toThrow();
   });
 
   it('should be able to count cases', async () => {
-    const prisma = (await import('../../lib/prisma.js')).default;
+    const { prisma } = await import('../../lib/prisma.ts');
 
     const count = await prisma.case.count();
     expect(count).toBe(0);
