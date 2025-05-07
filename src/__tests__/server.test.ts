@@ -1,7 +1,6 @@
 /* eslint-disable no-console */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { jest, describe, it, expect, beforeEach } from '@jest/globals';
-
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 const mockApp = {
   use: jest.fn(),
   get: jest.fn(),
