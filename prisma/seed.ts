@@ -1,4 +1,4 @@
-import { prisma, CaseStatus} from '../src/lib/prisma';
+import { prisma, CaseStatus } from '../src/lib/prisma.ts';
 
 function getRelativeDate(days: number): Date {
     return new Date(Date.now() + days * 24 * 60 * 60 * 1000);
