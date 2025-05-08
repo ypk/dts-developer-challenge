@@ -1,7 +1,18 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+ 
 import { Request, Response, NextFunction } from 'express';
 import { errorHandler } from '../../middleware/error.middleware.ts';
 import { NotFoundError, ValidationError, DatabaseError } from '../../utils/errorHandler.ts';
+import { logger } from '../../middleware/logger.middleware.ts';
+
+jest.mock('../../middleware/logger.middleware.ts', () => ({
+  logger: {
+    error: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
 
 describe('Error Middleware', () => {
   let mockRequest: Partial<Request>;
@@ -16,10 +27,21 @@ describe('Error Middleware', () => {
       statusCode: 200,
     };
     nextFunction = jest.fn();
+
+    jest.clearAllMocks();
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
+  it('should call logger when error has occurred', () => {
+    const mockError = new Error('Test error message');
+
+    errorHandler(mockError, mockRequest as Request, mockResponse as Response, nextFunction);
+
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'Error caught by error handler',
+        error: mockError.message,
+      }),
+    );
   });
 
   it('should set status code to 500 when no specific status code is set', () => {

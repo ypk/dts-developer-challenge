@@ -3,6 +3,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import routes from './routes/index.ts';
 import { setupSwagger } from './utils/swagger.ts';
+import { errorHandler } from './middleware/error.middleware.ts';
 
 /**
  * @swagger
@@ -20,6 +21,8 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(express.json());
+
+app.use(errorHandler);
 
 if (typeof setupSwagger === 'function') {
   setupSwagger(app);
