@@ -8,14 +8,24 @@ const mockApp = {
 };
 
 const jsonMiddleware = jest.fn();
+const urlencodedMiddleware = jest.fn();
+const corsMiddleware = jest.fn();
+const helmetMiddleware = jest.fn();
+const compressionMiddleware = jest.fn();
+const requestLoggerMiddleware = jest.fn();
+const errorHandlerMiddleware = jest.fn();
+const apiLimiterMiddleware = jest.fn();
+const authLimiterMiddleware = jest.fn();
 
 type MockExpressFn = {
   (): typeof mockApp;
   json: jest.Mock;
+  urlencoded: jest.Mock;
 };
 
 const mockExpress = jest.fn(() => mockApp) as unknown as MockExpressFn;
 mockExpress.json = jest.fn(() => jsonMiddleware);
+mockExpress.urlencoded = jest.fn(() => urlencodedMiddleware);
 
 const mockDotenv = {
   config: jest.fn(),
@@ -23,8 +33,18 @@ const mockDotenv = {
 
 jest.mock('express', () => mockExpress);
 jest.mock('dotenv', () => mockDotenv);
+jest.mock('cors', () => jest.fn(() => corsMiddleware));
+jest.mock('helmet', () => jest.fn(() => helmetMiddleware));
+jest.mock('compression', () => jest.fn(() => compressionMiddleware));
 jest.mock('../routes/index.ts', () => 'mock-routes');
 jest.mock('../utils/swagger.ts', () => ({ setupSwagger: jest.fn() }));
+jest.mock('../middleware/logger.middleware.ts', () => ({ requestLogger: requestLoggerMiddleware }));
+jest.mock('../middleware/error.middleware.ts', () => ({ errorHandler: errorHandlerMiddleware }));
+jest.mock('../middleware/rate-limit.middleware.ts', () => ({
+  apiLimiter: apiLimiterMiddleware,
+  authLimiter: authLimiterMiddleware,
+  speedLimiter: jest.fn(),
+}));
 
 describe('Server', () => {
   beforeEach(() => {
@@ -35,23 +55,49 @@ describe('Server', () => {
   it('should set up the server correctly', async () => {
     await import('../server.ts');
 
+    // Basic setup
     expect(mockExpress).toHaveBeenCalled();
-
     expect(mockDotenv.config).toHaveBeenCalled();
 
+    // Middleware setup
     expect(mockExpress.json).toHaveBeenCalled();
     expect(mockApp.use).toHaveBeenCalledWith(jsonMiddleware);
 
+    expect(mockExpress.urlencoded).toHaveBeenCalledWith({ extended: true });
+    expect(mockApp.use).toHaveBeenCalledWith(urlencodedMiddleware);
+
+    expect(mockApp.use).toHaveBeenCalledWith(corsMiddleware);
+    expect(mockApp.use).toHaveBeenCalledWith(helmetMiddleware);
+    expect(mockApp.use).toHaveBeenCalledWith(compressionMiddleware);
+    expect(mockApp.use).toHaveBeenCalledWith(requestLoggerMiddleware);
+
+    // Rate limiting middleware
+    const apiLimiterCalls = mockApp.use.mock.calls.filter(
+      (call: any[]) => call[0] === '/api' && call[1] === apiLimiterMiddleware,
+    );
+    expect(apiLimiterCalls.length).toBe(1);
+
+    const authLimiterCalls = mockApp.use.mock.calls.filter(
+      (call: any[]) => call[0] === '/api/auth' && call[1] === authLimiterMiddleware,
+    );
+    expect(authLimiterCalls.length).toBe(1);
+
+    // Routes
+    const apiRouteCalls = mockApp.use.mock.calls.filter(
+      (call: any[]) => call[0] === '/api' && call[1] === 'mock-routes',
+    );
+    expect(apiRouteCalls.length).toBe(1);
+
+    // Swagger setup
     const { setupSwagger } = await import('../utils/swagger.ts');
     expect(setupSwagger).toHaveBeenCalledWith(mockApp);
 
-    const apiRouteCalls = mockApp.use.mock.calls.filter((call: any[]) => call[0] === '/api');
-    expect(apiRouteCalls.length).toBeGreaterThan(0);
+    // Error handler middleware
+    expect(mockApp.use).toHaveBeenCalledWith(errorHandlerMiddleware);
 
-    expect(apiRouteCalls[0]?.[1]).toBeDefined();
-
+    // Health check endpoint
     const healthCheckCalls = mockApp.get.mock.calls.filter((call: any[]) => call[0] === '/health');
-    expect(healthCheckCalls.length).toBeGreaterThan(0);
+    expect(healthCheckCalls.length).toBe(1);
 
     const healthCheckHandler = healthCheckCalls[0]?.[1] as
       | ((

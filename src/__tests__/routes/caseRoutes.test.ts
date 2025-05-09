@@ -8,8 +8,6 @@ const mockRouter = {
   patch: jest.fn(),
 };
 
-import { caseController } from '../../controllers/caseController.ts';
-
 jest.mock('express', () => ({
   Router: jest.fn(() => mockRouter),
 }));
@@ -23,6 +21,16 @@ jest.mock('../../controllers/caseController.ts', () => ({
     updateCaseStatus: 'updateCaseStatus-mock',
     deleteCase: 'deleteCase-mock',
   },
+}));
+
+jest.mock('../../middleware/validation.middleware', () => ({
+  caseValidation: {
+    create: 'create-validation-mock',
+    update: 'update-validation-mock',
+    updateStatus: 'updateStatus-validation-mock',
+    delete: 'delete-validation-mock',
+  },
+  validate: 'validate-mock',
 }));
 
 describe('Case Routes', () => {
@@ -40,27 +48,52 @@ describe('Case Routes', () => {
   });
 
   it('should set up GET / route for getAllCases', () => {
-    expect(mockRouter.get).toHaveBeenCalledWith('/', caseController.getAllCases);
+    expect(mockRouter.get).toHaveBeenCalledWith('/', 'getAllCases-mock');
   });
 
   it('should set up GET /:id route for getCaseById', () => {
-    expect(mockRouter.get).toHaveBeenCalledWith('/:id', caseController.getCaseById);
+    expect(mockRouter.get).toHaveBeenCalledWith(
+      '/:id',
+      'delete-validation-mock',
+      'validate-mock',
+      'getCaseById-mock',
+    );
   });
 
   it('should set up POST / route for createCase', () => {
-    expect(mockRouter.post).toHaveBeenCalledWith('/', caseController.createCase);
+    expect(mockRouter.post).toHaveBeenCalledWith(
+      '/',
+      'create-validation-mock',
+      'validate-mock',
+      'createCase-mock',
+    );
   });
 
   it('should set up PUT /:id route for updateCase', () => {
-    expect(mockRouter.put).toHaveBeenCalledWith('/:id', caseController.updateCase);
+    expect(mockRouter.put).toHaveBeenCalledWith(
+      '/:id',
+      'update-validation-mock',
+      'validate-mock',
+      'updateCase-mock',
+    );
   });
 
   it('should set up PATCH /:id/status route for updateCaseStatus', () => {
-    expect(mockRouter.patch).toHaveBeenCalledWith('/:id/status', caseController.updateCaseStatus);
+    expect(mockRouter.patch).toHaveBeenCalledWith(
+      '/:id/status',
+      'updateStatus-validation-mock',
+      'validate-mock',
+      'updateCaseStatus-mock',
+    );
   });
 
   it('should set up DELETE /:id route for deleteCase', () => {
-    expect(mockRouter.delete).toHaveBeenCalledWith('/:id', caseController.deleteCase);
+    expect(mockRouter.delete).toHaveBeenCalledWith(
+      '/:id',
+      'delete-validation-mock',
+      'validate-mock',
+      'deleteCase-mock',
+    );
   });
 
   it('should export the router', () => {

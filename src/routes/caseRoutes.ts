@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { caseController } from '../controllers/caseController.ts';
+import { caseValidation, validate } from '../middleware/validation.middleware.ts';
 
 const router = Router();
 
@@ -71,7 +72,7 @@ router.get('/', caseController.getAllCases);
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-router.get('/:id', caseController.getCaseById);
+router.get('/:id', caseValidation.delete, validate, caseController.getCaseById);
 
 /**
  * @swagger
@@ -106,7 +107,7 @@ router.get('/:id', caseController.getCaseById);
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-router.post('/', caseController.createCase);
+router.post('/', caseValidation.create, validate, caseController.createCase);
 
 /**
  * @swagger
@@ -150,7 +151,7 @@ router.post('/', caseController.createCase);
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-router.put('/:id', caseController.updateCase);
+router.put('/:id', caseValidation.update, validate, caseController.updateCase);
 
 /**
  * @swagger
@@ -194,7 +195,7 @@ router.put('/:id', caseController.updateCase);
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-router.patch('/:id/status', caseController.updateCaseStatus);
+router.patch('/:id/status', caseValidation.updateStatus, validate, caseController.updateCaseStatus);
 
 /**
  * @swagger
@@ -219,6 +220,6 @@ router.patch('/:id/status', caseController.updateCaseStatus);
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-router.delete('/:id', caseController.deleteCase);
+router.delete('/:id', caseValidation.delete, validate, caseController.deleteCase);
 
 export default router;
