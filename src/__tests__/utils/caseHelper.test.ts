@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { validateAndParseId, handleNotFoundError } from '../../utils/caseHelper.ts';
 import { sendError, sendBadRequest } from '../../utils/responseHandler.ts';
-import { NotFoundError } from '../../utils/errorHandler.ts';
+import { NotFoundError } from '../../middleware/error.middleware.ts';
 
 jest.mock('../../utils/responseHandler.ts', () => ({
   sendError: jest.fn(),
