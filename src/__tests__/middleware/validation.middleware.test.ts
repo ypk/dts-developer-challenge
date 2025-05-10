@@ -5,9 +5,7 @@
 import { Request, Response } from 'express';
 import { caseValidation, validate } from '../../middleware/validation.middleware.ts';
 
-// Create a more sophisticated mock for express-validator
 jest.mock('express-validator', () => {
-  // Create a function that returns a chainable mock
   const createChainableMock = (prefix = '') => {
     const chainable = {
       withMessage: jest.fn().mockImplementation((message) => {

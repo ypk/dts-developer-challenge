@@ -1,4 +1,3 @@
- 
 /* eslint-disable no-console */
 import express from 'express';
 import dotenv from 'dotenv';
@@ -63,13 +62,13 @@ if (process.env.NODE_ENV !== 'test') {
       console.log(logSymbols.success, `Server is running on port ${port}`);
       console.log(
         logSymbols.info,
-        `API Documentation available at http://localhost:${port}/api-docs`,
+        ` API Documentation available at http://localhost:${port}/api-docs`,
       );
     });
   } catch (error) {
     console.error(
       logSymbols.error,
-      `Failed to start server:`,
+      ` Failed to start server:`,
       error instanceof Error ? error.message : 'Unknown error',
     );
     process.exit(1);
