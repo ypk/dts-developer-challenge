@@ -36,7 +36,7 @@ describe('Case Controller', () => {
   });
 
   describe('getAllCases', () => {
-    it('should get all cases and send success response', async () => {
+    it('should get all cases without pagination when pagination is not provided', async () => {
       const mockCases = [
         { id: 1, title: 'Case 1', status: CaseStatus.PENDING },
         { id: 2, title: 'Case 2', status: CaseStatus.IN_PROGRESS },
@@ -54,6 +54,40 @@ describe('Case Controller', () => {
       });
     });
 
+    it('should use pagination when pagination object is available', async () => {
+      const mockPaginatedResult = {
+        data: [
+          { id: 1, title: 'Case 1', status: CaseStatus.PENDING },
+          { id: 2, title: 'Case 2', status: CaseStatus.IN_PROGRESS },
+        ],
+        meta: {
+          total: 25,
+          page: 1,
+          limit: 10,
+          totalPages: 3,
+        },
+      };
+
+      mockRequest.pagination = {
+        page: 1,
+        limit: 10,
+        skip: 0,
+      };
+
+      (caseService.getAllCasesPaginated as jest.Mock).mockResolvedValue(mockPaginatedResult);
+
+      await caseController.getAllCases(mockRequest as Request, mockResponse as Response);
+
+      expect(caseService.getAllCasesPaginated).toHaveBeenCalledTimes(1);
+      expect(caseService.getAllCasesPaginated).toHaveBeenCalledWith(1, 10);
+      expect(responseHandler.sendSuccess).toHaveBeenCalledWith(mockResponse, {
+        message: 'Cases retrieved successfully',
+        count: mockPaginatedResult.meta.total,
+        data: mockPaginatedResult.data,
+        pagination: mockPaginatedResult.meta,
+      });
+    });
+
     it('should handle errors and send error response', async () => {
       const error = new Error('Database error');
       (caseService.getAllCases as jest.Mock).mockRejectedValue(error);
@@ -61,6 +95,27 @@ describe('Case Controller', () => {
       await caseController.getAllCases(mockRequest as Request, mockResponse as Response);
 
       expect(caseService.getAllCases).toHaveBeenCalledTimes(1);
+      expect(responseHandler.sendError).toHaveBeenCalledWith(
+        mockResponse,
+        'Failed to retrieve cases',
+        error,
+      );
+    });
+
+    it('should handle errors with pagination and send error response', async () => {
+      const error = new Error('Database error');
+      mockRequest.pagination = {
+        page: 2,
+        limit: 15,
+        skip: 15,
+      };
+
+      (caseService.getAllCasesPaginated as jest.Mock).mockRejectedValue(error);
+
+      await caseController.getAllCases(mockRequest as Request, mockResponse as Response);
+
+      expect(caseService.getAllCasesPaginated).toHaveBeenCalledTimes(1);
+      expect(caseService.getAllCasesPaginated).toHaveBeenCalledWith(2, 15);
       expect(responseHandler.sendError).toHaveBeenCalledWith(
         mockResponse,
         'Failed to retrieve cases',

@@ -9,13 +9,25 @@ import { validateAndParseId, handleNotFoundError } from '../utils/caseHelper.ts'
 export const caseController = {
   getAllCases: async (req: Request, res: Response): Promise<void> => {
     try {
-      const cases = await caseService.getAllCases();
+      if (req.pagination) {
+        const { page, limit } = req.pagination;
+        const result = await caseService.getAllCasesPaginated(page, limit);
 
-      sendSuccess(res, {
-        message: 'Cases retrieved successfully',
-        count: cases.length,
-        data: cases,
-      });
+        sendSuccess(res, {
+          message: 'Cases retrieved successfully',
+          count: result.meta.total,
+          data: result.data,
+          pagination: result.meta,
+        });
+      } else {
+        const cases = await caseService.getAllCases();
+
+        sendSuccess(res, {
+          message: 'Cases retrieved successfully',
+          count: cases.length,
+          data: cases,
+        });
+      }
     } catch (error) {
       sendError(res, 'Failed to retrieve cases', error);
     }
