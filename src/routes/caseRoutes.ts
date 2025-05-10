@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { caseController } from '../controllers/caseController.ts';
 import { caseValidation, validate } from '../middleware/validation.middleware.ts';
+import { paginationMiddleware } from '../middleware/pagination.middleware.ts';
 
 const router = Router();
 
@@ -10,6 +11,22 @@ const router = Router();
  *   get:
  *     summary: Get all cases
  *     tags: [Cases]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: The page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
+ *         description: The number of items per page
  *     responses:
  *       200:
  *         description: A list of cases
@@ -26,15 +43,30 @@ const router = Router();
  *                   example: Cases retrieved successfully
  *                 count:
  *                   type: integer
- *                   example: 5
+ *                   example: 25
  *                 data:
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/Case'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                       example: 25
+ *                     page:
+ *                       type: integer
+ *                       example: 1
+ *                     limit:
+ *                       type: integer
+ *                       example: 10
+ *                     totalPages:
+ *                       type: integer
+ *                       example: 3
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-router.get('/', caseController.getAllCases);
+router.get('/', paginationMiddleware, caseController.getAllCases);
 
 /**
  * @swagger

@@ -1,10 +1,15 @@
 import { Case, CaseStatus, Prisma } from '../lib/prisma.ts';
-import { caseRepository } from '../repositories/caseRepository.ts';
+import { caseRepository, PaginatedResult } from '../repositories/caseRepository.ts';
 import { NotFoundError } from '../middleware/error.middleware.ts';
 
 export const caseService = {
   async getAllCases(): Promise<Case[]> {
     return caseRepository.findAll();
+  },
+
+  async getAllCasesPaginated(page = 1, limit = 10): Promise<PaginatedResult<Case>> {
+    const skip = (page - 1) * limit;
+    return caseRepository.findAllPaginated(skip, limit);
   },
 
   async getCaseById(id: number): Promise<Case> {

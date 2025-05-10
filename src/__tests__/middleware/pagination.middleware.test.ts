@@ -42,7 +42,7 @@ describe('Pagination Middleware', () => {
     expect(mockRequest.pagination).toEqual({
       page: 2,
       limit: 20,
-      skip: 20, // (2-1) * 20
+      skip: 20,
     });
     expect(nextFunction).toHaveBeenCalled();
   });
@@ -107,7 +107,7 @@ describe('Pagination Middleware', () => {
     expect(mockRequest.pagination).toEqual({
       page: 2,
       limit: DEFAULT_LIMIT,
-      skip: DEFAULT_LIMIT, // (2-1) * DEFAULT_LIMIT
+      skip: DEFAULT_LIMIT,
     });
     expect(nextFunction).toHaveBeenCalled();
   });
@@ -139,7 +139,7 @@ describe('Pagination Middleware', () => {
     expect(mockRequest.pagination).toEqual({
       page: 3,
       limit: 15,
-      skip: 30, // (3-1) * 15
+      skip: 30,
     });
     expect(nextFunction).toHaveBeenCalled();
   });
