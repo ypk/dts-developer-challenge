@@ -1,155 +1,218 @@
  
  
- 
- 
- 
-import rateLimit from 'express-rate-limit';
-import slowDown from 'express-slow-down';
-import { Request, Response } from 'express';
-import { logger } from './logger.middleware.ts';
+import { Request, Response, NextFunction } from 'express';
+import { logger } from '../middleware/logger.middleware.ts';
 
-enum RateLimitType {
-  API,
-  AUTH,
-  SPEED,
+export enum HttpStatus {
+  TOO_MANY_REQUESTS = 429,
 }
 
-enum TimeWindow {
+export enum TimeWindow {
   FIFTEEN_MINUTES = 15 * 60 * 1000,
   ONE_HOUR = 60 * 60 * 1000,
 }
 
-enum HttpStatus {
-  TOO_MANY_REQUESTS = 429,
+export enum RateLimitType {
+  API = 0,
+  AUTH = 1,
+  SPEED = 2,
 }
 
-interface BaseRateLimitConfig {
-  windowMs: number;
-  logMessage: string;
-}
+type RequestStore = Map<string, { count: number; resetTime: number }>;
 
-interface StandardRateLimitConfig extends BaseRateLimitConfig {
-  max: number;
-  message: string;
-}
+export const apiRequestStore: RequestStore = new Map();
+export const authRequestStore: RequestStore = new Map();
+export const speedRequestStore: RequestStore = new Map();
 
-interface SpeedLimitConfig extends BaseRateLimitConfig {
-  delayAfter: number;
-  delayIncrement: number;
-}
-
-function isStandardRateLimitConfig(config: BaseRateLimitConfig): config is StandardRateLimitConfig {
-  return 'max' in config && 'message' in config;
-}
-
-function isSpeedLimitConfig(config: BaseRateLimitConfig): config is SpeedLimitConfig {
-  return 'delayAfter' in config && 'delayIncrement' in config;
-}
-
-const API_RATE_LIMIT_CONFIG: StandardRateLimitConfig = {
-  windowMs: TimeWindow.FIFTEEN_MINUTES,
-  max: 100,
-  message: 'Too many requests, please try again later.',
-  logMessage: 'Rate limit exceeded',
+export const getClientIp = (req: Request): string => {
+  return req.ip || 'unknown';
 };
 
-const AUTH_RATE_LIMIT_CONFIG: StandardRateLimitConfig = {
-  windowMs: TimeWindow.ONE_HOUR,
-  max: 10,
-  message: 'Too many login attempts, please try again later.',
-  logMessage: 'Auth rate limit exceeded',
-};
+abstract class BaseRateLimiter {
+  protected store: RequestStore;
+  protected windowMs: number;
+  protected logMessage: string;
 
-const SPEED_LIMIT_CONFIG: SpeedLimitConfig = {
-  windowMs: TimeWindow.FIFTEEN_MINUTES,
-  delayAfter: 50,
-  delayIncrement: 100,
-  logMessage: 'Speed limit reached - adding delays',
-};
-
-function getRateLimitConfig(type: RateLimitType.API | RateLimitType.AUTH): StandardRateLimitConfig;
-function getRateLimitConfig(type: RateLimitType.SPEED): SpeedLimitConfig;
-function getRateLimitConfig(type: RateLimitType): BaseRateLimitConfig {
-  switch (type) {
-    case RateLimitType.API:
-      return API_RATE_LIMIT_CONFIG;
-    case RateLimitType.AUTH:
-      return AUTH_RATE_LIMIT_CONFIG;
-    case RateLimitType.SPEED:
-      return SPEED_LIMIT_CONFIG;
-    default:
-      throw new Error('Unknown rate limit type');
-  }
-}
-
-function createRateLimiter(type: RateLimitType.API | RateLimitType.AUTH) {
-  const config = getRateLimitConfig(type);
-
-  if (!isStandardRateLimitConfig(config)) {
-    throw new Error(`Invalid configuration for rate limiter type: ${type}`);
+  constructor(store: RequestStore, windowMs: number, logMessage: string) {
+    this.store = store;
+    this.windowMs = windowMs;
+    this.logMessage = logMessage;
   }
 
-  return rateLimit({
-    windowMs: config.windowMs,
-    max: config.max,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: {
-      success: false,
-      message: config.message,
-    },
-    handler: (req: Request, res: Response) => {
-      logger.warn({
-        message: config.logMessage,
-        ip: req.ip,
-        method: req.method,
-        url: req.url,
-      });
+  protected getOrCreateEntry(ip: string): { count: number; resetTime: number } {
+    const now = Date.now();
+
+    this.cleanupExpiredEntries();
+
+    let entry = this.store.get(ip);
+    if (!entry || now > entry.resetTime) {
+      entry = {
+        count: 0,
+        resetTime: now + this.windowMs,
+      };
+    }
+
+    return entry;
+  }
+
+  protected cleanupExpiredEntries(): void {
+    const now = Date.now();
+    for (const [key, value] of this.store.entries()) {
+      if (now > value.resetTime) {
+        this.store.delete(key);
+      }
+    }
+  }
+
+  protected logWarning(req: Request, additionalData: object = {}): void {
+    logger.warn({
+      message: this.logMessage,
+      ip: req.ip,
+      method: req.method,
+      url: req.url,
+      ...additionalData,
+    });
+  }
+
+  abstract handle(req: Request, res: Response, next: NextFunction): void;
+}
+
+/**
+ * Standard rate limiter implementation (for API and Auth endpoints)
+ */
+class StandardRateLimiter extends BaseRateLimiter {
+  private maxRequests: number;
+  private errorMessage: string;
+
+  constructor(
+    store: RequestStore,
+    windowMs: number,
+    logMessage: string,
+    maxRequests: number,
+    errorMessage: string,
+  ) {
+    super(store, windowMs, logMessage);
+    this.maxRequests = maxRequests;
+    this.errorMessage = errorMessage;
+  }
+
+  handle(req: Request, res: Response, next: NextFunction): void {
+    const ip = getClientIp(req);
+    const entry = this.getOrCreateEntry(ip);
+
+    if (entry.count >= this.maxRequests) {
+      this.logWarning(req);
+
+      this.setRateLimitHeaders(res, entry, 0);
 
       res.status(HttpStatus.TOO_MANY_REQUESTS).json({
         success: false,
-        message: config.message,
+        message: this.errorMessage,
       });
-    },
-  });
-}
+      return;
+    }
 
-function createSpeedLimiter(type: RateLimitType.SPEED) {
-  const config = getRateLimitConfig(type);
+    entry.count += 1;
+    this.store.set(ip, entry);
 
-  if (!isSpeedLimitConfig(config)) {
-    throw new Error(`Invalid configuration for speed limiter type: ${type}`);
+    this.setRateLimitHeaders(res, entry, this.maxRequests - entry.count);
+
+    next();
   }
 
-  return slowDown({
-    windowMs: config.windowMs,
-    delayAfter: config.delayAfter,
-    delayMs: (hits) => {
-      const delay = hits * config.delayIncrement;
-
-      if (hits === 1) {
-        logger.warn({
-          message: config.logMessage,
-          hits: hits + config.delayAfter,
-          delayMs: delay,
-        });
-      }
-      return delay;
-    },
-  });
+  private setRateLimitHeaders(
+    res: Response,
+    entry: { resetTime: number },
+    remaining: number,
+  ): void {
+    const resetTime = new Date(entry.resetTime).toISOString();
+    res.setHeader('X-RateLimit-Limit', this.maxRequests.toString());
+    res.setHeader('X-RateLimit-Remaining', remaining.toString());
+    res.setHeader('X-RateLimit-Reset', resetTime);
+  }
 }
 
-export {
-  RateLimitType,
-  TimeWindow,
-  HttpStatus,
-  isStandardRateLimitConfig,
-  isSpeedLimitConfig,
-  getRateLimitConfig,
-  createRateLimiter,
-  createSpeedLimiter,
-};
+/**
+ * Speed limiter implementation (adds delays to requests)
+ */
+class SpeedLimiter extends BaseRateLimiter {
+  private delayAfter: number;
+  private delayMs: number;
 
-export const apiLimiter = createRateLimiter(RateLimitType.API);
-export const authLimiter = createRateLimiter(RateLimitType.AUTH);
-export const speedLimiter = createSpeedLimiter(RateLimitType.SPEED);
+  constructor(
+    store: RequestStore,
+    windowMs: number,
+    logMessage: string,
+    delayAfter: number,
+    delayMs: number,
+  ) {
+    super(store, windowMs, logMessage);
+    this.delayAfter = delayAfter;
+    this.delayMs = delayMs;
+  }
+
+  handle(req: Request, res: Response, next: NextFunction): void {
+    const ip = getClientIp(req);
+    const entry = this.getOrCreateEntry(ip);
+
+    const count = entry.count + 1;
+
+    if (count > this.delayAfter) {
+      const delay = (count - this.delayAfter) * this.delayMs;
+
+      if (entry.count === this.delayAfter) {
+        this.logWarning(req, { hits: count, delayMs: delay });
+      }
+
+      entry.count = count;
+      this.store.set(ip, entry);
+
+      setTimeout(next, delay);
+      return;
+    }
+
+    entry.count = count;
+    this.store.set(ip, entry);
+
+    next();
+  }
+}
+
+/**
+ * Factory function to create middleware from a rate limiter
+ */
+function createMiddleware(
+  limiter: BaseRateLimiter,
+): (req: Request, res: Response, next: NextFunction) => void {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    limiter.handle(req, res, next);
+  };
+}
+
+const apiLimiterInstance = new StandardRateLimiter(
+  apiRequestStore,
+  TimeWindow.FIFTEEN_MINUTES,
+  'Rate limit exceeded',
+  100,
+  'Too many requests, please try again later.',
+);
+
+const authLimiterInstance = new StandardRateLimiter(
+  authRequestStore,
+  TimeWindow.ONE_HOUR,
+  'Auth rate limit exceeded',
+  10,
+  'Too many login attempts, please try again later.',
+);
+
+const speedLimiterInstance = new SpeedLimiter(
+  speedRequestStore,
+  TimeWindow.FIFTEEN_MINUTES,
+  'Speed limit reached - adding delays',
+  50,
+  100,
+);
+
+export const apiLimiter = createMiddleware(apiLimiterInstance);
+export const authLimiter = createMiddleware(authLimiterInstance);
+export const speedLimiter = createMiddleware(speedLimiterInstance);
