@@ -7,6 +7,7 @@ jest.mock('../../lib/prisma.ts', () => ({
       create: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
+      count: jest.fn(),
     },
   },
   CaseStatus: {
@@ -36,7 +37,93 @@ describe('Case Repository', () => {
       const result = await caseRepository.findAll();
 
       expect(prisma.case.findMany).toHaveBeenCalledTimes(1);
+      expect(prisma.case.findMany).toHaveBeenCalledWith({
+        orderBy: { updatedAt: 'desc' },
+      });
       expect(result).toEqual(mockCases);
+    });
+
+    it('should apply pagination when skip and limit are provided', async () => {
+      const mockCases = [
+        { id: 3, title: 'Case 3', status: CaseStatus.PENDING },
+        { id: 4, title: 'Case 4', status: CaseStatus.IN_PROGRESS },
+      ];
+
+      (prisma.case.findMany as jest.Mock).mockResolvedValue(mockCases);
+
+      const result = await caseRepository.findAll(10, 2);
+
+      expect(prisma.case.findMany).toHaveBeenCalledTimes(1);
+      expect(prisma.case.findMany).toHaveBeenCalledWith({
+        skip: 10,
+        take: 2,
+        orderBy: { updatedAt: 'desc' },
+      });
+      expect(result).toEqual(mockCases);
+    });
+  });
+
+  describe('findAllPaginated', () => {
+    it('should return paginated cases with metadata', async () => {
+      const mockCases = [
+        { id: 1, title: 'Case 1', status: CaseStatus.PENDING },
+        { id: 2, title: 'Case 2', status: CaseStatus.IN_PROGRESS },
+      ];
+      const totalCount = 25;
+
+      (prisma.case.findMany as jest.Mock).mockResolvedValue(mockCases);
+      (prisma.case.count as jest.Mock).mockResolvedValue(totalCount);
+
+      const result = await caseRepository.findAllPaginated(0, 10);
+
+      expect(prisma.case.findMany).toHaveBeenCalledTimes(1);
+      expect(prisma.case.findMany).toHaveBeenCalledWith({
+        skip: 0,
+        take: 10,
+        orderBy: { updatedAt: 'desc' },
+      });
+      expect(prisma.case.count).toHaveBeenCalledTimes(1);
+
+      expect(result).toEqual({
+        data: mockCases,
+        meta: {
+          total: totalCount,
+          page: 1,
+          limit: 10,
+          totalPages: 3,
+        },
+      });
+    });
+
+    it('should calculate page and totalPages correctly', async () => {
+      const mockCases = [
+        { id: 5, title: 'Case 5', status: CaseStatus.PENDING },
+        { id: 6, title: 'Case 6', status: CaseStatus.IN_PROGRESS },
+      ];
+      const totalCount = 21;
+      const skip = 10;
+      const limit = 5;
+
+      (prisma.case.findMany as jest.Mock).mockResolvedValue(mockCases);
+      (prisma.case.count as jest.Mock).mockResolvedValue(totalCount);
+
+      const result = await caseRepository.findAllPaginated(skip, limit);
+
+      expect(prisma.case.findMany).toHaveBeenCalledWith({
+        skip,
+        take: limit,
+        orderBy: { updatedAt: 'desc' },
+      });
+
+      expect(result).toEqual({
+        data: mockCases,
+        meta: {
+          total: totalCount,
+          page: 3, // Math.floor(10 / 5) + 1
+          limit: 5,
+          totalPages: 5, // Math.ceil(21 / 5)
+        },
+      });
     });
   });
 
