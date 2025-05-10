@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/unbound-method */
 import { Request, Response } from 'express';
 import { CaseStatus } from '../../lib/prisma.ts';
 import { caseController } from '../../controllers/caseController.ts';

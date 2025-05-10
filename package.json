@@ -9,6 +9,7 @@
     "dev": "cross-env NODE_OPTIONS=\"--loader ts-node/esm\" nodemon src/server.ts",
     "build": "tsc",
     "lint": "eslint .",
+    "lint:fix": "eslint --fix .",
     "format": "prettier --write 'src/**/*.{js,ts}'",
     "prepare": "husky install",
     "docker:dev": "docker compose --env-file .env.development -f docker-compose.yml -f docker-compose.dev.yml up",

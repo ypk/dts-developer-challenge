@@ -1,10 +1,6 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Request, Response } from 'express';
 import { caseValidation, validate } from '../../middleware/validation.middleware.ts';
-
+import { validationResult } from 'express-validator';
 jest.mock('express-validator', () => {
   const createChainableMock = (prefix = '') => {
     const chainable = {
@@ -85,9 +81,7 @@ describe('Validation Middleware', () => {
         array: jest.fn().mockReturnValue([]),
       };
 
-      (require('express-validator').validationResult as jest.Mock).mockReturnValue(
-        mockValidationResult,
-      );
+      (validationResult as unknown as jest.Mock).mockReturnValue(mockValidationResult);
 
       validate(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -108,9 +102,7 @@ describe('Validation Middleware', () => {
         array: jest.fn().mockReturnValue(mockErrors),
       };
 
-      (require('express-validator').validationResult as jest.Mock).mockReturnValue(
-        mockValidationResult,
-      );
+      (validationResult as unknown as jest.Mock).mockReturnValue(mockValidationResult);
 
       validate(mockRequest as Request, mockResponse as Response, mockNext);
 

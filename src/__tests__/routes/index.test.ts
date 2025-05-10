@@ -1,27 +1,20 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 const mockRouter = {
   use: jest.fn(),
-  get: jest.fn(),
-  post: jest.fn(),
-  put: jest.fn(),
-  delete: jest.fn(),
 };
-
-const mockCaseRoutes = 'mock-case-routes';
 
 jest.mock('express', () => ({
   Router: jest.fn(() => mockRouter),
 }));
 
-jest.mock('../../routes/caseRoutes.ts', () => mockCaseRoutes);
+jest.mock('../../routes/caseRoutes.ts', () => 'caseRoutes-mock');
 
-describe('Routes Index', () => {
+describe('Index Routes', () => {
   let routesModule: any;
 
   beforeEach(async () => {
     jest.clearAllMocks();
     jest.resetModules();
+
     routesModule = await import('../../routes/index.ts');
   });
 
@@ -29,8 +22,8 @@ describe('Routes Index', () => {
     routesModule = null;
   });
 
-  it('should set up case routes under /cases', () => {
-    expect(mockRouter.use).toHaveBeenCalledWith('/cases', mockCaseRoutes);
+  it('should set up /cases route with caseRoutes', () => {
+    expect(mockRouter.use).toHaveBeenCalledWith('/cases', 'caseRoutes-mock');
   });
 
   it('should export the router', () => {

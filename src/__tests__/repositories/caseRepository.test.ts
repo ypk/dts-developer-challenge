@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/unbound-method */
 jest.mock('../../lib/prisma.ts', () => ({
   prisma: {
     case: {

@@ -1,7 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/only-throw-error */
-/* eslint-disable no-console */
-/* eslint-disable @typescript-eslint/unbound-method */
 import { jest } from '@jest/globals';
 import { Request, Response } from 'express';
 

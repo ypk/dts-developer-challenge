@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/unbound-method */
 import { CaseStatus } from '../../lib/prisma.ts';
 import { caseService } from '../../services/caseService.ts';
 import { caseRepository } from '../../repositories/caseRepository.ts';

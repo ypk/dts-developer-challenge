@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/only-throw-error */
 jest.mock('log-symbols', () => ({
   success: '✓',
   error: '✖',
@@ -6,26 +5,77 @@ jest.mock('log-symbols', () => ({
   warning: '⚠',
 }));
 
-import { safelyApplyMiddleware } from '../../utils/middleware.utils.ts';
+import { safelyApplyMiddleware, MiddlewareUtils } from '../../utils/middleware.utils.ts';
+import { IMiddlewareUtils } from '../../interfaces/IMiddlewareUtils';
 import { Application } from 'express';
 
 describe('middleware.utils', () => {
-  describe('safelyApplyMiddleware', () => {
-    let mockApp: Partial<Application>;
-    let mockConsoleLog: jest.SpyInstance;
-    let mockConsoleError: jest.SpyInstance;
+  let mockApp: Partial<Application>;
+  let mockConsoleLog: jest.SpyInstance;
+  let mockConsoleError: jest.SpyInstance;
+  let middlewareUtils: IMiddlewareUtils;
 
-    beforeEach(() => {
-      mockApp = {};
-      mockConsoleLog = jest.spyOn(console, 'log').mockImplementation();
-      mockConsoleError = jest.spyOn(console, 'error').mockImplementation();
+  beforeEach(() => {
+    mockApp = {};
+    mockConsoleLog = jest.spyOn(console, 'log').mockImplementation();
+    mockConsoleError = jest.spyOn(console, 'error').mockImplementation();
+    middlewareUtils = new MiddlewareUtils();
+  });
+
+  afterEach(() => {
+    mockConsoleLog.mockRestore();
+    mockConsoleError.mockRestore();
+  });
+
+  describe('MiddlewareUtils class', () => {
+    it('should execute the middleware function successfully', () => {
+      const middlewareName = 'Test Middleware';
+      const mockFn = jest.fn();
+
+      middlewareUtils.safelyApplyMiddleware(mockApp as Application, middlewareName, mockFn);
+
+      expect(mockFn).toHaveBeenCalledTimes(1);
+      expect(mockConsoleLog).toHaveBeenCalledWith('✓', expect.stringContaining(middlewareName));
+      expect(mockConsoleError).not.toHaveBeenCalled();
     });
 
-    afterEach(() => {
-      mockConsoleLog.mockRestore();
-      mockConsoleError.mockRestore();
+    it('should handle errors when middleware function throws', () => {
+      const middlewareName = 'Error Middleware';
+      const errorMessage = 'Middleware error';
+      const mockFn = jest.fn().mockImplementation(() => {
+        throw new Error(errorMessage);
+      });
+
+      middlewareUtils.safelyApplyMiddleware(mockApp as Application, middlewareName, mockFn);
+
+      expect(mockFn).toHaveBeenCalledTimes(1);
+      expect(mockConsoleLog).not.toHaveBeenCalled();
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        '✖',
+        expect.stringContaining(middlewareName),
+        errorMessage,
+      );
     });
 
+    it('should handle non-Error objects thrown by middleware', () => {
+      const middlewareName = 'String Error Middleware';
+      const mockFn = jest.fn().mockImplementation(() => {
+        throw 'String error';
+      });
+
+      middlewareUtils.safelyApplyMiddleware(mockApp as Application, middlewareName, mockFn);
+
+      expect(mockFn).toHaveBeenCalledTimes(1);
+      expect(mockConsoleLog).not.toHaveBeenCalled();
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        '✖',
+        expect.stringContaining(middlewareName),
+        'Unknown error',
+      );
+    });
+  });
+
+  describe('Exported function', () => {
     it('should execute the middleware function successfully', () => {
       const middlewareName = 'Test Middleware';
       const mockFn = jest.fn();
@@ -52,23 +102,6 @@ describe('middleware.utils', () => {
         '✖',
         expect.stringContaining(middlewareName),
         errorMessage,
-      );
-    });
-
-    it('should handle non-Error objects thrown by middleware', () => {
-      const middlewareName = 'String Error Middleware';
-      const mockFn = jest.fn().mockImplementation(() => {
-        throw 'String error';
-      });
-
-      safelyApplyMiddleware(mockApp as Application, middlewareName, mockFn);
-
-      expect(mockFn).toHaveBeenCalledTimes(1);
-      expect(mockConsoleLog).not.toHaveBeenCalled();
-      expect(mockConsoleError).toHaveBeenCalledWith(
-        '✖',
-        expect.stringContaining(middlewareName),
-        'Unknown error',
       );
     });
   });

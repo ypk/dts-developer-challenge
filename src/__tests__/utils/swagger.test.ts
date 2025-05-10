@@ -1,7 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
- 
 import { Express } from 'express';
 
 const mockSwaggerSpec = {
@@ -20,14 +16,19 @@ jest.mock('swagger-ui-express', () => mockSwaggerUi);
 
 jest.isolateModules(() => {
   let setupSwagger: (app: Express) => void;
+  let getSwaggerOptions: () => any;
+  let SwaggerUtils: any;
 
   beforeAll(async () => {
     const swaggerModule = await import('../../utils/swagger.ts');
     setupSwagger = swaggerModule.setupSwagger;
+    getSwaggerOptions = swaggerModule.getSwaggerOptions;
+    SwaggerUtils = swaggerModule.SwaggerUtils;
   });
 
   describe('Swagger Configuration', () => {
     let mockApp: Partial<Express>;
+    let swaggerUtils: any;
 
     beforeEach(() => {
       jest.clearAllMocks();
@@ -36,82 +37,143 @@ jest.isolateModules(() => {
         use: jest.fn(),
         get: jest.fn(),
       };
+
+      swaggerUtils = new SwaggerUtils();
     });
 
-    it('should set up swagger UI endpoint', () => {
-      setupSwagger(mockApp as Express);
-
-      expect(mockApp.use).toHaveBeenCalledWith(
-        '/api-docs',
-        mockSwaggerUi.serve,
-        'swagger-ui-middleware',
-      );
-
-      expect(mockSwaggerUi.setup).toHaveBeenCalledWith(mockSwaggerSpec);
+    afterAll(() => {
+      jest.resetAllMocks();
     });
 
-    it('should set up swagger JSON endpoint', () => {
-      setupSwagger(mockApp as Express);
+    describe('SwaggerUtils class', () => {
+      it('should set up swagger UI endpoint', () => {
+        swaggerUtils.setupSwagger(mockApp as Express);
 
-      expect(mockApp.get).toHaveBeenCalledWith('/api-docs.json', expect.any(Function));
+        expect(mockApp.use).toHaveBeenCalledWith(
+          '/api-docs',
+          mockSwaggerUi.serve,
+          'swagger-ui-middleware',
+        );
 
-      const handlerFn = (mockApp.get as jest.Mock).mock.calls[0][1];
+        expect(mockSwaggerUi.setup).toHaveBeenCalledWith(mockSwaggerSpec);
+      });
 
-      const mockReq = {};
-      const mockRes = {
-        setHeader: jest.fn(),
-        send: jest.fn(),
-      };
+      it('should set up swagger JSON endpoint', () => {
+        swaggerUtils.setupSwagger(mockApp as Express);
 
-      handlerFn(mockReq, mockRes);
+        expect(mockApp.get).toHaveBeenCalledWith('/api-docs.json', expect.any(Function));
 
-      expect(mockRes.setHeader).toHaveBeenCalledWith('Content-Type', 'application/json');
-      expect(mockRes.send).toHaveBeenCalledWith(mockSwaggerSpec);
+        const handlerFn = (mockApp.get as jest.Mock).mock.calls[0][1];
+
+        const mockReq = {};
+        const mockRes = {
+          setHeader: jest.fn(),
+          send: jest.fn(),
+        };
+
+        handlerFn(mockReq, mockRes);
+
+        expect(mockRes.setHeader).toHaveBeenCalledWith('Content-Type', 'application/json');
+        expect(mockRes.send).toHaveBeenCalledWith(mockSwaggerSpec);
+      });
+
+      it('should use swagger-jsdoc with correct configuration', () => {
+        const options = swaggerUtils.getSwaggerOptions();
+
+        expect(options).toHaveProperty('definition');
+        expect(options).toHaveProperty('apis');
+        expect(options.apis).toEqual(['./src/routes/*.ts']);
+
+        const { definition } = options;
+        expect(definition.openapi).toBe('3.0.0');
+        expect(definition.info.title).toBe('Case Management API');
+        expect(definition.info.version).toBe('1.0.0');
+        expect(definition.servers[0].url).toBe('/api');
+
+        expect(definition.components).toHaveProperty('schemas');
+        expect(definition.components).toHaveProperty('responses');
+
+        const { schemas } = definition.components;
+        expect(schemas).toHaveProperty('Case');
+        expect(schemas).toHaveProperty('CreateCaseRequest');
+        expect(schemas).toHaveProperty('UpdateCaseRequest');
+        expect(schemas).toHaveProperty('UpdateCaseStatusRequest');
+        expect(schemas).toHaveProperty('ErrorResponse');
+
+        expect(schemas.Case.type).toBe('object');
+        expect(schemas.Case.properties).toHaveProperty('id');
+        expect(schemas.Case.properties).toHaveProperty('title');
+        expect(schemas.Case.properties).toHaveProperty('status');
+        expect(schemas.Case.required).toContain('id');
+        expect(schemas.Case.required).toContain('title');
+        expect(schemas.Case.required).toContain('status');
+
+        expect(schemas.CreateCaseRequest.type).toBe('object');
+        expect(schemas.CreateCaseRequest.properties).toHaveProperty('title');
+        expect(schemas.CreateCaseRequest.required).toContain('title');
+
+        const { responses } = definition.components;
+        expect(responses).toHaveProperty('BadRequest');
+        expect(responses).toHaveProperty('NotFound');
+        expect(responses).toHaveProperty('InternalServerError');
+      });
     });
 
-    it('should use swagger-jsdoc with correct configuration', () => {
-      setupSwagger(mockApp as Express);
+    describe('Exported functions', () => {
+      it('should set up swagger UI endpoint', () => {
+        setupSwagger(mockApp as Express);
 
-      expect(mockSwaggerJsdoc).toHaveBeenCalled();
+        expect(mockApp.use).toHaveBeenCalledWith(
+          '/api-docs',
+          mockSwaggerUi.serve,
+          'swagger-ui-middleware',
+        );
 
-      const options = mockSwaggerJsdoc.mock.calls[0][0];
+        expect(mockSwaggerUi.setup).toHaveBeenCalledWith(mockSwaggerSpec);
+      });
 
-      expect(options).toHaveProperty('definition');
-      expect(options).toHaveProperty('apis');
-      expect(options.apis).toEqual(['./src/routes/*.ts']);
+      it('should set up swagger JSON endpoint', () => {
+        setupSwagger(mockApp as Express);
 
-      const { definition } = options;
-      expect(definition.openapi).toBe('3.0.0');
-      expect(definition.info.title).toBe('Case Management API');
-      expect(definition.info.version).toBe('1.0.0');
-      expect(definition.servers[0].url).toBe('/api');
+        expect(mockApp.get).toHaveBeenCalledWith('/api-docs.json', expect.any(Function));
 
-      expect(definition.components).toHaveProperty('schemas');
-      expect(definition.components).toHaveProperty('responses');
+        const handlerFn = (mockApp.get as jest.Mock).mock.calls[0][1];
 
-      const { schemas } = definition.components;
-      expect(schemas).toHaveProperty('Case');
-      expect(schemas).toHaveProperty('CreateCaseRequest');
-      expect(schemas).toHaveProperty('UpdateCaseRequest');
-      expect(schemas).toHaveProperty('UpdateCaseStatusRequest');
-      expect(schemas).toHaveProperty('ErrorResponse');
+        const mockReq = {};
+        const mockRes = {
+          setHeader: jest.fn(),
+          send: jest.fn(),
+        };
 
-      expect(schemas.Case.type).toBe('object');
-      expect(schemas.Case.properties).toHaveProperty('id');
-      expect(schemas.Case.properties).toHaveProperty('title');
-      expect(schemas.Case.properties).toHaveProperty('status');
-      expect(schemas.Case.required).toContain('id');
-      expect(schemas.Case.required).toContain('title');
-      expect(schemas.Case.required).toContain('status');
+        handlerFn(mockReq, mockRes);
 
-      expect(schemas.CreateCaseRequest.type).toBe('object');
-      expect(schemas.CreateCaseRequest.properties).toHaveProperty('title');
-      expect(schemas.CreateCaseRequest.required).toContain('title');
+        expect(mockRes.setHeader).toHaveBeenCalledWith('Content-Type', 'application/json');
+        expect(mockRes.send).toHaveBeenCalledWith(mockSwaggerSpec);
+      });
 
-      const { responses } = definition.components;
-      expect(responses).toHaveProperty('BadRequest');
-      expect(responses).toHaveProperty('NotFound');
-      expect(responses).toHaveProperty('InternalServerError');
+      it('should use swagger-jsdoc with correct configuration', () => {
+        setupSwagger(mockApp as Express);
+
+        expect(mockSwaggerJsdoc).toHaveBeenCalled();
+
+        const options = mockSwaggerJsdoc.mock.calls[0][0];
+
+        expect(options).toHaveProperty('definition');
+        expect(options).toHaveProperty('apis');
+        expect(options.apis).toEqual(['./src/routes/*.ts']);
+      });
+
+      it('should return swagger options from exported getSwaggerOptions function', () => {
+        const options = getSwaggerOptions();
+
+        expect(options).toHaveProperty('definition');
+        expect(options).toHaveProperty('apis');
+        expect(options.apis).toEqual(['./src/routes/*.ts']);
+
+        const { definition } = options;
+        expect(definition.openapi).toBe('3.0.0');
+        expect(definition.info.title).toBe('Case Management API');
+      });
     });
   });
 });
