@@ -2,7 +2,7 @@
 import { CaseStatus } from '../../lib/prisma.ts';
 import { caseService } from '../../services/caseService.ts';
 import { caseRepository } from '../../repositories/caseRepository.ts';
-import { NotFoundError } from '../../utils/errorHandler.ts';
+import { NotFoundError } from '../../middleware/error.middleware.ts';
 
 jest.mock('../../repositories/caseRepository.ts', () => ({
   caseRepository: {

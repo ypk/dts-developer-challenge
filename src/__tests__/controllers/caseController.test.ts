@@ -3,7 +3,7 @@ import { Request, Response } from 'express';
 import { CaseStatus } from '../../lib/prisma.ts';
 import { caseController } from '../../controllers/caseController.ts';
 import { caseService } from '../../services/caseService.ts';
-import { NotFoundError } from '../../utils/errorHandler.ts';
+import { NotFoundError } from '../../middleware/error.middleware.ts';
 import * as responseHandler from '../../utils/responseHandler.ts';
 import * as caseHelper from '../../utils/caseHelper.ts';
 

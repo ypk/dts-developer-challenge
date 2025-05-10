@@ -1,10 +1,29 @@
- 
- 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Request, Response, NextFunction } from 'express';
 import { logger } from './logger.middleware.ts';
 
-export const errorHandler = (err: Error, req: Request, res: Response, next: NextFunction) => {
+class NotFoundError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'NotFoundError';
+  }
+}
+
+class ValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ValidationError';
+  }
+}
+
+class DatabaseError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'DatabaseError';
+  }
+}
+
+const errorHandler = (err: Error, req: Request, res: Response, next: NextFunction) => {
   logger.error({
     message: 'Error caught by error handler',
     error: err.message,
@@ -13,7 +32,15 @@ export const errorHandler = (err: Error, req: Request, res: Response, next: Next
     method: req.method,
   });
 
-  const statusCode = res.statusCode !== 200 ? res.statusCode : 500;
+  let statusCode = res.statusCode !== 200 ? res.statusCode : 500;
+
+  if (err instanceof NotFoundError) {
+    statusCode = 404;
+  } else if (err instanceof ValidationError) {
+    statusCode = 400;
+  } else if (err instanceof DatabaseError) {
+    statusCode = 500;
+  }
 
   res.status(statusCode).json({
     success: false,
@@ -21,3 +48,5 @@ export const errorHandler = (err: Error, req: Request, res: Response, next: Next
     stack: process.env.NODE_ENV === 'production' ? undefined : err.stack,
   });
 };
+
+export { NotFoundError, ValidationError, DatabaseError, errorHandler };

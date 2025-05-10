@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { sendError, sendBadRequest } from '../utils/responseHandler.ts';
-import { NotFoundError } from './errorHandler.ts';
+import { NotFoundError } from '../middleware/error.middleware.ts';
 
 export const validateAndParseId = (req: Request, res: Response): number | null => {
   const id = parseInt(req.params.id);
