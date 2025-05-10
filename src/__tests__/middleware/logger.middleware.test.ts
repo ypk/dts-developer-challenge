@@ -40,7 +40,6 @@ jest.mock('path', () => ({
 import { Request, Response, NextFunction } from 'express';
 import { requestLogger, logger } from '../../middleware/logger.middleware.ts';
 import fs from 'fs';
-import winston from 'winston';
 
 describe('Logger Middleware', () => {
   let mockRequest: Partial<Request>;
@@ -246,63 +245,99 @@ describe('Logger Middleware', () => {
   });
 
   describe('Winston transport configuration', () => {
-    beforeEach(() => {
-      jest.clearAllMocks();
-      jest.resetModules();
+    const originalNodeEnv = process.env.NODE_ENV;
+
+    afterAll(() => {
+      process.env.NODE_ENV = originalNodeEnv;
     });
 
-    it('should include or exclude file transports based on NODE_ENV', () => {
-      // We need to directly execute the code from logger.middleware.ts
+    it('should NOT include file transports when NODE_ENV is "test"', async () => {
+      jest.resetModules();
 
-      // First test with NODE_ENV=test
+      jest.doMock('winston', () => {
+        const mockLogger = {
+          info: jest.fn(),
+          error: jest.fn(),
+          warn: jest.fn(),
+          debug: jest.fn(),
+        };
+
+        return {
+          format: {
+            combine: jest.fn().mockReturnThis(),
+            timestamp: jest.fn().mockReturnThis(),
+            json: jest.fn().mockReturnThis(),
+            colorize: jest.fn().mockReturnThis(),
+            simple: jest.fn().mockReturnThis(),
+          },
+          createLogger: jest.fn().mockReturnValue(mockLogger),
+          transports: {
+            Console: jest.fn(),
+            File: jest.fn(),
+          },
+        };
+      });
+
       process.env.NODE_ENV = 'test';
 
-      // This is the exact code from logger.middleware.ts
-      const testTransports = [
-        new winston.transports.Console({
-          format: winston.format.combine(winston.format.colorize(), winston.format.simple()),
-        }),
-        ...(process.env.NODE_ENV !== 'test'
-          ? [
-              new winston.transports.File({
-                filename: '/mocked/path/logs/error.log',
-                level: 'error',
-              }),
-              new winston.transports.File({ filename: '/mocked/path/logs/combined.log' }),
-            ]
-          : []),
-      ];
+      const winston = await import('winston');
 
-      // Verify that only Console transport was created
+      await import('../../middleware/logger.middleware.ts');
+
       expect(winston.transports.Console).toHaveBeenCalledTimes(1);
       expect(winston.transports.File).not.toHaveBeenCalled();
-      expect(testTransports.length).toBe(1);
+    });
 
-      jest.clearAllMocks();
+    it('should include file transports when NODE_ENV is NOT "test"', async () => {
+      jest.resetModules();
 
-      // Now test with NODE_ENV=development
+      jest.doMock('winston', () => {
+        const mockLogger = {
+          info: jest.fn(),
+          error: jest.fn(),
+          warn: jest.fn(),
+          debug: jest.fn(),
+        };
+
+        return {
+          format: {
+            combine: jest.fn().mockReturnThis(),
+            timestamp: jest.fn().mockReturnThis(),
+            json: jest.fn().mockReturnThis(),
+            colorize: jest.fn().mockReturnThis(),
+            simple: jest.fn().mockReturnThis(),
+          },
+          createLogger: jest.fn().mockReturnValue(mockLogger),
+          transports: {
+            Console: jest.fn(),
+            File: jest.fn(),
+          },
+        };
+      });
+
       process.env.NODE_ENV = 'development';
 
-      // This is the exact code from logger.middleware.ts
-      const devTransports = [
-        new winston.transports.Console({
-          format: winston.format.combine(winston.format.colorize(), winston.format.simple()),
-        }),
-        ...(process.env.NODE_ENV !== 'test'
-          ? [
-              new winston.transports.File({
-                filename: '/mocked/path/logs/error.log',
-                level: 'error',
-              }),
-              new winston.transports.File({ filename: '/mocked/path/logs/combined.log' }),
-            ]
-          : []),
-      ];
+      const winston = await import('winston');
 
-      // Verify that Console and File transports were created
+      await import('../../middleware/logger.middleware.ts');
+
       expect(winston.transports.Console).toHaveBeenCalledTimes(1);
       expect(winston.transports.File).toHaveBeenCalledTimes(2);
-      expect(devTransports.length).toBe(3);
+
+      expect(winston.transports.File).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          filename: '/mocked/path/logs',
+          level: 'error',
+        }),
+      );
+
+      expect(winston.transports.File).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          filename: '/mocked/path/logs',
+        }),
+      );
     });
   });
 });
