@@ -33,12 +33,26 @@ jest.mock('../../middleware/validation.middleware', () => ({
   validate: 'validate-mock',
 }));
 
+jest.mock('../../middleware/pagination.middleware.ts', () => ({
+  paginationMiddleware: 'pagination-middleware-mock',
+  DEFAULT_PAGE: 1,
+  DEFAULT_LIMIT: 10,
+  MAX_LIMIT: 100,
+}));
+
 describe('Case Routes', () => {
   let routesModule: any;
 
   beforeEach(async () => {
     jest.clearAllMocks();
     jest.resetModules();
+
+    jest.mock('../../middleware/pagination.middleware.ts', () => ({
+      paginationMiddleware: 'pagination-middleware-mock',
+      DEFAULT_PAGE: 1,
+      DEFAULT_LIMIT: 10,
+      MAX_LIMIT: 100,
+    }));
 
     routesModule = await import('../../routes/caseRoutes.ts');
   });
@@ -47,8 +61,12 @@ describe('Case Routes', () => {
     routesModule = null;
   });
 
-  it('should set up GET / route for getAllCases', () => {
-    expect(mockRouter.get).toHaveBeenCalledWith('/', 'getAllCases-mock');
+  it('should set up GET / route for getAllCases with pagination middleware', () => {
+    expect(mockRouter.get).toHaveBeenCalledWith(
+      '/',
+      'pagination-middleware-mock',
+      'getAllCases-mock',
+    );
   });
 
   it('should set up GET /:id route for getCaseById', () => {

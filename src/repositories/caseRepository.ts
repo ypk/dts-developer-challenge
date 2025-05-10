@@ -20,10 +20,12 @@ export const caseRepository = {
   },
 
   async findAllPaginated(skip = 0, limit = 10): Promise<PaginatedResult<Case>> {
+    const safeLimit = limit <= 0 ? 10 : limit;
+
     const [data, total] = await Promise.all([
       prisma.case.findMany({
         skip,
-        take: limit,
+        take: safeLimit,
         orderBy: { updatedAt: 'desc' },
       }),
       prisma.case.count(),
@@ -33,9 +35,9 @@ export const caseRepository = {
       data,
       meta: {
         total,
-        page: Math.floor(skip / limit) + 1,
-        limit,
-        totalPages: Math.ceil(total / limit),
+        page: Math.floor(skip / safeLimit) + 1,
+        limit: safeLimit,
+        totalPages: Math.ceil(total / safeLimit),
       },
     };
   },

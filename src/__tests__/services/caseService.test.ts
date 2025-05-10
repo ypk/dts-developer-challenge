@@ -12,6 +12,7 @@ jest.mock('../../repositories/caseRepository.ts', () => ({
     update: jest.fn(),
     updateStatus: jest.fn(),
     delete: jest.fn(),
+    findAllPaginated: jest.fn(),
   },
 }));
 
@@ -33,6 +34,58 @@ describe('Case Service', () => {
 
       expect(caseRepository.findAll).toHaveBeenCalledTimes(1);
       expect(result).toEqual(mockCases);
+    });
+  });
+
+  describe('getAllCasesPaginated', () => {
+    it('should return paginated cases with default values', async () => {
+      const mockPaginatedResult = {
+        data: [
+          { id: 1, title: 'Case 1', status: CaseStatus.PENDING },
+          { id: 2, title: 'Case 2', status: CaseStatus.IN_PROGRESS },
+        ],
+        meta: {
+          total: 10,
+          page: 1,
+          limit: 10,
+          totalPages: 1,
+        },
+      };
+
+      (caseRepository.findAllPaginated as jest.Mock).mockResolvedValue(mockPaginatedResult);
+
+      const result = await caseService.getAllCasesPaginated();
+
+      expect(caseRepository.findAllPaginated).toHaveBeenCalledTimes(1);
+      expect(caseRepository.findAllPaginated).toHaveBeenCalledWith(0, 10);
+      expect(result).toEqual(mockPaginatedResult);
+    });
+
+    it('should calculate skip value correctly and pass to repository', async () => {
+      const page = 3;
+      const limit = 15;
+      const expectedSkip = (page - 1) * limit;
+
+      const mockPaginatedResult = {
+        data: [
+          { id: 31, title: 'Case 31', status: CaseStatus.PENDING },
+          { id: 32, title: 'Case 32', status: CaseStatus.IN_PROGRESS },
+        ],
+        meta: {
+          total: 50,
+          page: 3,
+          limit: 15,
+          totalPages: 4,
+        },
+      };
+
+      (caseRepository.findAllPaginated as jest.Mock).mockResolvedValue(mockPaginatedResult);
+
+      const result = await caseService.getAllCasesPaginated(page, limit);
+
+      expect(caseRepository.findAllPaginated).toHaveBeenCalledTimes(1);
+      expect(caseRepository.findAllPaginated).toHaveBeenCalledWith(expectedSkip, limit);
+      expect(result).toEqual(mockPaginatedResult);
     });
   });
 
