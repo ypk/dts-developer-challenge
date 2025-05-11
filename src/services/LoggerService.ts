@@ -1,9 +1,11 @@
 import winston from 'winston';
+import { injectable } from 'inversify';
 import { ILoggerService } from '../interfaces/ILoggerService.ts';
 
 /**
  * Implementation of logger service using Winston
  */
+@injectable()
 export class LoggerService implements ILoggerService {
   private logger: winston.Logger;
 
@@ -89,6 +91,3 @@ export class LoggerService implements ILoggerService {
     return childLogger;
   }
 }
-
-// Create a singleton instance
-export const loggerService = new LoggerService();

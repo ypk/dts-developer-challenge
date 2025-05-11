@@ -6,20 +6,21 @@ import { ICaseService } from '../interfaces/ICaseService.ts';
 import { ICaseController } from '../interfaces/ICaseController.ts';
 import { ICaseHelper } from '../interfaces/ICaseHelper.ts';
 import { IResponseHandler } from '../interfaces/IResponseHandler.ts';
-import { ILoggerService } from '../interfaces/ILoggerService.ts';
 
 import { CaseRepository } from '../repositories/CaseRepository.ts';
 import { CaseService } from '../services/CaseService.ts';
 import { CaseController } from '../controllers/CaseController.ts';
 import { CaseHelper } from '../utils/caseHelper.ts';
 import { ResponseHandler } from '../utils/responseHandler.ts';
+
 import { LoggerService } from '../services/LoggerService.ts';
+import { ILoggerService } from '../interfaces/ILoggerService.ts';
 
 export const container = new Container();
 
 container.bind<IResponseHandler>(TYPES.ResponseHandler).to(ResponseHandler).inSingletonScope();
 
-container.bind<ILoggerService>(TYPES.LoggerService).toConstantValue(new LoggerService());
+container.bind<ILoggerService>(TYPES.LoggerService).to(LoggerService).inSingletonScope();
 
 container.bind<ICaseRepository>(TYPES.CaseRepository).to(CaseRepository).inSingletonScope();
 
