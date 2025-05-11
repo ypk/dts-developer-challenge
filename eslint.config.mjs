@@ -57,13 +57,17 @@ function getBaseConfig() {
 function getNonSrcConfig() {
     return {
         files: [
-            'prisma/**/*',
+            'coverage/**/*',
+            'dist/**/*',
             '*.config.js',
+            '*.config.mjs',
+            'prisma/**/*',
+            'scripts/**/*'
         ],
         ignores: ['**/*.d.ts'],
         languageOptions: {
             parserOptions: {
-                project: null, // Don't run type checking on these files
+                project: null,
             },
         },
         rules: getBaseRules('off'),
