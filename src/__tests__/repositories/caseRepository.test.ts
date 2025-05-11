@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/unbound-method */
-jest.mock('../../lib/prisma.ts', () => ({
+jest.mock('../../services/PrismaService.ts', () => ({
   prisma: {
     case: {
       findMany: jest.fn(),
@@ -18,7 +16,7 @@ jest.mock('../../lib/prisma.ts', () => ({
   },
 }));
 
-import { prisma, CaseStatus } from '../../lib/prisma.ts';
+import { prisma, CaseStatus } from '../../services/PrismaService.ts';
 import { caseRepository } from '../../repositories/caseRepository.ts';
 
 describe('Case Repository', () => {

@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/unbound-method */
 import { Request, Response } from 'express';
-import { CaseStatus } from '../../lib/prisma.ts';
-import { caseController } from '../../controllers/caseController.ts';
+import { CaseStatus } from '../../services/PrismaService.ts';
+import { CaseControllerInstance } from '../../controllers/CaseController.ts';
 import { caseService } from '../../services/caseService.ts';
 import { NotFoundError } from '../../middleware/error.middleware.ts';
 import * as responseHandler from '../../utils/responseHandler.ts';
@@ -44,7 +43,7 @@ describe('Case Controller', () => {
 
       (caseService.getAllCases as jest.Mock).mockResolvedValue(mockCases);
 
-      await caseController.getAllCases(mockRequest as Request, mockResponse as Response);
+      await CaseControllerInstance.getAllCases(mockRequest as Request, mockResponse as Response);
 
       expect(caseService.getAllCases).toHaveBeenCalledTimes(1);
       expect(responseHandler.sendSuccess).toHaveBeenCalledWith(mockResponse, {
@@ -76,7 +75,7 @@ describe('Case Controller', () => {
 
       (caseService.getAllCasesPaginated as jest.Mock).mockResolvedValue(mockPaginatedResult);
 
-      await caseController.getAllCases(mockRequest as Request, mockResponse as Response);
+      await CaseControllerInstance.getAllCases(mockRequest as Request, mockResponse as Response);
 
       expect(caseService.getAllCasesPaginated).toHaveBeenCalledTimes(1);
       expect(caseService.getAllCasesPaginated).toHaveBeenCalledWith(1, 10);
@@ -92,7 +91,7 @@ describe('Case Controller', () => {
       const error = new Error('Database error');
       (caseService.getAllCases as jest.Mock).mockRejectedValue(error);
 
-      await caseController.getAllCases(mockRequest as Request, mockResponse as Response);
+      await CaseControllerInstance.getAllCases(mockRequest as Request, mockResponse as Response);
 
       expect(caseService.getAllCases).toHaveBeenCalledTimes(1);
       expect(responseHandler.sendError).toHaveBeenCalledWith(
@@ -112,7 +111,7 @@ describe('Case Controller', () => {
 
       (caseService.getAllCasesPaginated as jest.Mock).mockRejectedValue(error);
 
-      await caseController.getAllCases(mockRequest as Request, mockResponse as Response);
+      await CaseControllerInstance.getAllCases(mockRequest as Request, mockResponse as Response);
 
       expect(caseService.getAllCasesPaginated).toHaveBeenCalledTimes(1);
       expect(caseService.getAllCasesPaginated).toHaveBeenCalledWith(2, 15);
@@ -132,7 +131,7 @@ describe('Case Controller', () => {
       (caseHelper.validateAndParseId as jest.Mock).mockReturnValue(1);
       (caseService.getCaseById as jest.Mock).mockResolvedValue(mockCase);
 
-      await caseController.getCaseById(mockRequest as Request, mockResponse as Response);
+      await CaseControllerInstance.getCaseById(mockRequest as Request, mockResponse as Response);
 
       expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
       expect(caseService.getCaseById).toHaveBeenCalledWith(1);
@@ -147,7 +146,7 @@ describe('Case Controller', () => {
 
       (caseHelper.validateAndParseId as jest.Mock).mockReturnValue(null);
 
-      await caseController.getCaseById(mockRequest as Request, mockResponse as Response);
+      await CaseControllerInstance.getCaseById(mockRequest as Request, mockResponse as Response);
 
       expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
       expect(caseService.getCaseById).not.toHaveBeenCalled();
@@ -162,7 +161,7 @@ describe('Case Controller', () => {
       (caseService.getCaseById as jest.Mock).mockRejectedValue(error);
       (caseHelper.handleNotFoundError as jest.Mock).mockReturnValue(true);
 
-      await caseController.getCaseById(mockRequest as Request, mockResponse as Response);
+      await CaseControllerInstance.getCaseById(mockRequest as Request, mockResponse as Response);
 
       expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
       expect(caseService.getCaseById).toHaveBeenCalledWith(999);
@@ -178,7 +177,7 @@ describe('Case Controller', () => {
       (caseService.getCaseById as jest.Mock).mockRejectedValue(error);
       (caseHelper.handleNotFoundError as jest.Mock).mockReturnValue(false);
 
-      await caseController.getCaseById(mockRequest as Request, mockResponse as Response);
+      await CaseControllerInstance.getCaseById(mockRequest as Request, mockResponse as Response);
 
       expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
       expect(caseService.getCaseById).toHaveBeenCalledWith(1);
@@ -212,7 +211,7 @@ describe('Case Controller', () => {
 
       (caseService.createCase as jest.Mock).mockResolvedValue(mockCreatedCase);
 
-      await caseController.createCase(mockRequest as Request, mockResponse as Response);
+      await CaseControllerInstance.createCase(mockRequest as Request, mockResponse as Response);
 
       expect(caseService.createCase).toHaveBeenCalledWith({
         title: caseData.title,
@@ -249,7 +248,7 @@ describe('Case Controller', () => {
 
       (caseService.createCase as jest.Mock).mockResolvedValue(mockCreatedCase);
 
-      await caseController.createCase(mockRequest as Request, mockResponse as Response);
+      await CaseControllerInstance.createCase(mockRequest as Request, mockResponse as Response);
 
       expect(caseService.createCase).toHaveBeenCalledWith({
         title: caseData.title,
@@ -263,7 +262,7 @@ describe('Case Controller', () => {
         description: 'Test description',
       };
 
-      await caseController.createCase(mockRequest as Request, mockResponse as Response);
+      await CaseControllerInstance.createCase(mockRequest as Request, mockResponse as Response);
 
       expect(caseService.createCase).not.toHaveBeenCalled();
       expect(responseHandler.sendBadRequest).toHaveBeenCalledWith(
@@ -284,7 +283,7 @@ describe('Case Controller', () => {
 
       (caseService.createCase as jest.Mock).mockRejectedValue(error);
 
-      await caseController.createCase(mockRequest as Request, mockResponse as Response);
+      await CaseControllerInstance.createCase(mockRequest as Request, mockResponse as Response);
 
       expect(responseHandler.sendError).toHaveBeenCalledWith(
         mockResponse,
@@ -317,7 +316,7 @@ describe('Case Controller', () => {
       (caseHelper.validateAndParseId as jest.Mock).mockReturnValue(1);
       (caseService.updateCase as jest.Mock).mockResolvedValue(mockUpdatedCase);
 
-      await caseController.updateCase(mockRequest as Request, mockResponse as Response);
+      await CaseControllerInstance.updateCase(mockRequest as Request, mockResponse as Response);
 
       expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
       expect(caseService.updateCase).toHaveBeenCalledWith(1, {
@@ -339,7 +338,7 @@ describe('Case Controller', () => {
 
       (caseHelper.validateAndParseId as jest.Mock).mockReturnValue(null);
 
-      await caseController.updateCase(mockRequest as Request, mockResponse as Response);
+      await CaseControllerInstance.updateCase(mockRequest as Request, mockResponse as Response);
 
       expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
       expect(caseService.updateCase).not.toHaveBeenCalled();
@@ -351,7 +350,7 @@ describe('Case Controller', () => {
 
       (caseHelper.validateAndParseId as jest.Mock).mockReturnValue(1);
 
-      await caseController.updateCase(mockRequest as Request, mockResponse as Response);
+      await CaseControllerInstance.updateCase(mockRequest as Request, mockResponse as Response);
 
       expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
       expect(caseService.updateCase).not.toHaveBeenCalled();
@@ -371,7 +370,7 @@ describe('Case Controller', () => {
       (caseService.updateCase as jest.Mock).mockRejectedValue(error);
       (caseHelper.handleNotFoundError as jest.Mock).mockReturnValue(true);
 
-      await caseController.updateCase(mockRequest as Request, mockResponse as Response);
+      await CaseControllerInstance.updateCase(mockRequest as Request, mockResponse as Response);
 
       expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
       expect(caseService.updateCase).toHaveBeenCalledWith(999, { title: 'Updated Case' });
@@ -388,7 +387,7 @@ describe('Case Controller', () => {
       (caseService.updateCase as jest.Mock).mockRejectedValue(error);
       (caseHelper.handleNotFoundError as jest.Mock).mockReturnValue(false);
 
-      await caseController.updateCase(mockRequest as Request, mockResponse as Response);
+      await CaseControllerInstance.updateCase(mockRequest as Request, mockResponse as Response);
 
       expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
       expect(caseService.updateCase).toHaveBeenCalledWith(1, { title: 'Updated Case' });
@@ -419,7 +418,10 @@ describe('Case Controller', () => {
       (caseHelper.validateAndParseId as jest.Mock).mockReturnValue(1);
       (caseService.updateCaseStatus as jest.Mock).mockResolvedValue(mockUpdatedCase);
 
-      await caseController.updateCaseStatus(mockRequest as Request, mockResponse as Response);
+      await CaseControllerInstance.updateCaseStatus(
+        mockRequest as Request,
+        mockResponse as Response,
+      );
 
       expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
       expect(caseService.updateCaseStatus).toHaveBeenCalledWith(1, newStatus);
@@ -435,7 +437,10 @@ describe('Case Controller', () => {
 
       (caseHelper.validateAndParseId as jest.Mock).mockReturnValue(null);
 
-      await caseController.updateCaseStatus(mockRequest as Request, mockResponse as Response);
+      await CaseControllerInstance.updateCaseStatus(
+        mockRequest as Request,
+        mockResponse as Response,
+      );
 
       expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
       expect(caseService.updateCaseStatus).not.toHaveBeenCalled();
@@ -447,7 +452,10 @@ describe('Case Controller', () => {
 
       (caseHelper.validateAndParseId as jest.Mock).mockReturnValue(1);
 
-      await caseController.updateCaseStatus(mockRequest as Request, mockResponse as Response);
+      await CaseControllerInstance.updateCaseStatus(
+        mockRequest as Request,
+        mockResponse as Response,
+      );
 
       expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
       expect(caseService.updateCaseStatus).not.toHaveBeenCalled();
@@ -463,7 +471,10 @@ describe('Case Controller', () => {
 
       (caseHelper.validateAndParseId as jest.Mock).mockReturnValue(1);
 
-      await caseController.updateCaseStatus(mockRequest as Request, mockResponse as Response);
+      await CaseControllerInstance.updateCaseStatus(
+        mockRequest as Request,
+        mockResponse as Response,
+      );
 
       expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
       expect(caseService.updateCaseStatus).not.toHaveBeenCalled();
@@ -483,7 +494,10 @@ describe('Case Controller', () => {
       (caseService.updateCaseStatus as jest.Mock).mockRejectedValue(error);
       (caseHelper.handleNotFoundError as jest.Mock).mockReturnValue(true);
 
-      await caseController.updateCaseStatus(mockRequest as Request, mockResponse as Response);
+      await CaseControllerInstance.updateCaseStatus(
+        mockRequest as Request,
+        mockResponse as Response,
+      );
 
       expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
       expect(caseService.updateCaseStatus).toHaveBeenCalledWith(999, CaseStatus.COMPLETED);
@@ -500,7 +514,10 @@ describe('Case Controller', () => {
       (caseService.updateCaseStatus as jest.Mock).mockRejectedValue(error);
       (caseHelper.handleNotFoundError as jest.Mock).mockReturnValue(false);
 
-      await caseController.updateCaseStatus(mockRequest as Request, mockResponse as Response);
+      await CaseControllerInstance.updateCaseStatus(
+        mockRequest as Request,
+        mockResponse as Response,
+      );
 
       expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
       expect(caseService.updateCaseStatus).toHaveBeenCalledWith(1, CaseStatus.COMPLETED);
@@ -520,7 +537,7 @@ describe('Case Controller', () => {
       (caseHelper.validateAndParseId as jest.Mock).mockReturnValue(1);
       (caseService.deleteCase as jest.Mock).mockResolvedValue(undefined);
 
-      await caseController.deleteCase(mockRequest as Request, mockResponse as Response);
+      await CaseControllerInstance.deleteCase(mockRequest as Request, mockResponse as Response);
 
       expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
       expect(caseService.deleteCase).toHaveBeenCalledWith(1);
@@ -532,7 +549,7 @@ describe('Case Controller', () => {
 
       (caseHelper.validateAndParseId as jest.Mock).mockReturnValue(null);
 
-      await caseController.deleteCase(mockRequest as Request, mockResponse as Response);
+      await CaseControllerInstance.deleteCase(mockRequest as Request, mockResponse as Response);
 
       expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
       expect(caseService.deleteCase).not.toHaveBeenCalled();
@@ -548,7 +565,7 @@ describe('Case Controller', () => {
       (caseService.deleteCase as jest.Mock).mockRejectedValue(error);
       (caseHelper.handleNotFoundError as jest.Mock).mockReturnValue(true);
 
-      await caseController.deleteCase(mockRequest as Request, mockResponse as Response);
+      await CaseControllerInstance.deleteCase(mockRequest as Request, mockResponse as Response);
 
       expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
       expect(caseService.deleteCase).toHaveBeenCalledWith(999);
@@ -565,7 +582,7 @@ describe('Case Controller', () => {
       (caseService.deleteCase as jest.Mock).mockRejectedValue(error);
       (caseHelper.handleNotFoundError as jest.Mock).mockReturnValue(false);
 
-      await caseController.deleteCase(mockRequest as Request, mockResponse as Response);
+      await CaseControllerInstance.deleteCase(mockRequest as Request, mockResponse as Response);
 
       expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
       expect(caseService.deleteCase).toHaveBeenCalledWith(1);

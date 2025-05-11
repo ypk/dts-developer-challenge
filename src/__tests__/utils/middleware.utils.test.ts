@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/only-throw-error */
 jest.mock('log-symbols', () => ({
   success: '✓',
   error: '✖',

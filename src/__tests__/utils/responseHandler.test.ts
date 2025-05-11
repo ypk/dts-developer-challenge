@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { Response } from 'express';
 import {
   sendSuccess,

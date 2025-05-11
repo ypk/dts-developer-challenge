@@ -1,13 +1,30 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/**
+ * Case Controller Module
+ * @module CaseController
+ * @description Provides HTTP request handlers for case-related operations
+ */
+
 import { Request, Response } from 'express';
-import { CaseStatus } from '../lib/prisma.ts';
+import { CaseStatus } from '../services/PrismaService.ts';
 import { caseService } from '../services/caseService.ts';
 import { sendSuccess, sendError, sendBadRequest, sendNoContent } from '../utils/responseHandler.ts';
 import { validateAndParseId, handleNotFoundError } from '../utils/caseHelper.ts';
 
-export const caseController = {
-  getAllCases: async (req: Request, res: Response): Promise<void> => {
+/**
+ * Controller responsible for handling case-related HTTP requests
+ * @class CaseController
+ * @description Implements REST endpoints for CRUD operations on cases
+ */
+export class CaseController {
+  /**
+   * Retrieves all cases with optional pagination
+   * @async
+   * @param {Request} req - Express request object
+   * @param {Response} res - Express response object
+   * @returns {Promise<void>} - Promise representing the completion of the request handling
+   * @throws {Error} - If there's an error retrieving cases
+   */
+  public async getAllCases(req: Request, res: Response): Promise<void> {
     try {
       if (req.pagination) {
         const { page, limit } = req.pagination;
@@ -31,9 +48,17 @@ export const caseController = {
     } catch (error) {
       sendError(res, 'Failed to retrieve cases', error);
     }
-  },
+  }
 
-  getCaseById: async (req: Request, res: Response): Promise<void> => {
+  /**
+   * Retrieves a specific case by ID
+   * @async
+   * @param {Request} req - Express request object containing case ID in params
+   * @param {Response} res - Express response object
+   * @returns {Promise<void>} - Promise representing the completion of the request handling
+   * @throws {Error} - If there's an error retrieving the case or if the case is not found
+   */
+  public async getCaseById(req: Request, res: Response): Promise<void> {
     try {
       const id = validateAndParseId(req, res);
       if (id === null) return;
@@ -52,9 +77,17 @@ export const caseController = {
     } catch (error) {
       sendError(res, 'Failed to retrieve case', error);
     }
-  },
+  }
 
-  createCase: async (req: Request, res: Response): Promise<void> => {
+  /**
+   * Creates a new case
+   * @async
+   * @param {Request} req - Express request object containing case data in the body
+   * @param {Response} res - Express response object
+   * @returns {Promise<void>} - Promise representing the completion of the request handling
+   * @throws {Error} - If there's an error creating the case
+   */
+  public async createCase(req: Request, res: Response): Promise<void> {
     try {
       const { title, description, status, dueDate } = req.body;
 
@@ -80,9 +113,17 @@ export const caseController = {
     } catch (error) {
       sendError(res, 'Failed to create case', error);
     }
-  },
+  }
 
-  updateCase: async (req: Request, res: Response): Promise<void> => {
+  /**
+   * Updates an existing case
+   * @async
+   * @param {Request} req - Express request object containing case ID in params and update data in body
+   * @param {Response} res - Express response object
+   * @returns {Promise<void>} - Promise representing the completion of the request handling
+   * @throws {Error} - If there's an error updating the case or if the case is not found
+   */
+  public async updateCase(req: Request, res: Response): Promise<void> {
     try {
       const id = validateAndParseId(req, res);
       if (id === null) return;
@@ -114,9 +155,17 @@ export const caseController = {
     } catch (error) {
       sendError(res, 'Failed to update case', error);
     }
-  },
+  }
 
-  updateCaseStatus: async (req: Request, res: Response): Promise<void> => {
+  /**
+   * Updates only the status of an existing case
+   * @async
+   * @param {Request} req - Express request object containing case ID in params and status in body
+   * @param {Response} res - Express response object
+   * @returns {Promise<void>} - Promise representing the completion of the request handling
+   * @throws {Error} - If there's an error updating the case status or if the case is not found
+   */
+  public async updateCaseStatus(req: Request, res: Response): Promise<void> {
     try {
       const id = validateAndParseId(req, res);
       if (id === null) return;
@@ -148,9 +197,17 @@ export const caseController = {
     } catch (error) {
       sendError(res, 'Failed to update case status', error);
     }
-  },
+  }
 
-  deleteCase: async (req: Request, res: Response): Promise<void> => {
+  /**
+   * Deletes a case by ID
+   * @async
+   * @param {Request} req - Express request object containing case ID in params
+   * @param {Response} res - Express response object
+   * @returns {Promise<void>} - Promise representing the completion of the request handling
+   * @throws {Error} - If there's an error deleting the case or if the case is not found
+   */
+  public async deleteCase(req: Request, res: Response): Promise<void> {
     try {
       const id = validateAndParseId(req, res);
       if (id === null) return;
@@ -165,5 +222,12 @@ export const caseController = {
     } catch (error) {
       sendError(res, 'Failed to delete case', error);
     }
-  },
-};
+  }
+}
+
+/**
+ * Singleton instance of the CaseController class
+ * @type {CaseController}
+ * @description Exported for use in route definitions and other modules
+ */
+export const CaseControllerInstance = new CaseController();

@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 const mockRouter = {
   get: jest.fn(),
   post: jest.fn(),
@@ -12,7 +10,7 @@ jest.mock('express', () => ({
   Router: jest.fn(() => mockRouter),
 }));
 
-jest.mock('../../controllers/caseController.ts', () => ({
+jest.mock('../../controllers/CaseController.ts', () => ({
   caseController: {
     getAllCases: 'getAllCases-mock',
     getCaseById: 'getCaseById-mock',

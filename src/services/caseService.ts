@@ -1,4 +1,4 @@
-import { Case, CaseStatus, Prisma } from '../lib/prisma.ts';
+import { Case, CaseStatus, Prisma } from './PrismaService.ts';
 import { caseRepository, PaginatedResult } from '../repositories/caseRepository.ts';
 import { NotFoundError } from '../middleware/error.middleware.ts';
 

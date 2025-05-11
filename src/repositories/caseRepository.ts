@@ -1,4 +1,4 @@
-import { prisma, CaseStatus, Case, Prisma } from '../lib/prisma.ts';
+import { prisma, CaseStatus, Case, Prisma } from '../services/PrismaService.ts';
 
 export interface PaginatedResult<T> {
   data: T[];
