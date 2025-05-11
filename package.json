@@ -25,7 +25,8 @@
     "prisma:migrate": "prisma migrate deploy",
     "prisma:dev:migrate": "npx prisma migrate dev --name init",
     "prisma:dev:reset": "npx prisma migrate reset",
-    "prisma:dev:seed": "cross-env NODE_OPTIONS=\"--loader ts-node/esm\" node prisma/seed.ts"
+    "prisma:dev:seed": "cross-env NODE_OPTIONS=\"--loader ts-node/esm\" node prisma/seed.ts",
+    "postinstall": "node scripts/setup-env.js"
   },
   "keywords": [],
   "author": "",
