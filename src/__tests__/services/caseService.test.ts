@@ -1,5 +1,5 @@
 import { CaseStatus } from '../../services/PrismaService.ts';
-import { caseService } from '../../services/caseService.ts';
+import { CaseServiceInstance } from '../../services/CaseService.ts';
 import { caseRepository } from '../../repositories/caseRepository.ts';
 import { NotFoundError } from '../../middleware/error.middleware.ts';
 
@@ -29,7 +29,7 @@ describe('Case Service', () => {
 
       (caseRepository.findAll as jest.Mock).mockResolvedValue(mockCases);
 
-      const result = await caseService.getAllCases();
+      const result = await CaseServiceInstance.getAllCases();
 
       expect(caseRepository.findAll).toHaveBeenCalledTimes(1);
       expect(result).toEqual(mockCases);
@@ -53,7 +53,7 @@ describe('Case Service', () => {
 
       (caseRepository.findAllPaginated as jest.Mock).mockResolvedValue(mockPaginatedResult);
 
-      const result = await caseService.getAllCasesPaginated();
+      const result = await CaseServiceInstance.getAllCasesPaginated();
 
       expect(caseRepository.findAllPaginated).toHaveBeenCalledTimes(1);
       expect(caseRepository.findAllPaginated).toHaveBeenCalledWith(0, 10);
@@ -80,7 +80,7 @@ describe('Case Service', () => {
 
       (caseRepository.findAllPaginated as jest.Mock).mockResolvedValue(mockPaginatedResult);
 
-      const result = await caseService.getAllCasesPaginated(page, limit);
+      const result = await CaseServiceInstance.getAllCasesPaginated(page, limit);
 
       expect(caseRepository.findAllPaginated).toHaveBeenCalledTimes(1);
       expect(caseRepository.findAllPaginated).toHaveBeenCalledWith(expectedSkip, limit);
@@ -94,7 +94,7 @@ describe('Case Service', () => {
 
       (caseRepository.findById as jest.Mock).mockResolvedValue(mockCase);
 
-      const result = await caseService.getCaseById(1);
+      const result = await CaseServiceInstance.getCaseById(1);
 
       expect(caseRepository.findById).toHaveBeenCalledTimes(1);
       expect(caseRepository.findById).toHaveBeenCalledWith(1);
@@ -104,8 +104,10 @@ describe('Case Service', () => {
     it('should throw NotFoundError when case does not exist', async () => {
       (caseRepository.findById as jest.Mock).mockResolvedValue(null);
 
-      await expect(caseService.getCaseById(999)).rejects.toThrow(NotFoundError);
-      await expect(caseService.getCaseById(999)).rejects.toThrow('Case with ID 999 not found');
+      await expect(CaseServiceInstance.getCaseById(999)).rejects.toThrow(NotFoundError);
+      await expect(CaseServiceInstance.getCaseById(999)).rejects.toThrow(
+        'Case with ID 999 not found',
+      );
 
       expect(caseRepository.findById).toHaveBeenCalledTimes(2);
       expect(caseRepository.findById).toHaveBeenCalledWith(999);
@@ -129,7 +131,7 @@ describe('Case Service', () => {
 
       (caseRepository.create as jest.Mock).mockResolvedValue(mockCreatedCase);
 
-      const result = await caseService.createCase(caseData);
+      const result = await CaseServiceInstance.createCase(caseData);
 
       expect(caseRepository.create).toHaveBeenCalledTimes(1);
       expect(caseRepository.create).toHaveBeenCalledWith(caseData);
@@ -146,7 +148,7 @@ describe('Case Service', () => {
       (caseRepository.findById as jest.Mock).mockResolvedValue(mockCase);
       (caseRepository.update as jest.Mock).mockResolvedValue(mockUpdatedCase);
 
-      const result = await caseService.updateCase(1, updateData);
+      const result = await CaseServiceInstance.updateCase(1, updateData);
 
       expect(caseRepository.findById).toHaveBeenCalledTimes(1);
       expect(caseRepository.findById).toHaveBeenCalledWith(1);
@@ -160,7 +162,7 @@ describe('Case Service', () => {
 
       (caseRepository.findById as jest.Mock).mockResolvedValue(null);
 
-      await expect(caseService.updateCase(999, updateData)).rejects.toThrow(NotFoundError);
+      await expect(CaseServiceInstance.updateCase(999, updateData)).rejects.toThrow(NotFoundError);
 
       expect(caseRepository.findById).toHaveBeenCalledTimes(1);
       expect(caseRepository.update).not.toHaveBeenCalled();
@@ -176,7 +178,7 @@ describe('Case Service', () => {
       (caseRepository.findById as jest.Mock).mockResolvedValue(mockCase);
       (caseRepository.updateStatus as jest.Mock).mockResolvedValue(mockUpdatedCase);
 
-      const result = await caseService.updateCaseStatus(1, newStatus);
+      const result = await CaseServiceInstance.updateCaseStatus(1, newStatus);
 
       expect(caseRepository.findById).toHaveBeenCalledTimes(1);
       expect(caseRepository.findById).toHaveBeenCalledWith(1);
@@ -190,7 +192,9 @@ describe('Case Service', () => {
 
       (caseRepository.findById as jest.Mock).mockResolvedValue(null);
 
-      await expect(caseService.updateCaseStatus(999, newStatus)).rejects.toThrow(NotFoundError);
+      await expect(CaseServiceInstance.updateCaseStatus(999, newStatus)).rejects.toThrow(
+        NotFoundError,
+      );
 
       expect(caseRepository.findById).toHaveBeenCalledTimes(1);
       expect(caseRepository.updateStatus).not.toHaveBeenCalled();
@@ -204,7 +208,7 @@ describe('Case Service', () => {
       (caseRepository.findById as jest.Mock).mockResolvedValue(mockCase);
       (caseRepository.delete as jest.Mock).mockResolvedValue(mockCase);
 
-      await caseService.deleteCase(1);
+      await CaseServiceInstance.deleteCase(1);
 
       expect(caseRepository.findById).toHaveBeenCalledTimes(1);
       expect(caseRepository.findById).toHaveBeenCalledWith(1);
@@ -215,7 +219,7 @@ describe('Case Service', () => {
     it('should throw NotFoundError when case does not exist', async () => {
       (caseRepository.findById as jest.Mock).mockResolvedValue(null);
 
-      await expect(caseService.deleteCase(999)).rejects.toThrow(NotFoundError);
+      await expect(CaseServiceInstance.deleteCase(999)).rejects.toThrow(NotFoundError);
 
       expect(caseRepository.findById).toHaveBeenCalledTimes(1);
       expect(caseRepository.delete).not.toHaveBeenCalled();
