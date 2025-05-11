@@ -6,50 +6,63 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const rootDir = path.resolve(__dirname, '..');
-const sourceEnvPath = path.join(rootDir, '.env.development');
-const targetEnvPath = path.join(rootDir, '.env');
-
-if (fs.existsSync(targetEnvPath)) {
-    console.log(
-        logSymbols.info,
-        ` .env file already exists. Overwriting with .env.development and updating database host.`
-    );
+function isRunningInDocker() {
+    try {
+        return fs.existsSync('/.dockerenv') ||
+            fs.readFileSync('/proc/1/cgroup', 'utf8').includes('docker');
+    } catch (e) {
+        return false;
+    }
 }
 
-if (fs.existsSync(sourceEnvPath)) {
-    try {
+if (!isRunningInDocker()) {
+    console.log(logSymbols.info, ' Not running in Docker, setting up environment...');
 
-        fs.copyFileSync(sourceEnvPath, targetEnvPath);
+    const rootDir = path.resolve(__dirname, '..');
+    const sourceEnvPath = path.join(rootDir, '.env.development');
+    const targetEnvPath = path.join(rootDir, '.env');
 
+    if (fs.existsSync(targetEnvPath)) {
         console.log(
-            logSymbols.success,
-            ` Created .env file from .env.development template`
+            logSymbols.info,
+            ` .env file already exists. Overwriting with .env.development and updating database host.`
         );
+    }
 
-        let content = fs.readFileSync(targetEnvPath, 'utf8');
-        const updatedContent = content.replace(/@db:/g, '@localhost:');
+    if (fs.existsSync(sourceEnvPath)) {
+        try {
+            fs.copyFileSync(sourceEnvPath, targetEnvPath);
 
-        fs.writeFileSync(targetEnvPath, updatedContent);
+            console.log(
+                logSymbols.success,
+                ` Created .env file from .env.development template`
+            );
 
-        console.log(
-            logSymbols.success,
-            ` Updated database host from 'db' to 'localhost' in .env file`
-        );
+            let content = fs.readFileSync(targetEnvPath, 'utf8');
+            const updatedContent = content.replace(/@db:/g, '@localhost:');
 
-    } catch (error) {
+            fs.writeFileSync(targetEnvPath, updatedContent);
+
+            console.log(
+                logSymbols.success,
+                ` Updated database host from 'db' to 'localhost' in .env file`
+            );
+        } catch (error) {
+            console.error(
+                logSymbols.error,
+                ` Error creating/updating .env file: `, error.message
+            );
+
+            process.exit(1);
+        }
+    } else {
         console.error(
             logSymbols.error,
-            ` Error creating/updating .env file: `, error.message
+            ` Error: .env.development file not found`
         );
 
         process.exit(1);
     }
 } else {
-    console.error(
-        logSymbols.error,
-        ` Error: .env.development file not found`
-    );
-
-    process.exit(1);
+    console.log(logSymbols.info, ' Running in Docker, skipping environment setup');
 }

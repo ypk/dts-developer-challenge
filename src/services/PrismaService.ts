@@ -78,13 +78,13 @@ export class PrismaService {
  * Singleton instance of PrismaService
  * @const {PrismaService}
  */
-const prismaService = PrismaService.getInstance();
+const PrismaServiceInstance = PrismaService.getInstance();
 
 /**
  * Singleton PrismaClient instance for database operations
  * @const {PrismaClient}
  */
-export const prisma = prismaService.getClient();
+export const prisma = PrismaServiceInstance.getClient();
 
 /**
  * Re-export required types and enums
@@ -93,4 +93,4 @@ export const prisma = prismaService.getClient();
  * @exports Prisma - Namespace containing Prisma utilities and types
  * @exports prismaService - The PrismaService singleton instance
  */
-export { CaseStatus, Case, Prisma, prismaService };
+export { CaseStatus, Case, Prisma, PrismaServiceInstance };

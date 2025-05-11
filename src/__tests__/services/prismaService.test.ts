@@ -1,4 +1,4 @@
-import { prismaService, prisma } from '../../services/PrismaService.ts';
+import { PrismaServiceInstance } from '../../services/PrismaService.ts';
 import { PrismaClient } from '@prisma/client';
 
 // Mock PrismaClient
@@ -24,7 +24,7 @@ jest.mock('@prisma/client', () => {
 
 describe('PrismaService', () => {
   let mockPrismaClientConstructor: jest.Mock;
-  const service: typeof prismaService = prismaService;
+  const service: typeof PrismaServiceInstance = PrismaServiceInstance;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -84,7 +84,7 @@ describe('PrismaService', () => {
       const exports = await import('../../services/PrismaService.ts');
 
       expect(exports.prisma).toBeDefined();
-      expect(exports.prismaService).toBeDefined();
+      expect(exports.PrismaServiceInstance).toBeDefined();
       expect(exports.CaseStatus).toBeDefined();
       expect(exports.Prisma).toBeDefined();
     });
