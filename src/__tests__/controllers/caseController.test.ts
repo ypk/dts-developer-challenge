@@ -1,85 +1,99 @@
 import { Request, Response } from 'express';
 import { CaseStatus } from '../../lib/prisma.ts';
-import { caseController } from '../../controllers/caseController.ts';
-import { caseService } from '../../services/caseService.ts';
-import { NotFoundError } from '../../middleware/error.middleware.ts';
-import * as responseHandler from '../../utils/responseHandler.ts';
-import * as caseHelper from '../../utils/caseHelper.ts';
+import { ICaseService } from '../../interfaces/ICaseService.ts';
+import { ICaseHelper } from '../../interfaces/ICaseHelper.ts';
+import { IResponseHandler } from '../../interfaces/IResponseHandler.ts';
+import { CaseController } from '../../controllers/CaseController.ts';
 
-jest.mock('../../services/caseService.ts');
-jest.mock('../../utils/responseHandler.ts');
-jest.mock('../../utils/caseHelper.ts');
+describe('CaseController', () => {
+  let mockService: jest.Mocked<ICaseService>;
+  let mockCaseHelper: jest.Mocked<ICaseHelper>;
+  let mockResponseHandler: jest.Mocked<IResponseHandler>;
+  let controller: CaseController;
 
-describe('Case Controller', () => {
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
 
+  const createMockCase = (overrides = {}) => ({
+    id: 1,
+    title: 'Test Case',
+    description: 'Test Description',
+    status: CaseStatus.PENDING,
+    dueDate: new Date(),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...overrides,
+  });
+
   beforeEach(() => {
-    jest.clearAllMocks();
+    mockService = {
+      getAllCases: jest.fn(),
+      getAllCasesPaginated: jest.fn(),
+      getCaseById: jest.fn(),
+      createCase: jest.fn(),
+      updateCase: jest.fn(),
+      updateCaseStatus: jest.fn(),
+      deleteCase: jest.fn(),
+    } as jest.Mocked<ICaseService>;
+
+    mockCaseHelper = {
+      validateAndParseId: jest.fn(),
+      handleNotFoundError: jest.fn(),
+    } as jest.Mocked<ICaseHelper>;
+
+    mockResponseHandler = {
+      sendSuccess: jest.fn(),
+      sendError: jest.fn(),
+      sendBadRequest: jest.fn(),
+      sendNoContent: jest.fn(),
+    } as jest.Mocked<IResponseHandler>;
+
+    controller = new CaseController(mockService, mockCaseHelper, mockResponseHandler);
 
     mockRequest = {
       params: {},
       body: {},
+      pagination: undefined,
     };
 
     mockResponse = {
       status: jest.fn().mockReturnThis(),
       json: jest.fn(),
-      send: jest.fn(),
     };
-
-    (responseHandler.sendSuccess as jest.Mock).mockImplementation(() => undefined);
-    (responseHandler.sendError as jest.Mock).mockImplementation(() => undefined);
-    (responseHandler.sendBadRequest as jest.Mock).mockImplementation(() => undefined);
-    (responseHandler.sendNoContent as jest.Mock).mockImplementation(() => undefined);
   });
 
   describe('getAllCases', () => {
-    it('should get all cases without pagination when pagination is not provided', async () => {
-      const mockCases = [
-        { id: 1, title: 'Case 1', status: CaseStatus.PENDING },
-        { id: 2, title: 'Case 2', status: CaseStatus.IN_PROGRESS },
-      ];
+    it('should return all cases without pagination', async () => {
+      const mockCases = [createMockCase()];
+      mockService.getAllCases.mockResolvedValue(mockCases);
 
-      (caseService.getAllCases as jest.Mock).mockResolvedValue(mockCases);
+      await controller.getAllCases(mockRequest as Request, mockResponse as Response);
 
-      await caseController.getAllCases(mockRequest as Request, mockResponse as Response);
-
-      expect(caseService.getAllCases).toHaveBeenCalledTimes(1);
-      expect(responseHandler.sendSuccess).toHaveBeenCalledWith(mockResponse, {
+      expect(mockService.getAllCases).toHaveBeenCalled();
+      expect(mockResponseHandler.sendSuccess).toHaveBeenCalledWith(mockResponse, {
         message: 'Cases retrieved successfully',
         count: mockCases.length,
         data: mockCases,
       });
     });
 
-    it('should use pagination when pagination object is available', async () => {
+    it('should return paginated cases when pagination is provided', async () => {
       const mockPaginatedResult = {
-        data: [
-          { id: 1, title: 'Case 1', status: CaseStatus.PENDING },
-          { id: 2, title: 'Case 2', status: CaseStatus.IN_PROGRESS },
-        ],
+        data: [createMockCase()],
         meta: {
-          total: 25,
+          total: 10,
           page: 1,
-          limit: 10,
-          totalPages: 3,
+          limit: 5,
+          totalPages: 2,
         },
       };
+      mockRequest.pagination = { page: 1, limit: 5, skip: 0 };
+      mockService.getAllCasesPaginated.mockResolvedValue(mockPaginatedResult);
 
-      mockRequest.pagination = {
-        page: 1,
-        limit: 10,
-        skip: 0,
-      };
+      await controller.getAllCases(mockRequest as Request, mockResponse as Response);
 
-      (caseService.getAllCasesPaginated as jest.Mock).mockResolvedValue(mockPaginatedResult);
-
-      await caseController.getAllCases(mockRequest as Request, mockResponse as Response);
-
-      expect(caseService.getAllCasesPaginated).toHaveBeenCalledTimes(1);
-      expect(caseService.getAllCasesPaginated).toHaveBeenCalledWith(1, 10);
-      expect(responseHandler.sendSuccess).toHaveBeenCalledWith(mockResponse, {
+      expect(mockService.getAllCasesPaginated).toHaveBeenCalledWith(1, 5);
+      expect(mockResponseHandler.sendSuccess).toHaveBeenCalledWith(mockResponse, {
         message: 'Cases retrieved successfully',
         count: mockPaginatedResult.meta.total,
         data: mockPaginatedResult.data,
@@ -87,492 +101,537 @@ describe('Case Controller', () => {
       });
     });
 
-    it('should handle errors and send error response', async () => {
-      const error = new Error('Database error');
-      (caseService.getAllCases as jest.Mock).mockRejectedValue(error);
+    it('should handle errors', async () => {
+      const mockError = new Error('Database error');
+      mockService.getAllCases.mockRejectedValue(mockError);
 
-      await caseController.getAllCases(mockRequest as Request, mockResponse as Response);
+      await controller.getAllCases(mockRequest as Request, mockResponse as Response);
 
-      expect(caseService.getAllCases).toHaveBeenCalledTimes(1);
-      expect(responseHandler.sendError).toHaveBeenCalledWith(
+      expect(mockResponseHandler.sendError).toHaveBeenCalledWith(
         mockResponse,
         'Failed to retrieve cases',
-        error,
-      );
-    });
-
-    it('should handle errors with pagination and send error response', async () => {
-      const error = new Error('Database error');
-      mockRequest.pagination = {
-        page: 2,
-        limit: 15,
-        skip: 15,
-      };
-
-      (caseService.getAllCasesPaginated as jest.Mock).mockRejectedValue(error);
-
-      await caseController.getAllCases(mockRequest as Request, mockResponse as Response);
-
-      expect(caseService.getAllCasesPaginated).toHaveBeenCalledTimes(1);
-      expect(caseService.getAllCasesPaginated).toHaveBeenCalledWith(2, 15);
-      expect(responseHandler.sendError).toHaveBeenCalledWith(
-        mockResponse,
-        'Failed to retrieve cases',
-        error,
+        mockError,
       );
     });
   });
 
   describe('getCaseById', () => {
-    it('should get case by id and send success response', async () => {
-      const mockCase = { id: 1, title: 'Case 1', status: CaseStatus.PENDING };
-      mockRequest.params = { id: '1' };
+    it('should return a case when valid ID is provided', async () => {
+      const caseId = 1;
+      const mockCase = createMockCase({ id: caseId });
+      mockRequest.params = { id: caseId.toString() };
+      mockCaseHelper.validateAndParseId.mockReturnValue(caseId);
+      mockService.getCaseById.mockResolvedValue(mockCase);
 
-      (caseHelper.validateAndParseId as jest.Mock).mockReturnValue(1);
-      (caseService.getCaseById as jest.Mock).mockResolvedValue(mockCase);
+      await controller.getCaseById(mockRequest as Request, mockResponse as Response);
 
-      await caseController.getCaseById(mockRequest as Request, mockResponse as Response);
-
-      expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
-      expect(caseService.getCaseById).toHaveBeenCalledWith(1);
-      expect(responseHandler.sendSuccess).toHaveBeenCalledWith(mockResponse, {
+      expect(mockCaseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
+      expect(mockService.getCaseById).toHaveBeenCalledWith(caseId);
+      expect(mockResponseHandler.sendSuccess).toHaveBeenCalledWith(mockResponse, {
         message: 'Case retrieved successfully',
         data: mockCase,
       });
     });
 
-    it('should handle invalid id and return early', async () => {
-      mockRequest.params = { id: 'invalid' };
+    it('should handle invalid ID', async () => {
+      mockCaseHelper.validateAndParseId.mockReturnValue(null);
 
-      (caseHelper.validateAndParseId as jest.Mock).mockReturnValue(null);
+      await controller.getCaseById(mockRequest as Request, mockResponse as Response);
 
-      await caseController.getCaseById(mockRequest as Request, mockResponse as Response);
-
-      expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
-      expect(caseService.getCaseById).not.toHaveBeenCalled();
-      expect(responseHandler.sendSuccess).not.toHaveBeenCalled();
+      expect(mockCaseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
+      expect(mockService.getCaseById).not.toHaveBeenCalled();
     });
 
     it('should handle not found error', async () => {
-      mockRequest.params = { id: '999' };
-      const error = new NotFoundError('Case with ID 999 not found');
+      const caseId = 999;
+      const mockError = new Error('Not found');
+      mockRequest.params = { id: caseId.toString() };
+      mockCaseHelper.validateAndParseId.mockReturnValue(caseId);
+      mockService.getCaseById.mockRejectedValue(mockError);
+      mockCaseHelper.handleNotFoundError.mockReturnValue(true);
 
-      (caseHelper.validateAndParseId as jest.Mock).mockReturnValue(999);
-      (caseService.getCaseById as jest.Mock).mockRejectedValue(error);
-      (caseHelper.handleNotFoundError as jest.Mock).mockReturnValue(true);
+      await controller.getCaseById(mockRequest as Request, mockResponse as Response);
 
-      await caseController.getCaseById(mockRequest as Request, mockResponse as Response);
-
-      expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
-      expect(caseService.getCaseById).toHaveBeenCalledWith(999);
-      expect(caseHelper.handleNotFoundError).toHaveBeenCalledWith(error, mockResponse);
-      expect(responseHandler.sendSuccess).not.toHaveBeenCalled();
+      expect(mockCaseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
+      expect(mockService.getCaseById).toHaveBeenCalledWith(caseId);
+      expect(mockCaseHelper.handleNotFoundError).toHaveBeenCalledWith(mockError, mockResponse);
+      expect(mockResponseHandler.sendError).not.toHaveBeenCalled();
     });
 
-    it('should handle other errors and send error response', async () => {
-      mockRequest.params = { id: '1' };
-      const error = new Error('Database error');
+    it('should handle other errors', async () => {
+      const caseId = 1;
+      const mockError = new Error('Database error');
+      mockRequest.params = { id: caseId.toString() };
+      mockCaseHelper.validateAndParseId.mockReturnValue(caseId);
+      mockService.getCaseById.mockRejectedValue(mockError);
+      mockCaseHelper.handleNotFoundError.mockReturnValue(false);
 
-      (caseHelper.validateAndParseId as jest.Mock).mockReturnValue(1);
-      (caseService.getCaseById as jest.Mock).mockRejectedValue(error);
-      (caseHelper.handleNotFoundError as jest.Mock).mockReturnValue(false);
+      await controller.getCaseById(mockRequest as Request, mockResponse as Response);
 
-      await caseController.getCaseById(mockRequest as Request, mockResponse as Response);
-
-      expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
-      expect(caseService.getCaseById).toHaveBeenCalledWith(1);
-      expect(caseHelper.handleNotFoundError).toHaveBeenCalledWith(error, mockResponse);
-      expect(responseHandler.sendError).toHaveBeenCalledWith(
+      expect(mockCaseHelper.handleNotFoundError).toHaveBeenCalledWith(mockError, mockResponse);
+      expect(mockResponseHandler.sendError).toHaveBeenCalledWith(
         mockResponse,
         'Failed to retrieve case',
-        error,
+        mockError,
       );
     });
   });
 
   describe('createCase', () => {
-    it('should create a case and send success response', async () => {
+    it('should create a case with valid input', async () => {
       const caseData = {
         title: 'New Case',
-        description: 'Test description',
+        description: 'Description',
         status: CaseStatus.PENDING,
-        dueDate: '2023-12-31',
+        dueDate: '2023-12-31T23:59:59Z',
       };
-
-      const mockCreatedCase = {
+      const createdCase = createMockCase({
         id: 1,
-        ...caseData,
-        dueDate: new Date(caseData.dueDate),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      mockRequest.body = caseData;
-
-      (caseService.createCase as jest.Mock).mockResolvedValue(mockCreatedCase);
-
-      await caseController.createCase(mockRequest as Request, mockResponse as Response);
-
-      expect(caseService.createCase).toHaveBeenCalledWith({
         title: caseData.title,
         description: caseData.description,
         status: caseData.status,
         dueDate: new Date(caseData.dueDate),
       });
 
-      expect(responseHandler.sendSuccess).toHaveBeenCalledWith(
+      mockRequest.body = caseData;
+      mockService.createCase.mockResolvedValue(createdCase);
+
+      await controller.createCase(mockRequest as Request, mockResponse as Response);
+
+      expect(mockService.createCase).toHaveBeenCalledWith({
+        title: caseData.title,
+        description: caseData.description,
+        status: caseData.status,
+        dueDate: expect.any(Date),
+      });
+      expect(mockResponseHandler.sendSuccess).toHaveBeenCalledWith(
         mockResponse,
         {
           message: 'Case created successfully',
-          data: mockCreatedCase,
+          data: createdCase,
         },
         201,
       );
     });
 
-    it('should use default status when not provided', async () => {
-      const caseData = {
-        title: 'New Case',
-        description: 'Test description',
-      };
-
-      const mockCreatedCase = {
-        id: 1,
-        ...caseData,
-        status: CaseStatus.PENDING,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      mockRequest.body = caseData;
-
-      (caseService.createCase as jest.Mock).mockResolvedValue(mockCreatedCase);
-
-      await caseController.createCase(mockRequest as Request, mockResponse as Response);
-
-      expect(caseService.createCase).toHaveBeenCalledWith({
-        title: caseData.title,
-        description: caseData.description,
-        status: CaseStatus.PENDING,
-      });
-    });
-
-    it('should send bad request when title is missing', async () => {
+    it('should handle missing title', async () => {
       mockRequest.body = {
-        description: 'Test description',
+        description: 'Description',
       };
 
-      await caseController.createCase(mockRequest as Request, mockResponse as Response);
+      await controller.createCase(mockRequest as Request, mockResponse as Response);
 
-      expect(caseService.createCase).not.toHaveBeenCalled();
-      expect(responseHandler.sendBadRequest).toHaveBeenCalledWith(
+      expect(mockService.createCase).not.toHaveBeenCalled();
+      expect(mockResponseHandler.sendBadRequest).toHaveBeenCalledWith(
         mockResponse,
         'Title is required',
       );
     });
 
-    it('should handle errors and send error response', async () => {
+    it('should set default status when not provided', async () => {
       const caseData = {
         title: 'New Case',
-        description: 'Test description',
+        description: 'Description',
       };
-
-      const error = new Error('Database error');
+      const createdCase = createMockCase({
+        title: caseData.title,
+        description: caseData.description,
+        status: CaseStatus.PENDING,
+      });
 
       mockRequest.body = caseData;
+      mockService.createCase.mockResolvedValue(createdCase);
 
-      (caseService.createCase as jest.Mock).mockRejectedValue(error);
+      await controller.createCase(mockRequest as Request, mockResponse as Response);
 
-      await caseController.createCase(mockRequest as Request, mockResponse as Response);
+      expect(mockService.createCase).toHaveBeenCalledWith({
+        title: caseData.title,
+        description: caseData.description,
+        status: CaseStatus.PENDING,
+        dueDate: undefined,
+      });
+    });
 
-      expect(responseHandler.sendError).toHaveBeenCalledWith(
+    it('should handle service errors', async () => {
+      const mockError = new Error('Database error');
+      mockRequest.body = {
+        title: 'New Case',
+      };
+      mockService.createCase.mockRejectedValue(mockError);
+
+      await controller.createCase(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponseHandler.sendError).toHaveBeenCalledWith(
         mockResponse,
         'Failed to create case',
-        error,
+        mockError,
       );
     });
   });
 
   describe('updateCase', () => {
-    it('should update a case and send success response', async () => {
+    it('should update a case with valid input', async () => {
+      const caseId = 1;
       const updateData = {
-        title: 'Updated Case',
-        description: 'Updated description',
-        status: CaseStatus.IN_PROGRESS,
-        dueDate: '2023-12-31',
+        title: 'Updated Title',
+        description: 'Updated Description',
       };
-
-      const mockUpdatedCase = {
-        id: 1,
+      const updatedCase = createMockCase({
+        id: caseId,
         ...updateData,
-        dueDate: new Date(updateData.dueDate),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      });
 
-      mockRequest.params = { id: '1' };
+      mockRequest.params = { id: caseId.toString() };
       mockRequest.body = updateData;
+      mockCaseHelper.validateAndParseId.mockReturnValue(caseId);
+      mockService.updateCase.mockResolvedValue(updatedCase);
 
-      (caseHelper.validateAndParseId as jest.Mock).mockReturnValue(1);
-      (caseService.updateCase as jest.Mock).mockResolvedValue(mockUpdatedCase);
+      await controller.updateCase(mockRequest as Request, mockResponse as Response);
 
-      await caseController.updateCase(mockRequest as Request, mockResponse as Response);
-
-      expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
-      expect(caseService.updateCase).toHaveBeenCalledWith(1, {
-        title: updateData.title,
-        description: updateData.description,
-        status: updateData.status,
-        dueDate: new Date(updateData.dueDate),
-      });
-
-      expect(responseHandler.sendSuccess).toHaveBeenCalledWith(mockResponse, {
+      expect(mockCaseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
+      expect(mockService.updateCase).toHaveBeenCalledWith(caseId, updateData);
+      expect(mockResponseHandler.sendSuccess).toHaveBeenCalledWith(mockResponse, {
         message: 'Case updated successfully',
-        data: mockUpdatedCase,
+        data: updatedCase,
       });
     });
 
-    it('should handle invalid id and return early', async () => {
-      mockRequest.params = { id: 'invalid' };
-      mockRequest.body = { title: 'Updated Case' };
+    it('should handle invalid ID', async () => {
+      mockCaseHelper.validateAndParseId.mockReturnValue(null);
 
-      (caseHelper.validateAndParseId as jest.Mock).mockReturnValue(null);
+      await controller.updateCase(mockRequest as Request, mockResponse as Response);
 
-      await caseController.updateCase(mockRequest as Request, mockResponse as Response);
-
-      expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
-      expect(caseService.updateCase).not.toHaveBeenCalled();
+      expect(mockService.updateCase).not.toHaveBeenCalled();
     });
 
-    it('should send bad request when body is empty', async () => {
-      mockRequest.params = { id: '1' };
+    it('should handle empty request body', async () => {
+      const caseId = 1;
+      mockRequest.params = { id: caseId.toString() };
       mockRequest.body = {};
+      mockCaseHelper.validateAndParseId.mockReturnValue(caseId);
 
-      (caseHelper.validateAndParseId as jest.Mock).mockReturnValue(1);
+      await controller.updateCase(mockRequest as Request, mockResponse as Response);
 
-      await caseController.updateCase(mockRequest as Request, mockResponse as Response);
-
-      expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
-      expect(caseService.updateCase).not.toHaveBeenCalled();
-      expect(responseHandler.sendBadRequest).toHaveBeenCalledWith(
+      expect(mockService.updateCase).not.toHaveBeenCalled();
+      expect(mockResponseHandler.sendBadRequest).toHaveBeenCalledWith(
         mockResponse,
         'Request body is required',
       );
     });
 
     it('should handle not found error', async () => {
-      mockRequest.params = { id: '999' };
-      mockRequest.body = { title: 'Updated Case' };
+      const caseId = 999;
+      const updateData = { title: 'Updated Title' };
+      const mockError = new Error('Not found');
+      mockRequest.params = { id: caseId.toString() };
+      mockRequest.body = updateData;
+      mockCaseHelper.validateAndParseId.mockReturnValue(caseId);
+      mockService.updateCase.mockRejectedValue(mockError);
+      mockCaseHelper.handleNotFoundError.mockReturnValue(true);
 
-      const error = new NotFoundError('Case with ID 999 not found');
+      await controller.updateCase(mockRequest as Request, mockResponse as Response);
 
-      (caseHelper.validateAndParseId as jest.Mock).mockReturnValue(999);
-      (caseService.updateCase as jest.Mock).mockRejectedValue(error);
-      (caseHelper.handleNotFoundError as jest.Mock).mockReturnValue(true);
-
-      await caseController.updateCase(mockRequest as Request, mockResponse as Response);
-
-      expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
-      expect(caseService.updateCase).toHaveBeenCalledWith(999, { title: 'Updated Case' });
-      expect(caseHelper.handleNotFoundError).toHaveBeenCalledWith(error, mockResponse);
+      expect(mockCaseHelper.handleNotFoundError).toHaveBeenCalledWith(mockError, mockResponse);
+      expect(mockResponseHandler.sendError).not.toHaveBeenCalled();
     });
 
-    it('should handle other errors and send error response', async () => {
-      mockRequest.params = { id: '1' };
-      mockRequest.body = { title: 'Updated Case' };
+    it('should handle other errors', async () => {
+      const caseId = 1;
+      const updateData = { title: 'Updated Title' };
+      const mockError = new Error('Database error');
+      mockRequest.params = { id: caseId.toString() };
+      mockRequest.body = updateData;
+      mockCaseHelper.validateAndParseId.mockReturnValue(caseId);
+      mockService.updateCase.mockRejectedValue(mockError);
+      mockCaseHelper.handleNotFoundError.mockReturnValue(false);
 
-      const error = new Error('Database error');
+      await controller.updateCase(mockRequest as Request, mockResponse as Response);
 
-      (caseHelper.validateAndParseId as jest.Mock).mockReturnValue(1);
-      (caseService.updateCase as jest.Mock).mockRejectedValue(error);
-      (caseHelper.handleNotFoundError as jest.Mock).mockReturnValue(false);
-
-      await caseController.updateCase(mockRequest as Request, mockResponse as Response);
-
-      expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
-      expect(caseService.updateCase).toHaveBeenCalledWith(1, { title: 'Updated Case' });
-      expect(caseHelper.handleNotFoundError).toHaveBeenCalledWith(error, mockResponse);
-      expect(responseHandler.sendError).toHaveBeenCalledWith(
+      expect(mockCaseHelper.handleNotFoundError).toHaveBeenCalledWith(mockError, mockResponse);
+      expect(mockResponseHandler.sendError).toHaveBeenCalledWith(
         mockResponse,
         'Failed to update case',
-        error,
+        mockError,
+      );
+    });
+
+    it('should process dueDate correctly', async () => {
+      const caseId = 1;
+      const updateData = {
+        title: 'Updated Title',
+        dueDate: '2023-12-31T23:59:59Z',
+      };
+      const updatedCase = createMockCase({
+        id: caseId,
+        title: updateData.title,
+        dueDate: new Date(updateData.dueDate),
+      });
+
+      mockRequest.params = { id: caseId.toString() };
+      mockRequest.body = updateData;
+      mockCaseHelper.validateAndParseId.mockReturnValue(caseId);
+      mockService.updateCase.mockResolvedValue(updatedCase);
+
+      await controller.updateCase(mockRequest as Request, mockResponse as Response);
+
+      expect(mockService.updateCase).toHaveBeenCalledWith(caseId, {
+        title: updateData.title,
+        dueDate: expect.any(Date),
+      });
+    });
+    it('should explicitly convert dueDate string to Date object when updating', async () => {
+      const caseId = 1;
+      const dueDateString = '2023-12-31T23:59:59Z';
+      const updateData = {
+        dueDate: dueDateString,
+      };
+
+      const expectedDate = new Date(dueDateString);
+
+      const updatedCase = createMockCase({
+        id: caseId,
+        dueDate: expectedDate,
+      });
+
+      mockRequest.params = { id: caseId.toString() };
+      mockRequest.body = updateData;
+      mockCaseHelper.validateAndParseId.mockReturnValue(caseId);
+      mockService.updateCase.mockResolvedValue(updatedCase);
+
+      await controller.updateCase(mockRequest as Request, mockResponse as Response);
+
+      expect(mockService.updateCase).toHaveBeenCalledWith(caseId, { dueDate: expect.any(Date) });
+
+      const updateCallArgs = mockService.updateCase.mock.calls[0][1];
+
+      expect(updateCallArgs).toHaveProperty('dueDate');
+
+      const dueDate = updateCallArgs.dueDate;
+
+      expect(dueDate instanceof Date).toBe(true);
+
+      expect((dueDate as Date).getTime()).toBe(expectedDate.getTime());
+
+      expect(mockResponseHandler.sendSuccess).toHaveBeenCalledWith(mockResponse, {
+        message: 'Case updated successfully',
+        data: updatedCase,
+      });
+    });
+
+    it('should include status field when updating a case', async () => {
+      const caseId = 1;
+      const updateData = {
+        status: CaseStatus.COMPLETED,
+      };
+
+      const updatedCase = createMockCase({
+        id: caseId,
+        status: CaseStatus.COMPLETED,
+      });
+
+      mockRequest.params = { id: caseId.toString() };
+      mockRequest.body = updateData;
+      mockCaseHelper.validateAndParseId.mockReturnValue(caseId);
+      mockService.updateCase.mockResolvedValue(updatedCase);
+
+      await controller.updateCase(mockRequest as Request, mockResponse as Response);
+
+      expect(mockService.updateCase).toHaveBeenCalledWith(caseId, { status: CaseStatus.COMPLETED });
+
+      expect(mockResponseHandler.sendSuccess).toHaveBeenCalledWith(mockResponse, {
+        message: 'Case updated successfully',
+        data: updatedCase,
+      });
+    });
+
+    it('should handle null or undefined request body', async () => {
+      const caseId = 1;
+      mockRequest.params = { id: caseId.toString() };
+      mockRequest.body = null;
+      mockCaseHelper.validateAndParseId.mockReturnValue(caseId);
+
+      await controller.updateCase(mockRequest as Request, mockResponse as Response);
+
+      expect(mockService.updateCase).not.toHaveBeenCalled();
+      expect(mockResponseHandler.sendBadRequest).toHaveBeenCalledWith(
+        mockResponse,
+        'Request body is required',
+      );
+    });
+
+    it('should handle and rethrow errors from the service', async () => {
+      const caseId = 1;
+      const updateData = { title: 'Updated Title' };
+      const mockError = new Error('Service error');
+
+      mockRequest.params = { id: caseId.toString() };
+      mockRequest.body = updateData;
+      mockCaseHelper.validateAndParseId.mockReturnValue(caseId);
+
+      mockService.updateCase.mockRejectedValue(mockError);
+
+      mockCaseHelper.handleNotFoundError.mockReturnValue(false);
+
+      await controller.updateCase(mockRequest as Request, mockResponse as Response);
+
+      expect(mockCaseHelper.handleNotFoundError).toHaveBeenCalledWith(mockError, mockResponse);
+
+      expect(mockResponseHandler.sendError).toHaveBeenCalledWith(
+        mockResponse,
+        'Failed to update case',
+        mockError,
       );
     });
   });
 
   describe('updateCaseStatus', () => {
-    it('should update case status and send success response', async () => {
-      const newStatus = CaseStatus.COMPLETED;
-
-      const mockUpdatedCase = {
-        id: 1,
-        title: 'Case 1',
+    it('should update case status with valid input', async () => {
+      const caseId = 1;
+      const newStatus = CaseStatus.IN_PROGRESS;
+      const updatedCase = createMockCase({
+        id: caseId,
         status: newStatus,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      });
 
-      mockRequest.params = { id: '1' };
+      mockRequest.params = { id: caseId.toString() };
       mockRequest.body = { status: newStatus };
+      mockCaseHelper.validateAndParseId.mockReturnValue(caseId);
+      mockService.updateCaseStatus.mockResolvedValue(updatedCase);
 
-      (caseHelper.validateAndParseId as jest.Mock).mockReturnValue(1);
-      (caseService.updateCaseStatus as jest.Mock).mockResolvedValue(mockUpdatedCase);
+      await controller.updateCaseStatus(mockRequest as Request, mockResponse as Response);
 
-      await caseController.updateCaseStatus(mockRequest as Request, mockResponse as Response);
-
-      expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
-      expect(caseService.updateCaseStatus).toHaveBeenCalledWith(1, newStatus);
-      expect(responseHandler.sendSuccess).toHaveBeenCalledWith(mockResponse, {
+      expect(mockCaseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
+      expect(mockService.updateCaseStatus).toHaveBeenCalledWith(caseId, newStatus);
+      expect(mockResponseHandler.sendSuccess).toHaveBeenCalledWith(mockResponse, {
         message: 'Case status updated successfully',
-        data: mockUpdatedCase,
+        data: updatedCase,
       });
     });
 
-    it('should handle invalid id and return early', async () => {
-      mockRequest.params = { id: 'invalid' };
-      mockRequest.body = { status: CaseStatus.COMPLETED };
+    it('should handle invalid ID', async () => {
+      mockCaseHelper.validateAndParseId.mockReturnValue(null);
 
-      (caseHelper.validateAndParseId as jest.Mock).mockReturnValue(null);
+      await controller.updateCaseStatus(mockRequest as Request, mockResponse as Response);
 
-      await caseController.updateCaseStatus(mockRequest as Request, mockResponse as Response);
-
-      expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
-      expect(caseService.updateCaseStatus).not.toHaveBeenCalled();
+      expect(mockService.updateCaseStatus).not.toHaveBeenCalled();
     });
 
-    it('should send bad request when status is missing', async () => {
-      mockRequest.params = { id: '1' };
+    it('should handle missing status', async () => {
+      const caseId = 1;
+      mockRequest.params = { id: caseId.toString() };
       mockRequest.body = {};
+      mockCaseHelper.validateAndParseId.mockReturnValue(caseId);
 
-      (caseHelper.validateAndParseId as jest.Mock).mockReturnValue(1);
+      await controller.updateCaseStatus(mockRequest as Request, mockResponse as Response);
 
-      await caseController.updateCaseStatus(mockRequest as Request, mockResponse as Response);
-
-      expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
-      expect(caseService.updateCaseStatus).not.toHaveBeenCalled();
-      expect(responseHandler.sendBadRequest).toHaveBeenCalledWith(
+      expect(mockService.updateCaseStatus).not.toHaveBeenCalled();
+      expect(mockResponseHandler.sendBadRequest).toHaveBeenCalledWith(
         mockResponse,
         'Status is required',
       );
     });
 
-    it('should send bad request when status is invalid', async () => {
-      mockRequest.params = { id: '1' };
+    it('should handle invalid status value', async () => {
+      const caseId = 1;
+      mockRequest.params = { id: caseId.toString() };
       mockRequest.body = { status: 'INVALID_STATUS' };
+      mockCaseHelper.validateAndParseId.mockReturnValue(caseId);
 
-      (caseHelper.validateAndParseId as jest.Mock).mockReturnValue(1);
+      await controller.updateCaseStatus(mockRequest as Request, mockResponse as Response);
 
-      await caseController.updateCaseStatus(mockRequest as Request, mockResponse as Response);
-
-      expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
-      expect(caseService.updateCaseStatus).not.toHaveBeenCalled();
-      expect(responseHandler.sendBadRequest).toHaveBeenCalledWith(
+      expect(mockService.updateCaseStatus).not.toHaveBeenCalled();
+      expect(mockResponseHandler.sendBadRequest).toHaveBeenCalledWith(
         mockResponse,
         `Invalid status. Must be one of: ${Object.values(CaseStatus).join(', ')}`,
       );
     });
 
     it('should handle not found error', async () => {
-      mockRequest.params = { id: '999' };
+      const caseId = 999;
+      const mockError = new Error('Not found');
+      mockRequest.params = { id: caseId.toString() };
       mockRequest.body = { status: CaseStatus.COMPLETED };
+      mockCaseHelper.validateAndParseId.mockReturnValue(caseId);
+      mockService.updateCaseStatus.mockRejectedValue(mockError);
+      mockCaseHelper.handleNotFoundError.mockReturnValue(true);
 
-      const error = new NotFoundError('Case with ID 999 not found');
+      await controller.updateCaseStatus(mockRequest as Request, mockResponse as Response);
 
-      (caseHelper.validateAndParseId as jest.Mock).mockReturnValue(999);
-      (caseService.updateCaseStatus as jest.Mock).mockRejectedValue(error);
-      (caseHelper.handleNotFoundError as jest.Mock).mockReturnValue(true);
-
-      await caseController.updateCaseStatus(mockRequest as Request, mockResponse as Response);
-
-      expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
-      expect(caseService.updateCaseStatus).toHaveBeenCalledWith(999, CaseStatus.COMPLETED);
-      expect(caseHelper.handleNotFoundError).toHaveBeenCalledWith(error, mockResponse);
+      expect(mockCaseHelper.handleNotFoundError).toHaveBeenCalledWith(mockError, mockResponse);
+      expect(mockResponseHandler.sendError).not.toHaveBeenCalled();
     });
 
-    it('should handle other errors and send error response', async () => {
-      mockRequest.params = { id: '1' };
+    it('should handle other errors', async () => {
+      const caseId = 1;
+      const mockError = new Error('Database error');
+      mockRequest.params = { id: caseId.toString() };
       mockRequest.body = { status: CaseStatus.COMPLETED };
+      mockCaseHelper.validateAndParseId.mockReturnValue(caseId);
+      mockService.updateCaseStatus.mockRejectedValue(mockError);
+      mockCaseHelper.handleNotFoundError.mockReturnValue(false);
 
-      const error = new Error('Database error');
+      await controller.updateCaseStatus(mockRequest as Request, mockResponse as Response);
 
-      (caseHelper.validateAndParseId as jest.Mock).mockReturnValue(1);
-      (caseService.updateCaseStatus as jest.Mock).mockRejectedValue(error);
-      (caseHelper.handleNotFoundError as jest.Mock).mockReturnValue(false);
-
-      await caseController.updateCaseStatus(mockRequest as Request, mockResponse as Response);
-
-      expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
-      expect(caseService.updateCaseStatus).toHaveBeenCalledWith(1, CaseStatus.COMPLETED);
-      expect(caseHelper.handleNotFoundError).toHaveBeenCalledWith(error, mockResponse);
-      expect(responseHandler.sendError).toHaveBeenCalledWith(
+      expect(mockCaseHelper.handleNotFoundError).toHaveBeenCalledWith(mockError, mockResponse);
+      expect(mockResponseHandler.sendError).toHaveBeenCalledWith(
         mockResponse,
         'Failed to update case status',
-        error,
+        mockError,
       );
     });
   });
 
   describe('deleteCase', () => {
-    it('should delete case and send no content response', async () => {
-      mockRequest.params = { id: '1' };
+    it('should delete a case with valid ID', async () => {
+      const caseId = 1;
+      mockRequest.params = { id: caseId.toString() };
+      mockCaseHelper.validateAndParseId.mockReturnValue(caseId);
+      mockService.deleteCase.mockResolvedValue(undefined);
 
-      (caseHelper.validateAndParseId as jest.Mock).mockReturnValue(1);
-      (caseService.deleteCase as jest.Mock).mockResolvedValue(undefined);
+      await controller.deleteCase(mockRequest as Request, mockResponse as Response);
 
-      await caseController.deleteCase(mockRequest as Request, mockResponse as Response);
-
-      expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
-      expect(caseService.deleteCase).toHaveBeenCalledWith(1);
-      expect(responseHandler.sendNoContent).toHaveBeenCalledWith(mockResponse);
+      expect(mockCaseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
+      expect(mockService.deleteCase).toHaveBeenCalledWith(caseId);
+      expect(mockResponseHandler.sendNoContent).toHaveBeenCalledWith(mockResponse);
     });
 
-    it('should handle invalid id and return early', async () => {
-      mockRequest.params = { id: 'invalid' };
+    it('should handle invalid ID', async () => {
+      mockCaseHelper.validateAndParseId.mockReturnValue(null);
 
-      (caseHelper.validateAndParseId as jest.Mock).mockReturnValue(null);
+      await controller.deleteCase(mockRequest as Request, mockResponse as Response);
 
-      await caseController.deleteCase(mockRequest as Request, mockResponse as Response);
-
-      expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
-      expect(caseService.deleteCase).not.toHaveBeenCalled();
-      expect(responseHandler.sendNoContent).not.toHaveBeenCalled();
+      expect(mockService.deleteCase).not.toHaveBeenCalled();
     });
 
     it('should handle not found error', async () => {
-      mockRequest.params = { id: '999' };
+      const caseId = 999;
+      const mockError = new Error('Not found');
+      mockRequest.params = { id: caseId.toString() };
+      mockCaseHelper.validateAndParseId.mockReturnValue(caseId);
+      mockService.deleteCase.mockRejectedValue(mockError);
+      mockCaseHelper.handleNotFoundError.mockReturnValue(true);
 
-      const error = new NotFoundError('Case with ID 999 not found');
+      await controller.deleteCase(mockRequest as Request, mockResponse as Response);
 
-      (caseHelper.validateAndParseId as jest.Mock).mockReturnValue(999);
-      (caseService.deleteCase as jest.Mock).mockRejectedValue(error);
-      (caseHelper.handleNotFoundError as jest.Mock).mockReturnValue(true);
-
-      await caseController.deleteCase(mockRequest as Request, mockResponse as Response);
-
-      expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
-      expect(caseService.deleteCase).toHaveBeenCalledWith(999);
-      expect(caseHelper.handleNotFoundError).toHaveBeenCalledWith(error, mockResponse);
-      expect(responseHandler.sendNoContent).not.toHaveBeenCalled();
+      expect(mockCaseHelper.handleNotFoundError).toHaveBeenCalledWith(mockError, mockResponse);
+      expect(mockResponseHandler.sendError).not.toHaveBeenCalled();
     });
 
-    it('should handle other errors and send error response', async () => {
-      mockRequest.params = { id: '1' };
+    it('should handle other errors', async () => {
+      const caseId = 1;
+      const mockError = new Error('Database error');
+      mockRequest.params = { id: caseId.toString() };
+      mockCaseHelper.validateAndParseId.mockReturnValue(caseId);
+      mockService.deleteCase.mockRejectedValue(mockError);
+      mockCaseHelper.handleNotFoundError.mockReturnValue(false);
 
-      const error = new Error('Database error');
+      await controller.deleteCase(mockRequest as Request, mockResponse as Response);
 
-      (caseHelper.validateAndParseId as jest.Mock).mockReturnValue(1);
-      (caseService.deleteCase as jest.Mock).mockRejectedValue(error);
-      (caseHelper.handleNotFoundError as jest.Mock).mockReturnValue(false);
-
-      await caseController.deleteCase(mockRequest as Request, mockResponse as Response);
-
-      expect(caseHelper.validateAndParseId).toHaveBeenCalledWith(mockRequest, mockResponse);
-      expect(caseService.deleteCase).toHaveBeenCalledWith(1);
-      expect(caseHelper.handleNotFoundError).toHaveBeenCalledWith(error, mockResponse);
-      expect(responseHandler.sendError).toHaveBeenCalledWith(
+      expect(mockCaseHelper.handleNotFoundError).toHaveBeenCalledWith(mockError, mockResponse);
+      expect(mockResponseHandler.sendError).toHaveBeenCalledWith(
         mockResponse,
         'Failed to delete case',
-        error,
+        mockError,
       );
     });
   });

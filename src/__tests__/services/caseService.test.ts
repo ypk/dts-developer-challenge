@@ -1,224 +1,284 @@
-import { CaseStatus } from '../../lib/prisma.ts';
-import { caseService } from '../../services/caseService.ts';
-import { caseRepository } from '../../repositories/caseRepository.ts';
+import { Case, CaseStatus, Prisma } from '../../lib/prisma.ts';
+import { ICaseRepository, PaginatedResult } from '../../interfaces/ICaseRepository.ts';
+import { CaseService } from '../../services/CaseService.ts';
 import { NotFoundError } from '../../middleware/error.middleware.ts';
 
-jest.mock('../../repositories/caseRepository.ts', () => ({
-  caseRepository: {
-    findAll: jest.fn(),
-    findById: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    updateStatus: jest.fn(),
-    delete: jest.fn(),
-    findAllPaginated: jest.fn(),
-  },
-}));
+describe('CaseService', () => {
+  let mockRepository: jest.Mocked<ICaseRepository>;
+  let service: CaseService;
 
-describe('Case Service', () => {
+  const createMockCase = (id: number = 1): Case => ({
+    id,
+    title: `Test Case ${id}`,
+    description: `Description for test case ${id}`,
+    status: CaseStatus.PENDING,
+    dueDate: new Date(),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+
   beforeEach(() => {
-    jest.clearAllMocks();
+    mockRepository = {
+      findAll: jest.fn(),
+      findAllPaginated: jest.fn(),
+      findById: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      updateStatus: jest.fn(),
+      delete: jest.fn(),
+    } as jest.Mocked<ICaseRepository>;
+
+    service = new CaseService(mockRepository);
   });
 
   describe('getAllCases', () => {
-    it('should return all cases from repository', async () => {
-      const mockCases = [
-        { id: 1, title: 'Case 1', status: CaseStatus.PENDING },
-        { id: 2, title: 'Case 2', status: CaseStatus.IN_PROGRESS },
-      ];
+    it('should return all cases from the repository', async () => {
+      const mockCases = [createMockCase(1), createMockCase(2)];
+      mockRepository.findAll.mockResolvedValue(mockCases);
 
-      (caseRepository.findAll as jest.Mock).mockResolvedValue(mockCases);
+      const result = await service.getAllCases();
 
-      const result = await caseService.getAllCases();
-
-      expect(caseRepository.findAll).toHaveBeenCalledTimes(1);
+      expect(mockRepository.findAll).toHaveBeenCalled();
       expect(result).toEqual(mockCases);
+    });
+
+    it('should propagate errors from the repository', async () => {
+      const mockError = new Error('Repository error');
+      mockRepository.findAll.mockRejectedValue(mockError);
+
+      await expect(service.getAllCases()).rejects.toThrow(mockError);
     });
   });
 
   describe('getAllCasesPaginated', () => {
-    it('should return paginated cases with default values', async () => {
-      const mockPaginatedResult = {
-        data: [
-          { id: 1, title: 'Case 1', status: CaseStatus.PENDING },
-          { id: 2, title: 'Case 2', status: CaseStatus.IN_PROGRESS },
-        ],
+    it('should return paginated cases from the repository', async () => {
+      const mockPaginatedResult: PaginatedResult<Case> = {
+        data: [createMockCase(1), createMockCase(2)],
         meta: {
           total: 10,
-          page: 1,
-          limit: 10,
-          totalPages: 1,
+          page: 2,
+          limit: 5,
+          totalPages: 2,
         },
       };
+      mockRepository.findAllPaginated.mockResolvedValue(mockPaginatedResult);
 
-      (caseRepository.findAllPaginated as jest.Mock).mockResolvedValue(mockPaginatedResult);
+      const result = await service.getAllCasesPaginated(2, 5);
 
-      const result = await caseService.getAllCasesPaginated();
-
-      expect(caseRepository.findAllPaginated).toHaveBeenCalledTimes(1);
-      expect(caseRepository.findAllPaginated).toHaveBeenCalledWith(0, 10);
+      expect(mockRepository.findAllPaginated).toHaveBeenCalledWith(5, 5); // skip = (page-1)*limit
       expect(result).toEqual(mockPaginatedResult);
     });
 
-    it('should calculate skip value correctly and pass to repository', async () => {
-      const page = 3;
-      const limit = 15;
-      const expectedSkip = (page - 1) * limit;
-
-      const mockPaginatedResult = {
-        data: [
-          { id: 31, title: 'Case 31', status: CaseStatus.PENDING },
-          { id: 32, title: 'Case 32', status: CaseStatus.IN_PROGRESS },
-        ],
+    it('should use default pagination parameters when not provided', async () => {
+      const mockPaginatedResult: PaginatedResult<Case> = {
+        data: [createMockCase(1), createMockCase(2)],
         meta: {
-          total: 50,
-          page: 3,
-          limit: 15,
-          totalPages: 4,
+          total: 20,
+          page: 1,
+          limit: 10,
+          totalPages: 2,
         },
       };
+      mockRepository.findAllPaginated.mockResolvedValue(mockPaginatedResult);
 
-      (caseRepository.findAllPaginated as jest.Mock).mockResolvedValue(mockPaginatedResult);
+      const result = await service.getAllCasesPaginated();
 
-      const result = await caseService.getAllCasesPaginated(page, limit);
-
-      expect(caseRepository.findAllPaginated).toHaveBeenCalledTimes(1);
-      expect(caseRepository.findAllPaginated).toHaveBeenCalledWith(expectedSkip, limit);
+      expect(mockRepository.findAllPaginated).toHaveBeenCalledWith(0, 10); // Default: page 1, limit 10
       expect(result).toEqual(mockPaginatedResult);
+    });
+
+    it('should propagate errors from the repository', async () => {
+      const mockError = new Error('Repository error');
+      mockRepository.findAllPaginated.mockRejectedValue(mockError);
+
+      await expect(service.getAllCasesPaginated(1, 10)).rejects.toThrow(mockError);
     });
   });
 
   describe('getCaseById', () => {
     it('should return a case when it exists', async () => {
-      const mockCase = { id: 1, title: 'Case 1', status: CaseStatus.PENDING };
+      const mockCase = createMockCase(1);
+      mockRepository.findById.mockResolvedValue(mockCase);
 
-      (caseRepository.findById as jest.Mock).mockResolvedValue(mockCase);
+      const result = await service.getCaseById(1);
 
-      const result = await caseService.getCaseById(1);
-
-      expect(caseRepository.findById).toHaveBeenCalledTimes(1);
-      expect(caseRepository.findById).toHaveBeenCalledWith(1);
+      expect(mockRepository.findById).toHaveBeenCalledWith(1);
       expect(result).toEqual(mockCase);
     });
 
     it('should throw NotFoundError when case does not exist', async () => {
-      (caseRepository.findById as jest.Mock).mockResolvedValue(null);
+      mockRepository.findById.mockResolvedValue(null);
 
-      await expect(caseService.getCaseById(999)).rejects.toThrow(NotFoundError);
-      await expect(caseService.getCaseById(999)).rejects.toThrow('Case with ID 999 not found');
+      await expect(service.getCaseById(999)).rejects.toThrow(NotFoundError);
+      await expect(service.getCaseById(999)).rejects.toThrow('Case with ID 999 not found');
+    });
 
-      expect(caseRepository.findById).toHaveBeenCalledTimes(2);
-      expect(caseRepository.findById).toHaveBeenCalledWith(999);
+    it('should propagate other errors from the repository', async () => {
+      const mockError = new Error('Repository error');
+      mockRepository.findById.mockRejectedValue(mockError);
+
+      await expect(service.getCaseById(1)).rejects.toThrow(mockError);
     });
   });
 
   describe('createCase', () => {
-    it('should create and return a new case', async () => {
-      const caseData = {
+    it('should create a new case with the provided data', async () => {
+      const caseData: Prisma.CaseCreateInput = {
         title: 'New Case',
-        description: 'Description',
+        description: 'New Description',
         status: CaseStatus.PENDING,
       };
+      const mockCase = createMockCase(1);
+      mockRepository.create.mockResolvedValue(mockCase);
 
-      const mockCreatedCase = {
-        id: 1,
-        ...caseData,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+      const result = await service.createCase(caseData);
+
+      expect(mockRepository.create).toHaveBeenCalledWith(caseData);
+      expect(result).toEqual(mockCase);
+    });
+
+    it('should propagate errors from the repository', async () => {
+      const mockError = new Error('Repository error');
+      const caseData: Prisma.CaseCreateInput = {
+        title: 'New Case',
+        status: CaseStatus.PENDING,
       };
+      mockRepository.create.mockRejectedValue(mockError);
 
-      (caseRepository.create as jest.Mock).mockResolvedValue(mockCreatedCase);
-
-      const result = await caseService.createCase(caseData);
-
-      expect(caseRepository.create).toHaveBeenCalledTimes(1);
-      expect(caseRepository.create).toHaveBeenCalledWith(caseData);
-      expect(result).toEqual(mockCreatedCase);
+      await expect(service.createCase(caseData)).rejects.toThrow(mockError);
     });
   });
 
   describe('updateCase', () => {
-    it('should update and return the case when it exists', async () => {
-      const mockCase = { id: 1, title: 'Original Case', status: CaseStatus.PENDING };
-      const updateData = { title: 'Updated Case' };
-      const mockUpdatedCase = { ...mockCase, ...updateData };
+    it('should update an existing case with the provided data', async () => {
+      const caseId = 1;
+      const updateData: Prisma.CaseUpdateInput = {
+        title: 'Updated Title',
+        description: 'Updated Description',
+      };
+      const mockCase = {
+        ...createMockCase(caseId),
+        title: 'Updated Title',
+        description: 'Updated Description',
+      };
 
-      (caseRepository.findById as jest.Mock).mockResolvedValue(mockCase);
-      (caseRepository.update as jest.Mock).mockResolvedValue(mockUpdatedCase);
+      mockRepository.findById.mockResolvedValue(createMockCase(caseId));
+      mockRepository.update.mockResolvedValue(mockCase);
 
-      const result = await caseService.updateCase(1, updateData);
+      const result = await service.updateCase(caseId, updateData);
 
-      expect(caseRepository.findById).toHaveBeenCalledTimes(1);
-      expect(caseRepository.findById).toHaveBeenCalledWith(1);
-      expect(caseRepository.update).toHaveBeenCalledTimes(1);
-      expect(caseRepository.update).toHaveBeenCalledWith(1, updateData);
-      expect(result).toEqual(mockUpdatedCase);
+      expect(mockRepository.findById).toHaveBeenCalledWith(caseId);
+      expect(mockRepository.update).toHaveBeenCalledWith(caseId, updateData);
+      expect(result).toEqual(mockCase);
     });
 
-    it('should throw NotFoundError when case does not exist', async () => {
-      const updateData = { title: 'Updated Case' };
+    it('should throw NotFoundError when trying to update a non-existent case', async () => {
+      const caseId = 999;
+      const updateData: Prisma.CaseUpdateInput = {
+        title: 'Updated Title',
+      };
 
-      (caseRepository.findById as jest.Mock).mockResolvedValue(null);
+      mockRepository.findById.mockResolvedValue(null);
 
-      await expect(caseService.updateCase(999, updateData)).rejects.toThrow(NotFoundError);
+      await expect(service.updateCase(caseId, updateData)).rejects.toThrow(NotFoundError);
+      await expect(service.updateCase(caseId, updateData)).rejects.toThrow(
+        `Case with ID ${caseId} not found`,
+      );
 
-      expect(caseRepository.findById).toHaveBeenCalledTimes(1);
-      expect(caseRepository.update).not.toHaveBeenCalled();
+      expect(mockRepository.update).not.toHaveBeenCalled();
+    });
+
+    it('should propagate other errors from the repository', async () => {
+      const caseId = 1;
+      const updateData: Prisma.CaseUpdateInput = {
+        title: 'Updated Title',
+      };
+      const mockError = new Error('Repository error');
+
+      mockRepository.findById.mockRejectedValue(mockError);
+
+      await expect(service.updateCase(caseId, updateData)).rejects.toThrow(mockError);
     });
   });
 
   describe('updateCaseStatus', () => {
-    it('should update the status and return the case when it exists', async () => {
-      const mockCase = { id: 1, title: 'Case 1', status: CaseStatus.PENDING };
+    it('should update only the status of an existing case', async () => {
+      const caseId = 1;
       const newStatus = CaseStatus.COMPLETED;
-      const mockUpdatedCase = { ...mockCase, status: newStatus };
+      const mockCase = {
+        ...createMockCase(caseId),
+        status: newStatus,
+      };
 
-      (caseRepository.findById as jest.Mock).mockResolvedValue(mockCase);
-      (caseRepository.updateStatus as jest.Mock).mockResolvedValue(mockUpdatedCase);
+      mockRepository.findById.mockResolvedValue(createMockCase(caseId));
+      mockRepository.updateStatus.mockResolvedValue(mockCase);
 
-      const result = await caseService.updateCaseStatus(1, newStatus);
+      const result = await service.updateCaseStatus(caseId, newStatus);
 
-      expect(caseRepository.findById).toHaveBeenCalledTimes(1);
-      expect(caseRepository.findById).toHaveBeenCalledWith(1);
-      expect(caseRepository.updateStatus).toHaveBeenCalledTimes(1);
-      expect(caseRepository.updateStatus).toHaveBeenCalledWith(1, newStatus);
-      expect(result).toEqual(mockUpdatedCase);
+      expect(mockRepository.findById).toHaveBeenCalledWith(caseId);
+      expect(mockRepository.updateStatus).toHaveBeenCalledWith(caseId, newStatus);
+      expect(result).toEqual(mockCase);
+      expect(result.status).toEqual(newStatus);
     });
 
-    it('should throw NotFoundError when case does not exist', async () => {
-      const newStatus = CaseStatus.COMPLETED;
+    it('should throw NotFoundError when trying to update status of a non-existent case', async () => {
+      const caseId = 999;
+      const newStatus = CaseStatus.IN_PROGRESS;
 
-      (caseRepository.findById as jest.Mock).mockResolvedValue(null);
+      mockRepository.findById.mockResolvedValue(null);
 
-      await expect(caseService.updateCaseStatus(999, newStatus)).rejects.toThrow(NotFoundError);
+      await expect(service.updateCaseStatus(caseId, newStatus)).rejects.toThrow(NotFoundError);
+      await expect(service.updateCaseStatus(caseId, newStatus)).rejects.toThrow(
+        `Case with ID ${caseId} not found`,
+      );
 
-      expect(caseRepository.findById).toHaveBeenCalledTimes(1);
-      expect(caseRepository.updateStatus).not.toHaveBeenCalled();
+      expect(mockRepository.updateStatus).not.toHaveBeenCalled();
+    });
+
+    it('should propagate other errors from the repository', async () => {
+      const caseId = 1;
+      const newStatus = CaseStatus.IN_PROGRESS;
+      const mockError = new Error('Repository error');
+
+      mockRepository.findById.mockRejectedValue(mockError);
+
+      await expect(service.updateCaseStatus(caseId, newStatus)).rejects.toThrow(mockError);
     });
   });
 
   describe('deleteCase', () => {
-    it('should delete the case when it exists', async () => {
-      const mockCase = { id: 1, title: 'Case to delete', status: CaseStatus.PENDING };
+    it('should delete an existing case', async () => {
+      const caseId = 1;
+      const mockCase = createMockCase(caseId);
 
-      (caseRepository.findById as jest.Mock).mockResolvedValue(mockCase);
-      (caseRepository.delete as jest.Mock).mockResolvedValue(mockCase);
+      // For the existence check
+      mockRepository.findById.mockResolvedValue(mockCase);
+      mockRepository.delete.mockResolvedValue(mockCase);
 
-      await caseService.deleteCase(1);
+      await service.deleteCase(caseId);
 
-      expect(caseRepository.findById).toHaveBeenCalledTimes(1);
-      expect(caseRepository.findById).toHaveBeenCalledWith(1);
-      expect(caseRepository.delete).toHaveBeenCalledTimes(1);
-      expect(caseRepository.delete).toHaveBeenCalledWith(1);
+      expect(mockRepository.findById).toHaveBeenCalledWith(caseId);
+      expect(mockRepository.delete).toHaveBeenCalledWith(caseId);
     });
 
-    it('should throw NotFoundError when case does not exist', async () => {
-      (caseRepository.findById as jest.Mock).mockResolvedValue(null);
+    it('should throw NotFoundError when trying to delete a non-existent case', async () => {
+      const caseId = 999;
 
-      await expect(caseService.deleteCase(999)).rejects.toThrow(NotFoundError);
+      mockRepository.findById.mockResolvedValue(null);
 
-      expect(caseRepository.findById).toHaveBeenCalledTimes(1);
-      expect(caseRepository.delete).not.toHaveBeenCalled();
+      await expect(service.deleteCase(caseId)).rejects.toThrow(NotFoundError);
+      await expect(service.deleteCase(caseId)).rejects.toThrow(`Case with ID ${caseId} not found`);
+
+      expect(mockRepository.delete).not.toHaveBeenCalled();
+    });
+
+    it('should propagate other errors from the repository', async () => {
+      const caseId = 1;
+      const mockError = new Error('Repository error');
+
+      mockRepository.findById.mockRejectedValue(mockError);
+
+      await expect(service.deleteCase(caseId)).rejects.toThrow(mockError);
     });
   });
 });

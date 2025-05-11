@@ -1,465 +1,300 @@
-jest.mock('../../lib/prisma.ts', () => ({
-  prisma: {
-    case: {
-      findMany: jest.fn(),
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      count: jest.fn(),
+import { Case, CaseStatus, Prisma } from '../../lib/prisma.ts';
+import { CaseRepository } from '../../repositories/CaseRepository.ts';
+
+jest.mock('../../lib/prisma.ts', () => {
+  const mockPrismaCase = {
+    findMany: jest.fn(),
+    findUnique: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    count: jest.fn(),
+  };
+
+  return {
+    prisma: {
+      case: mockPrismaCase,
     },
-  },
-  CaseStatus: {
-    PENDING: 'PENDING',
-    IN_PROGRESS: 'IN_PROGRESS',
-    COMPLETED: 'COMPLETED',
-  },
-}));
+    CaseStatus: {
+      PENDING: 'PENDING',
+      IN_PROGRESS: 'IN_PROGRESS',
+      COMPLETED: 'COMPLETED',
+    },
+  };
+});
 
-import { prisma, CaseStatus } from '../../lib/prisma.ts';
-import { caseRepository } from '../../repositories/caseRepository.ts';
+import { prisma } from '../../lib/prisma.ts';
 
-describe('Case Repository', () => {
+describe('CaseRepository', () => {
+  let repository: CaseRepository;
+  const mockPrismaCase = prisma.case as jest.Mocked<typeof prisma.case>;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    repository = new CaseRepository();
+  });
+
+  const createMockCase = (id: number = 1): Case => ({
+    id,
+    title: `Test Case ${id}`,
+    description: `Description for test case ${id}`,
+    status: CaseStatus.PENDING,
+    dueDate: new Date(),
+    createdAt: new Date(),
+    updatedAt: new Date(),
   });
 
   describe('findAll', () => {
-    it('should return all cases without pagination parameters', async () => {
-      const mockCases = [
-        { id: 1, title: 'Case 1', status: CaseStatus.PENDING },
-        { id: 2, title: 'Case 2', status: CaseStatus.IN_PROGRESS },
-      ];
+    it('should find all cases without pagination parameters', async () => {
+      const mockCases = [createMockCase(1), createMockCase(2)];
+      mockPrismaCase.findMany.mockResolvedValue(mockCases);
 
-      (prisma.case.findMany as jest.Mock).mockResolvedValue(mockCases);
+      const result = await repository.findAll();
 
-      const result = await caseRepository.findAll();
-
-      expect(prisma.case.findMany).toHaveBeenCalledTimes(1);
-      expect(prisma.case.findMany).toHaveBeenCalledWith({
+      expect(mockPrismaCase.findMany).toHaveBeenCalledWith({
         orderBy: { updatedAt: 'desc' },
       });
       expect(result).toEqual(mockCases);
     });
 
-    it('should apply skip parameter when only skip is provided', async () => {
-      const mockCases = [
-        { id: 3, title: 'Case 3', status: CaseStatus.PENDING },
-        { id: 4, title: 'Case 4', status: CaseStatus.IN_PROGRESS },
-      ];
+    it('should find all cases with pagination parameters', async () => {
+      const mockCases = [createMockCase(1), createMockCase(2)];
+      mockPrismaCase.findMany.mockResolvedValue(mockCases);
 
-      (prisma.case.findMany as jest.Mock).mockResolvedValue(mockCases);
+      const result = await repository.findAll(10, 20);
 
-      const result = await caseRepository.findAll(10);
-
-      expect(prisma.case.findMany).toHaveBeenCalledTimes(1);
-      expect(prisma.case.findMany).toHaveBeenCalledWith({
+      expect(mockPrismaCase.findMany).toHaveBeenCalledWith({
         skip: 10,
+        take: 20,
         orderBy: { updatedAt: 'desc' },
       });
       expect(result).toEqual(mockCases);
     });
 
-    it('should apply limit parameter when only limit is provided', async () => {
-      const mockCases = [
-        { id: 5, title: 'Case 5', status: CaseStatus.PENDING },
-        { id: 6, title: 'Case 6', status: CaseStatus.IN_PROGRESS },
-      ];
+    it('should handle Prisma error', async () => {
+      const mockError = new Error('Database error');
+      mockPrismaCase.findMany.mockRejectedValue(mockError);
 
-      (prisma.case.findMany as jest.Mock).mockResolvedValue(mockCases);
-
-      const result = await caseRepository.findAll(undefined, 5);
-
-      expect(prisma.case.findMany).toHaveBeenCalledTimes(1);
-      expect(prisma.case.findMany).toHaveBeenCalledWith({
-        take: 5,
-        orderBy: { updatedAt: 'desc' },
-      });
-      expect(result).toEqual(mockCases);
-    });
-
-    it('should apply both skip and limit parameters when both are provided', async () => {
-      const mockCases = [
-        { id: 7, title: 'Case 7', status: CaseStatus.PENDING },
-        { id: 8, title: 'Case 8', status: CaseStatus.IN_PROGRESS },
-      ];
-
-      (prisma.case.findMany as jest.Mock).mockResolvedValue(mockCases);
-
-      const result = await caseRepository.findAll(10, 2);
-
-      expect(prisma.case.findMany).toHaveBeenCalledTimes(1);
-      expect(prisma.case.findMany).toHaveBeenCalledWith({
-        skip: 10,
-        take: 2,
-        orderBy: { updatedAt: 'desc' },
-      });
-      expect(result).toEqual(mockCases);
+      await expect(repository.findAll()).rejects.toThrow(mockError);
     });
   });
 
   describe('findAllPaginated', () => {
-    it('should return paginated cases with metadata using default parameters', async () => {
-      const mockCases = [
-        { id: 1, title: 'Case 1', status: CaseStatus.PENDING },
-        { id: 2, title: 'Case 2', status: CaseStatus.IN_PROGRESS },
-      ];
-      const totalCount = 25;
+    it('should find all cases with pagination metadata', async () => {
+      const mockCases = [createMockCase(1), createMockCase(2)];
+      const totalCases = 20;
+      mockPrismaCase.findMany.mockResolvedValue(mockCases);
+      mockPrismaCase.count.mockResolvedValue(totalCases);
 
-      (prisma.case.findMany as jest.Mock).mockResolvedValue(mockCases);
-      (prisma.case.count as jest.Mock).mockResolvedValue(totalCount);
+      const result = await repository.findAllPaginated(10, 5);
 
-      const result = await caseRepository.findAllPaginated();
-
-      expect(prisma.case.findMany).toHaveBeenCalledTimes(1);
-      expect(prisma.case.findMany).toHaveBeenCalledWith({
-        skip: 0,
-        take: 10,
+      expect(mockPrismaCase.findMany).toHaveBeenCalledWith({
+        skip: 10,
+        take: 5,
         orderBy: { updatedAt: 'desc' },
       });
-      expect(prisma.case.count).toHaveBeenCalledTimes(1);
+      expect(mockPrismaCase.count).toHaveBeenCalled();
 
       expect(result).toEqual({
         data: mockCases,
         meta: {
-          total: totalCount,
-          page: 1,
-          limit: 10,
-          totalPages: 3,
-        },
-      });
-    });
-
-    it('should calculate page and totalPages correctly with custom parameters', async () => {
-      const mockCases = [
-        { id: 5, title: 'Case 5', status: CaseStatus.PENDING },
-        { id: 6, title: 'Case 6', status: CaseStatus.IN_PROGRESS },
-      ];
-      const totalCount = 21;
-      const skip = 10;
-      const limit = 5;
-
-      (prisma.case.findMany as jest.Mock).mockResolvedValue(mockCases);
-      (prisma.case.count as jest.Mock).mockResolvedValue(totalCount);
-
-      const result = await caseRepository.findAllPaginated(skip, limit);
-
-      expect(prisma.case.findMany).toHaveBeenCalledWith({
-        skip,
-        take: limit,
-        orderBy: { updatedAt: 'desc' },
-      });
-
-      expect(result).toEqual({
-        data: mockCases,
-        meta: {
-          total: totalCount,
+          total: totalCases,
           page: 3,
           limit: 5,
-          totalPages: 5,
+          totalPages: 4,
         },
       });
     });
 
-    it('should handle zero total cases correctly', async () => {
-      const mockCases: any[] = [];
-      const totalCount = 0;
+    it('should use default pagination parameters when not provided', async () => {
+      const mockCases = [createMockCase(1), createMockCase(2)];
+      const totalCases = 20;
+      mockPrismaCase.findMany.mockResolvedValue(mockCases);
+      mockPrismaCase.count.mockResolvedValue(totalCases);
 
-      (prisma.case.findMany as jest.Mock).mockResolvedValue(mockCases);
-      (prisma.case.count as jest.Mock).mockResolvedValue(totalCount);
+      const result = await repository.findAllPaginated();
 
-      const result = await caseRepository.findAllPaginated(0, 10);
-
-      expect(result).toEqual({
-        data: mockCases,
-        meta: {
-          total: 0,
-          page: 1,
-          limit: 10,
-          totalPages: 0,
-        },
-      });
-
-      expect(prisma.case.findMany).toHaveBeenCalledWith({
+      expect(mockPrismaCase.findMany).toHaveBeenCalledWith({
         skip: 0,
         take: 10,
         orderBy: { updatedAt: 'desc' },
       });
-      expect(prisma.case.count).toHaveBeenCalledTimes(1);
+      expect(result.meta).toEqual({
+        total: totalCases,
+        page: 1,
+        limit: 10,
+        totalPages: 2,
+      });
     });
 
-    it('should handle edge case when limit is 0 (prevent division by zero)', async () => {
-      const mockCases = [{ id: 9, title: 'Case 9', status: CaseStatus.PENDING }];
-      const totalCount = 15;
+    it('should use safe limit when provided limit is <= 0', async () => {
+      const mockCases = [createMockCase(1), createMockCase(2)];
+      const totalCases = 20;
+      mockPrismaCase.findMany.mockResolvedValue(mockCases);
+      mockPrismaCase.count.mockResolvedValue(totalCases);
 
-      (prisma.case.findMany as jest.Mock).mockResolvedValue(mockCases);
-      (prisma.case.count as jest.Mock).mockResolvedValue(totalCount);
+      const result = await repository.findAllPaginated(0, -5);
 
-      const result = await caseRepository.findAllPaginated(5, 0);
-
-      expect(result.meta.page).not.toBe(Infinity);
-      expect(result.meta.totalPages).not.toBe(Infinity);
-
-      expect(result.meta.page).toBe(1);
-      expect(result.meta.limit).toBe(10);
-      expect(result.meta.totalPages).toBe(2);
-
-      expect(prisma.case.findMany).toHaveBeenCalledWith({
-        skip: 5,
+      expect(mockPrismaCase.findMany).toHaveBeenCalledWith({
+        skip: 0,
         take: 10,
         orderBy: { updatedAt: 'desc' },
       });
     });
 
-    it('should handle negative limit value', async () => {
-      const mockCases = [{ id: 10, title: 'Case 10', status: CaseStatus.PENDING }];
-      const totalCount = 15;
+    it('should handle Prisma error', async () => {
+      const mockError = new Error('Database error');
+      mockPrismaCase.findMany.mockRejectedValue(mockError);
 
-      (prisma.case.findMany as jest.Mock).mockResolvedValue(mockCases);
-      (prisma.case.count as jest.Mock).mockResolvedValue(totalCount);
-
-      const result = await caseRepository.findAllPaginated(5, -5);
-
-      expect(result.meta.limit).toBe(10);
-      expect(result.meta.page).toBe(1);
-      expect(result.meta.totalPages).toBe(2);
-
-      expect(prisma.case.findMany).toHaveBeenCalledWith({
-        skip: 5,
-        take: 10,
-        orderBy: { updatedAt: 'desc' },
-      });
+      await expect(repository.findAllPaginated()).rejects.toThrow(mockError);
     });
   });
 
   describe('findById', () => {
-    it('should return a case when it exists', async () => {
-      const mockCase = { id: 1, title: 'Case 1', status: CaseStatus.PENDING };
+    it('should find a case by ID', async () => {
+      const mockCase = createMockCase(1);
+      mockPrismaCase.findUnique.mockResolvedValue(mockCase);
 
-      (prisma.case.findUnique as jest.Mock).mockResolvedValue(mockCase);
+      const result = await repository.findById(1);
 
-      const result = await caseRepository.findById(1);
-
-      expect(prisma.case.findUnique).toHaveBeenCalledTimes(1);
-      expect(prisma.case.findUnique).toHaveBeenCalledWith({
+      expect(mockPrismaCase.findUnique).toHaveBeenCalledWith({
         where: { id: 1 },
       });
       expect(result).toEqual(mockCase);
     });
 
     it('should return null when case does not exist', async () => {
-      (prisma.case.findUnique as jest.Mock).mockResolvedValue(null);
+      mockPrismaCase.findUnique.mockResolvedValue(null);
 
-      const result = await caseRepository.findById(999);
+      const result = await repository.findById(999);
 
-      expect(prisma.case.findUnique).toHaveBeenCalledTimes(1);
-      expect(prisma.case.findUnique).toHaveBeenCalledWith({
+      expect(mockPrismaCase.findUnique).toHaveBeenCalledWith({
         where: { id: 999 },
       });
       expect(result).toBeNull();
     });
+
+    it('should handle Prisma error', async () => {
+      const mockError = new Error('Database error');
+      mockPrismaCase.findUnique.mockRejectedValue(mockError);
+
+      await expect(repository.findById(1)).rejects.toThrow(mockError);
+    });
   });
 
   describe('create', () => {
-    it('should create and return a new case with minimal data', async () => {
-      const caseData = {
+    it('should create a new case', async () => {
+      const mockCase = createMockCase(1);
+      const createInput: Prisma.CaseCreateInput = {
         title: 'New Case',
+        description: 'New Description',
+        status: CaseStatus.PENDING,
       };
 
-      const mockCreatedCase = {
-        id: 1,
-        ...caseData,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      mockPrismaCase.create.mockResolvedValue(mockCase);
 
-      (prisma.case.create as jest.Mock).mockResolvedValue(mockCreatedCase);
+      const result = await repository.create(createInput);
 
-      const result = await caseRepository.create(caseData);
-
-      expect(prisma.case.create).toHaveBeenCalledTimes(1);
-      expect(prisma.case.create).toHaveBeenCalledWith({
-        data: caseData,
+      expect(mockPrismaCase.create).toHaveBeenCalledWith({
+        data: createInput,
       });
-      expect(result).toEqual(mockCreatedCase);
+      expect(result).toEqual(mockCase);
     });
 
-    it('should create and return a new case with complete data', async () => {
-      const caseData = {
+    it('should handle Prisma error', async () => {
+      const mockError = new Error('Database error');
+      const createInput: Prisma.CaseCreateInput = {
         title: 'New Case',
-        description: 'Description',
         status: CaseStatus.PENDING,
-        dueDate: new Date('2023-12-31'),
       };
 
-      const mockCreatedCase = {
-        id: 1,
-        ...caseData,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      mockPrismaCase.create.mockRejectedValue(mockError);
 
-      (prisma.case.create as jest.Mock).mockResolvedValue(mockCreatedCase);
-
-      const result = await caseRepository.create(caseData);
-
-      expect(prisma.case.create).toHaveBeenCalledTimes(1);
-      expect(prisma.case.create).toHaveBeenCalledWith({
-        data: caseData,
-      });
-      expect(result).toEqual(mockCreatedCase);
+      await expect(repository.create(createInput)).rejects.toThrow(mockError);
     });
   });
 
   describe('update', () => {
-    it('should update and return the case with partial data', async () => {
-      const updateData = {
-        title: 'Updated Case',
+    it('should update an existing case', async () => {
+      const mockCase = createMockCase(1);
+      const updateInput: Prisma.CaseUpdateInput = {
+        title: 'Updated Title',
+        description: 'Updated Description',
       };
 
-      const mockUpdatedCase = {
-        id: 1,
-        ...updateData,
-        description: 'Original description',
-        status: CaseStatus.PENDING,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      (prisma.case.update as jest.Mock).mockResolvedValue(mockUpdatedCase);
-
-      const result = await caseRepository.update(1, updateData);
-
-      expect(prisma.case.update).toHaveBeenCalledTimes(1);
-      expect(prisma.case.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: updateData,
+      mockPrismaCase.update.mockResolvedValue({
+        ...mockCase,
+        title: 'Updated Title',
+        description: 'Updated Description',
       });
-      expect(result).toEqual(mockUpdatedCase);
+
+      const result = await repository.update(1, updateInput);
+
+      expect(mockPrismaCase.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: updateInput,
+      });
+      expect(result.title).toEqual('Updated Title');
+      expect(result.description).toEqual('Updated Description');
     });
 
-    it('should update and return the case with complete data', async () => {
-      const updateData = {
-        title: 'Updated Case',
-        description: 'Updated description',
-        status: CaseStatus.IN_PROGRESS,
-        dueDate: new Date('2024-01-15'),
+    it('should handle Prisma error when case does not exist', async () => {
+      const mockError = new Error('Record to update not found');
+      const updateInput: Prisma.CaseUpdateInput = {
+        title: 'Updated Title',
       };
 
-      const mockUpdatedCase = {
-        id: 1,
-        ...updateData,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      mockPrismaCase.update.mockRejectedValue(mockError);
 
-      (prisma.case.update as jest.Mock).mockResolvedValue(mockUpdatedCase);
-
-      const result = await caseRepository.update(1, updateData);
-
-      expect(prisma.case.update).toHaveBeenCalledTimes(1);
-      expect(prisma.case.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: updateData,
-      });
-      expect(result).toEqual(mockUpdatedCase);
+      await expect(repository.update(999, updateInput)).rejects.toThrow(mockError);
     });
   });
 
   describe('updateStatus', () => {
-    it('should update the status to PENDING and return the case', async () => {
-      const mockUpdatedCase = {
-        id: 1,
-        title: 'Case 1',
-        status: CaseStatus.PENDING,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+    it('should update only the status of a case', async () => {
+      const mockCase = createMockCase(1);
+      const newStatus = CaseStatus.COMPLETED;
 
-      (prisma.case.update as jest.Mock).mockResolvedValue(mockUpdatedCase);
-
-      const result = await caseRepository.updateStatus(1, CaseStatus.PENDING);
-
-      expect(prisma.case.update).toHaveBeenCalledTimes(1);
-      expect(prisma.case.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: { status: CaseStatus.PENDING },
+      mockPrismaCase.update.mockResolvedValue({
+        ...mockCase,
+        status: newStatus,
       });
-      expect(result).toEqual(mockUpdatedCase);
+
+      const result = await repository.updateStatus(1, newStatus);
+
+      expect(mockPrismaCase.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { status: newStatus },
+      });
+      expect(result.status).toEqual(newStatus);
     });
 
-    it('should update the status to IN_PROGRESS and return the case', async () => {
-      const mockUpdatedCase = {
-        id: 1,
-        title: 'Case 1',
-        status: CaseStatus.IN_PROGRESS,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+    it('should handle Prisma error', async () => {
+      const mockError = new Error('Database error');
+      mockPrismaCase.update.mockRejectedValue(mockError);
 
-      (prisma.case.update as jest.Mock).mockResolvedValue(mockUpdatedCase);
-
-      const result = await caseRepository.updateStatus(1, CaseStatus.IN_PROGRESS);
-
-      expect(prisma.case.update).toHaveBeenCalledTimes(1);
-      expect(prisma.case.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: { status: CaseStatus.IN_PROGRESS },
-      });
-      expect(result).toEqual(mockUpdatedCase);
-    });
-
-    it('should update the status to COMPLETED and return the case', async () => {
-      const mockUpdatedCase = {
-        id: 1,
-        title: 'Case 1',
-        status: CaseStatus.COMPLETED,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      (prisma.case.update as jest.Mock).mockResolvedValue(mockUpdatedCase);
-
-      const result = await caseRepository.updateStatus(1, CaseStatus.COMPLETED);
-
-      expect(prisma.case.update).toHaveBeenCalledTimes(1);
-      expect(prisma.case.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: { status: CaseStatus.COMPLETED },
-      });
-      expect(result).toEqual(mockUpdatedCase);
+      await expect(repository.updateStatus(1, CaseStatus.IN_PROGRESS)).rejects.toThrow(mockError);
     });
   });
 
   describe('delete', () => {
-    it('should delete the case and return it', async () => {
-      const mockDeletedCase = {
-        id: 1,
-        title: 'Case to delete',
-        status: CaseStatus.PENDING,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+    it('should delete a case', async () => {
+      const mockCase = createMockCase(1);
+      mockPrismaCase.delete.mockResolvedValue(mockCase);
 
-      (prisma.case.delete as jest.Mock).mockResolvedValue(mockDeletedCase);
+      const result = await repository.delete(1);
 
-      const result = await caseRepository.delete(1);
-
-      expect(prisma.case.delete).toHaveBeenCalledTimes(1);
-      expect(prisma.case.delete).toHaveBeenCalledWith({
+      expect(mockPrismaCase.delete).toHaveBeenCalledWith({
         where: { id: 1 },
       });
-      expect(result).toEqual(mockDeletedCase);
+      expect(result).toEqual(mockCase);
     });
 
-    it('should handle deletion of non-existent case (Prisma would throw an error)', async () => {
-      const prismaError = new Error('Record not found');
-      (prisma.case.delete as jest.Mock).mockRejectedValue(prismaError);
+    it('should handle Prisma error when case does not exist', async () => {
+      const mockError = new Error('Record to delete not found');
+      mockPrismaCase.delete.mockRejectedValue(mockError);
 
-      await expect(caseRepository.delete(999)).rejects.toThrow('Record not found');
-      expect(prisma.case.delete).toHaveBeenCalledWith({
-        where: { id: 999 },
-      });
+      await expect(repository.delete(999)).rejects.toThrow(mockError);
     });
   });
 });

@@ -10,16 +10,17 @@ jest.mock('express', () => ({
   Router: jest.fn(() => mockRouter),
 }));
 
-// Mock the caseControllerImpl with bound methods
-const mockBoundFunction = jest.fn();
-jest.mock('../../controllers/CaseControllerImpl.ts', () => ({
-  caseControllerImpl: {
-    getAllCases: { bind: () => mockBoundFunction },
-    getCaseById: { bind: () => mockBoundFunction },
-    createCase: { bind: () => mockBoundFunction },
-    updateCase: { bind: () => mockBoundFunction },
-    updateCaseStatus: { bind: () => mockBoundFunction },
-    deleteCase: { bind: () => mockBoundFunction },
+// Mock the container to return a mock controller
+jest.mock('../../di/container.ts', () => ({
+  container: {
+    get: jest.fn(() => ({
+      getAllCases: jest.fn(),
+      getCaseById: jest.fn(),
+      createCase: jest.fn(),
+      updateCase: jest.fn(),
+      updateCaseStatus: jest.fn(),
+      deleteCase: jest.fn(),
+    })),
   },
 }));
 
@@ -59,7 +60,7 @@ describe('Case Routes', () => {
     expect(mockRouter.get).toHaveBeenCalledWith(
       '/',
       'pagination-middleware-mock',
-      mockBoundFunction,
+      expect.any(Function),
     );
   });
 
@@ -67,19 +68,23 @@ describe('Case Routes', () => {
     expect(mockRouter.get).toHaveBeenCalledWith(
       '/:id',
       'validateDeleteCase-mock',
-      mockBoundFunction,
+      expect.any(Function),
     );
   });
 
   it('should set up POST / route for createCase', () => {
-    expect(mockRouter.post).toHaveBeenCalledWith('/', 'validateCreateCase-mock', mockBoundFunction);
+    expect(mockRouter.post).toHaveBeenCalledWith(
+      '/',
+      'validateCreateCase-mock',
+      expect.any(Function),
+    );
   });
 
   it('should set up PUT /:id route for updateCase', () => {
     expect(mockRouter.put).toHaveBeenCalledWith(
       '/:id',
       'validateUpdateCase-mock',
-      mockBoundFunction,
+      expect.any(Function),
     );
   });
 
@@ -87,7 +92,7 @@ describe('Case Routes', () => {
     expect(mockRouter.patch).toHaveBeenCalledWith(
       '/:id/status',
       'validateUpdateStatus-mock',
-      mockBoundFunction,
+      expect.any(Function),
     );
   });
 
@@ -95,7 +100,7 @@ describe('Case Routes', () => {
     expect(mockRouter.delete).toHaveBeenCalledWith(
       '/:id',
       'validateDeleteCase-mock',
-      mockBoundFunction,
+      expect.any(Function),
     );
   });
 
