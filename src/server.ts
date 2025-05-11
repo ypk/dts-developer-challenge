@@ -1,3 +1,4 @@
+import 'inversify';
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
@@ -58,7 +59,7 @@ safelyApplyMiddleware(app, 'Error handler', () => app.use(errorHandler));
 if (process.env.NODE_ENV !== 'test') {
   try {
     app.listen(port, () => {
-      console.log(logSymbols.success, `Server is running on port ${port}`);
+      console.log(logSymbols.success, ` Server is running on port ${port}`);
       console.log(
         logSymbols.info,
         ` API Documentation available at http://localhost:${port}/api-docs`,

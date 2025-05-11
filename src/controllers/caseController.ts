@@ -1,73 +1,111 @@
 import { Request, Response } from 'express';
 import { CaseStatus } from '../lib/prisma.ts';
-import { caseService } from '../services/caseService.ts';
-import { sendSuccess, sendError, sendBadRequest, sendNoContent } from '../utils/responseHandler.ts';
-import { validateAndParseId, handleNotFoundError } from '../utils/caseHelper.ts';
+import { ICaseService } from '../interfaces/ICaseService.ts';
+import { ICaseController } from '../interfaces/ICaseController.ts';
+import { ICaseHelper } from '../interfaces/ICaseHelper.ts';
+import { IResponseHandler } from '../interfaces/IResponseHandler.ts';
+import { CaseServiceInstance } from '../services/CaseService.ts';
+import { CaseHelper } from '../utils/caseHelper.ts';
+import { ResponseHandler } from '../utils/responseHandler.ts';
 
-export const caseController = {
-  getAllCases: async (req: Request, res: Response): Promise<void> => {
+/**
+ * Implementation of the case controller interface
+ */
+export class CaseController implements ICaseController {
+  private service: ICaseService;
+  private caseHelper: ICaseHelper;
+  private responseHandler: IResponseHandler;
+
+  /**
+   * Constructor
+   * @param service Case service implementation
+   * @param caseHelper Case helper implementation
+   * @param responseHandler Response handler implementation
+   */
+  constructor(service: ICaseService, caseHelper: ICaseHelper, responseHandler: IResponseHandler) {
+    this.service = service;
+    this.caseHelper = caseHelper;
+    this.responseHandler = responseHandler;
+  }
+
+  /**
+   * Get all cases with optional pagination
+   * @param req Express request object
+   * @param res Express response object
+   */
+  async getAllCases(req: Request, res: Response): Promise<void> {
     try {
       if (req.pagination) {
         const { page, limit } = req.pagination;
-        const result = await caseService.getAllCasesPaginated(page, limit);
+        const result = await this.service.getAllCasesPaginated(page, limit);
 
-        sendSuccess(res, {
+        this.responseHandler.sendSuccess(res, {
           message: 'Cases retrieved successfully',
           count: result.meta.total,
           data: result.data,
           pagination: result.meta,
         });
       } else {
-        const cases = await caseService.getAllCases();
+        const cases = await this.service.getAllCases();
 
-        sendSuccess(res, {
+        this.responseHandler.sendSuccess(res, {
           message: 'Cases retrieved successfully',
           count: cases.length,
           data: cases,
         });
       }
     } catch (error) {
-      sendError(res, 'Failed to retrieve cases', error);
+      this.responseHandler.sendError(res, 'Failed to retrieve cases', error);
     }
-  },
+  }
 
-  getCaseById: async (req: Request, res: Response): Promise<void> => {
+  /**
+   * Get a case by its ID
+   * @param req Express request object with case ID parameter
+   * @param res Express response object
+   */
+  async getCaseById(req: Request, res: Response): Promise<void> {
     try {
-      const id = validateAndParseId(req, res);
+      const id = this.caseHelper.validateAndParseId(req, res);
       if (id === null) return;
 
       try {
-        const caseData = await caseService.getCaseById(id);
+        const caseData = await this.service.getCaseById(id);
 
-        sendSuccess(res, {
+        this.responseHandler.sendSuccess(res, {
           message: 'Case retrieved successfully',
           data: caseData,
         });
       } catch (error) {
-        if (handleNotFoundError(error, res)) return;
+        if (this.caseHelper.handleNotFoundError(error, res)) return;
         throw error;
       }
     } catch (error) {
-      sendError(res, 'Failed to retrieve case', error);
+      this.responseHandler.sendError(res, 'Failed to retrieve case', error);
     }
-  },
+  }
 
-  createCase: async (req: Request, res: Response): Promise<void> => {
+  /**
+   * Create a new case
+   * @param req Express request object with case data in body
+   * @param res Express response object
+   */
+  async createCase(req: Request, res: Response): Promise<void> {
     try {
       const { title, description, status, dueDate } = req.body;
 
       if (!title) {
-        return sendBadRequest(res, 'Title is required');
+        return this.responseHandler.sendBadRequest(res, 'Title is required');
       }
 
-      const newCase = await caseService.createCase({
+      const newCase = await this.service.createCase({
         title,
         description,
         status: status || CaseStatus.PENDING,
         dueDate: dueDate ? new Date(dueDate) : undefined,
       });
 
-      sendSuccess(
+      this.responseHandler.sendSuccess(
         res,
         {
           message: 'Case created successfully',
@@ -76,17 +114,22 @@ export const caseController = {
         201,
       );
     } catch (error) {
-      sendError(res, 'Failed to create case', error);
+      this.responseHandler.sendError(res, 'Failed to create case', error);
     }
-  },
+  }
 
-  updateCase: async (req: Request, res: Response): Promise<void> => {
+  /**
+   * Update an existing case
+   * @param req Express request object with case ID parameter and updated data in body
+   * @param res Express response object
+   */
+  async updateCase(req: Request, res: Response): Promise<void> {
     try {
-      const id = validateAndParseId(req, res);
+      const id = this.caseHelper.validateAndParseId(req, res);
       if (id === null) return;
 
       if (!req.body || Object.keys(req.body).length === 0) {
-        return sendBadRequest(res, 'Request body is required');
+        return this.responseHandler.sendBadRequest(res, 'Request body is required');
       }
 
       const { title, description, status, dueDate } = req.body;
@@ -99,69 +142,88 @@ export const caseController = {
       };
 
       try {
-        const updatedCase = await caseService.updateCase(id, updateData);
+        const updatedCase = await this.service.updateCase(id, updateData);
 
-        sendSuccess(res, {
+        this.responseHandler.sendSuccess(res, {
           message: 'Case updated successfully',
           data: updatedCase,
         });
       } catch (error) {
-        if (handleNotFoundError(error, res)) return;
+        if (this.caseHelper.handleNotFoundError(error, res)) return;
         throw error;
       }
     } catch (error) {
-      sendError(res, 'Failed to update case', error);
+      this.responseHandler.sendError(res, 'Failed to update case', error);
     }
-  },
+  }
 
-  updateCaseStatus: async (req: Request, res: Response): Promise<void> => {
+  /**
+   * Update only the status of a case
+   * @param req Express request object with case ID parameter and status in body
+   * @param res Express response object
+   */
+  async updateCaseStatus(req: Request, res: Response): Promise<void> {
     try {
-      const id = validateAndParseId(req, res);
+      const id = this.caseHelper.validateAndParseId(req, res);
       if (id === null) return;
 
       const { status } = req.body;
 
       if (!status) {
-        return sendBadRequest(res, 'Status is required');
+        return this.responseHandler.sendBadRequest(res, 'Status is required');
       }
 
       if (!Object.values(CaseStatus).includes(status)) {
-        return sendBadRequest(
+        return this.responseHandler.sendBadRequest(
           res,
           `Invalid status. Must be one of: ${Object.values(CaseStatus).join(', ')}`,
         );
       }
 
       try {
-        const updatedCase = await caseService.updateCaseStatus(id, status);
+        const updatedCase = await this.service.updateCaseStatus(id, status);
 
-        sendSuccess(res, {
+        this.responseHandler.sendSuccess(res, {
           message: 'Case status updated successfully',
           data: updatedCase,
         });
       } catch (error) {
-        if (handleNotFoundError(error, res)) return;
+        if (this.caseHelper.handleNotFoundError(error, res)) return;
         throw error;
       }
     } catch (error) {
-      sendError(res, 'Failed to update case status', error);
+      this.responseHandler.sendError(res, 'Failed to update case status', error);
     }
-  },
+  }
 
-  deleteCase: async (req: Request, res: Response): Promise<void> => {
+  /**
+   * Delete a case
+   * @param req Express request object with case ID parameter
+   * @param res Express response object
+   */
+  async deleteCase(req: Request, res: Response): Promise<void> {
     try {
-      const id = validateAndParseId(req, res);
+      const id = this.caseHelper.validateAndParseId(req, res);
       if (id === null) return;
 
       try {
-        await caseService.deleteCase(id);
-        sendNoContent(res);
+        await this.service.deleteCase(id);
+        this.responseHandler.sendNoContent(res);
       } catch (error) {
-        if (handleNotFoundError(error, res)) return;
+        if (this.caseHelper.handleNotFoundError(error, res)) return;
         throw error;
       }
     } catch (error) {
-      sendError(res, 'Failed to delete case', error);
+      this.responseHandler.sendError(res, 'Failed to delete case', error);
     }
-  },
-};
+  }
+}
+
+// Create a singleton instance using the service implementation
+const responseHandler = new ResponseHandler();
+const caseHelper = new CaseHelper(responseHandler);
+export const CaseControllerInstance = new CaseController(
+  CaseServiceInstance,
+  caseHelper,
+  responseHandler,
+);

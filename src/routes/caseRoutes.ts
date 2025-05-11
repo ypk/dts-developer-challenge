@@ -1,5 +1,7 @@
 import express from 'express';
-import { caseControllerImpl } from '../controllers/CaseControllerImpl.ts';
+import { container } from '../di/container.ts';
+import { TYPES } from '../di/types.ts';
+import { ICaseController } from '../interfaces/ICaseController.ts';
 import {
   validateCreateCase,
   validateUpdateCase,
@@ -7,8 +9,11 @@ import {
   validateDeleteCase,
 } from '../middleware/validation.middleware.ts';
 import { paginationMiddleware } from '../middleware/pagination.middleware.ts';
+import { ParamsDictionary } from 'express-serve-static-core';
+import { ParsedQs } from 'qs';
 
 const router = express.Router();
+const CaseController = container.get<ICaseController>(TYPES.CaseController);
 
 /**
  * @swagger
@@ -69,7 +74,7 @@ const router = express.Router();
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-router.get('/', paginationMiddleware, caseControllerImpl.getAllCases.bind(caseControllerImpl));
+router.get('/', paginationMiddleware, (req, res) => CaseController.getAllCases(req, res));
 
 /**
  * @swagger
@@ -107,7 +112,14 @@ router.get('/', paginationMiddleware, caseControllerImpl.getAllCases.bind(caseCo
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-router.get('/:id', validateDeleteCase, caseControllerImpl.getCaseById.bind(caseControllerImpl));
+router.get(
+  '/:id',
+  validateDeleteCase,
+  (
+    req: express.Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>,
+    res: express.Response<any, Record<string, any>>,
+  ) => CaseController.getCaseById(req, res),
+);
 
 /**
  * @swagger
@@ -142,7 +154,14 @@ router.get('/:id', validateDeleteCase, caseControllerImpl.getCaseById.bind(caseC
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-router.post('/', validateCreateCase, caseControllerImpl.createCase.bind(caseControllerImpl));
+router.post(
+  '/',
+  validateCreateCase,
+  (
+    req: express.Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>,
+    res: express.Response<any, Record<string, any>>,
+  ) => CaseController.createCase(req, res),
+);
 
 /**
  * @swagger
@@ -186,7 +205,14 @@ router.post('/', validateCreateCase, caseControllerImpl.createCase.bind(caseCont
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-router.put('/:id', validateUpdateCase, caseControllerImpl.updateCase.bind(caseControllerImpl));
+router.put(
+  '/:id',
+  validateUpdateCase,
+  (
+    req: express.Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>,
+    res: express.Response<any, Record<string, any>>,
+  ) => CaseController.updateCase(req, res),
+);
 
 /**
  * @swagger
@@ -233,7 +259,10 @@ router.put('/:id', validateUpdateCase, caseControllerImpl.updateCase.bind(caseCo
 router.patch(
   '/:id/status',
   validateUpdateStatus,
-  caseControllerImpl.updateCaseStatus.bind(caseControllerImpl),
+  (
+    req: express.Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>,
+    res: express.Response<any, Record<string, any>>,
+  ) => CaseController.updateCaseStatus(req, res),
 );
 
 /**
@@ -259,6 +288,13 @@ router.patch(
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-router.delete('/:id', validateDeleteCase, caseControllerImpl.deleteCase.bind(caseControllerImpl));
+router.delete(
+  '/:id',
+  validateDeleteCase,
+  (
+    req: express.Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>,
+    res: express.Response<any, Record<string, any>>,
+  ) => CaseController.deleteCase(req, res),
+);
 
 export default router;

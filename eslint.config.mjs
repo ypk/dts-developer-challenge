@@ -10,6 +10,7 @@ function getBaseRules(args) {
         '@typescript-eslint/no-unsafe-argument': args,
         '@typescript-eslint/no-unsafe-assignment': args,
         '@typescript-eslint/no-unsafe-call': args,
+        '@typescript-eslint/no-unsafe-return': args,
         '@typescript-eslint/no-unsafe-member-access': args,
         '@typescript-eslint/no-explicit-any': args,
         '@typescript-eslint/unbound-method': args,
