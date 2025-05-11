@@ -1,8 +1,18 @@
-import { Router } from 'express';
-import { CaseControllerInstance } from '../controllers/CaseController.ts';
-import { caseValidation, validate } from '../middleware/validation.middleware.ts';
-import { paginationMiddleware } from '../middleware/pagination.middleware.ts';
+/**
+ * Case Routes Module
+ * @module caseRoutes
+ * @description Defines API routes for case management operations
+ */
 
+import { Router } from 'express';
+import { CaseControllerInstance } from '../controllers/CaseController.js';
+import { caseValidation, validate } from '../middleware/validation.middleware.js';
+import { paginationMiddleware } from '../middleware/pagination.middleware.js';
+
+/**
+ * Express router for case-related endpoints
+ * @type {Router}
+ */
 const router = Router();
 
 /**
@@ -66,6 +76,16 @@ const router = Router();
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
+/**
+ * Route to retrieve all cases with optional pagination
+ * @name GET /cases
+ * @function
+ * @memberof module:caseRoutes
+ * @inner
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} Promise representing the completion of the request handling
+ */
 router.get('/', paginationMiddleware, CaseControllerInstance.getAllCases);
 
 /**
@@ -104,6 +124,16 @@ router.get('/', paginationMiddleware, CaseControllerInstance.getAllCases);
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
+/**
+ * Route to retrieve a specific case by ID
+ * @name GET /cases/:id
+ * @function
+ * @memberof module:caseRoutes
+ * @inner
+ * @param {Object} req - Express request object with case ID in params
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} Promise representing the completion of the request handling
+ */
 router.get('/:id', caseValidation.delete, validate, CaseControllerInstance.getCaseById);
 
 /**
@@ -138,6 +168,16 @@ router.get('/:id', caseValidation.delete, validate, CaseControllerInstance.getCa
  *         $ref: '#/components/responses/BadRequest'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
+ */
+/**
+ * Route to create a new case
+ * @name POST /cases
+ * @function
+ * @memberof module:caseRoutes
+ * @inner
+ * @param {Object} req - Express request object with case data in body
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} Promise representing the completion of the request handling
  */
 router.post('/', caseValidation.create, validate, CaseControllerInstance.createCase);
 
@@ -183,6 +223,16 @@ router.post('/', caseValidation.create, validate, CaseControllerInstance.createC
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
+/**
+ * Route to update an existing case
+ * @name PUT /cases/:id
+ * @function
+ * @memberof module:caseRoutes
+ * @inner
+ * @param {Object} req - Express request object with case ID in params and update data in body
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} Promise representing the completion of the request handling
+ */
 router.put('/:id', caseValidation.update, validate, CaseControllerInstance.updateCase);
 
 /**
@@ -227,6 +277,16 @@ router.put('/:id', caseValidation.update, validate, CaseControllerInstance.updat
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
+/**
+ * Route to update only the status of an existing case
+ * @name PATCH /cases/:id/status
+ * @function
+ * @memberof module:caseRoutes
+ * @inner
+ * @param {Object} req - Express request object with case ID in params and status in body
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} Promise representing the completion of the request handling
+ */
 router.patch(
   '/:id/status',
   caseValidation.updateStatus,
@@ -256,6 +316,16 @@ router.patch(
  *         $ref: '#/components/responses/NotFound'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
+ */
+/**
+ * Route to delete a case
+ * @name DELETE /cases/:id
+ * @function
+ * @memberof module:caseRoutes
+ * @inner
+ * @param {Object} req - Express request object with case ID in params
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} Promise representing the completion of the request handling
  */
 router.delete('/:id', caseValidation.delete, validate, CaseControllerInstance.deleteCase);
 
