@@ -6,7 +6,7 @@
 
 import { Request, Response } from 'express';
 import { CaseStatus } from '../services/PrismaService.ts';
-import { caseService } from '../services/caseService.ts';
+import { CaseServiceInstance } from '../services/CaseService.ts';
 import { sendSuccess, sendError, sendBadRequest, sendNoContent } from '../utils/responseHandler.ts';
 import { validateAndParseId, handleNotFoundError } from '../utils/caseHelper.ts';
 
@@ -28,7 +28,7 @@ export class CaseController {
     try {
       if (req.pagination) {
         const { page, limit } = req.pagination;
-        const result = await caseService.getAllCasesPaginated(page, limit);
+        const result = await CaseServiceInstance.getAllCasesPaginated(page, limit);
 
         sendSuccess(res, {
           message: 'Cases retrieved successfully',
@@ -37,7 +37,7 @@ export class CaseController {
           pagination: result.meta,
         });
       } else {
-        const cases = await caseService.getAllCases();
+        const cases = await CaseServiceInstance.getAllCases();
 
         sendSuccess(res, {
           message: 'Cases retrieved successfully',
@@ -64,7 +64,7 @@ export class CaseController {
       if (id === null) return;
 
       try {
-        const caseData = await caseService.getCaseById(id);
+        const caseData = await CaseServiceInstance.getCaseById(id);
 
         sendSuccess(res, {
           message: 'Case retrieved successfully',
@@ -95,7 +95,7 @@ export class CaseController {
         return sendBadRequest(res, 'Title is required');
       }
 
-      const newCase = await caseService.createCase({
+      const newCase = await CaseServiceInstance.createCase({
         title,
         description,
         status: status || CaseStatus.PENDING,
@@ -142,7 +142,7 @@ export class CaseController {
       };
 
       try {
-        const updatedCase = await caseService.updateCase(id, updateData);
+        const updatedCase = await CaseServiceInstance.updateCase(id, updateData);
 
         sendSuccess(res, {
           message: 'Case updated successfully',
@@ -184,7 +184,7 @@ export class CaseController {
       }
 
       try {
-        const updatedCase = await caseService.updateCaseStatus(id, status);
+        const updatedCase = await CaseServiceInstance.updateCaseStatus(id, status);
 
         sendSuccess(res, {
           message: 'Case status updated successfully',
@@ -213,7 +213,7 @@ export class CaseController {
       if (id === null) return;
 
       try {
-        await caseService.deleteCase(id);
+        await CaseServiceInstance.deleteCase(id);
         sendNoContent(res);
       } catch (error) {
         if (handleNotFoundError(error, res)) return;
