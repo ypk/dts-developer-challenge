@@ -1,29 +1,26 @@
-import { CaseStatus } from '../lib/prisma.ts';
+import {
+  ICreateCaseDto,
+  IUpdateCaseDto,
+  IUpdateCaseStatusDto,
+  ICaseResponseDto,
+} from '../interfaces/ICaseDTO.ts';
 
-export interface CreateCaseDto {
-  title: string;
-  description?: string;
-  status?: CaseStatus;
-  dueDate?: Date | string;
-}
+/**
+ * Data transfer object for creating a new case
+ */
+export type CreateCaseDto = ICreateCaseDto;
 
-export interface UpdateCaseDto {
-  title?: string;
-  description?: string;
-  status?: CaseStatus;
-  dueDate?: Date | string;
-}
+/**
+ * Data transfer object for updating an existing case
+ */
+export type UpdateCaseDto = IUpdateCaseDto;
 
-export interface UpdateCaseStatusDto {
-  status: CaseStatus;
-}
+/**
+ * Data transfer object for updating only the status of a case
+ */
+export type UpdateCaseStatusDto = IUpdateCaseStatusDto;
 
-export interface CaseResponseDto {
-  id: number;
-  title: string;
-  description: string | null;
-  status: CaseStatus;
-  dueDate: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
+/**
+ * Data transfer object for case response data
+ */
+export type CaseResponseDto = ICaseResponseDto;

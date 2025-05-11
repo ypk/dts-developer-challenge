@@ -10,27 +10,28 @@ jest.mock('express', () => ({
   Router: jest.fn(() => mockRouter),
 }));
 
-jest.mock('../../controllers/caseController.ts', () => ({
-  caseController: {
-    getAllCases: 'getAllCases-mock',
-    getCaseById: 'getCaseById-mock',
-    createCase: 'createCase-mock',
-    updateCase: 'updateCase-mock',
-    updateCaseStatus: 'updateCaseStatus-mock',
-    deleteCase: 'deleteCase-mock',
+// Mock the caseControllerImpl with bound methods
+const mockBoundFunction = jest.fn();
+jest.mock('../../controllers/CaseControllerImpl.ts', () => ({
+  caseControllerImpl: {
+    getAllCases: { bind: () => mockBoundFunction },
+    getCaseById: { bind: () => mockBoundFunction },
+    createCase: { bind: () => mockBoundFunction },
+    updateCase: { bind: () => mockBoundFunction },
+    updateCaseStatus: { bind: () => mockBoundFunction },
+    deleteCase: { bind: () => mockBoundFunction },
   },
 }));
 
+// Mock the validation middleware
 jest.mock('../../middleware/validation.middleware', () => ({
-  caseValidation: {
-    create: 'create-validation-mock',
-    update: 'update-validation-mock',
-    updateStatus: 'updateStatus-validation-mock',
-    delete: 'delete-validation-mock',
-  },
-  validate: 'validate-mock',
+  validateCreateCase: 'validateCreateCase-mock',
+  validateUpdateCase: 'validateUpdateCase-mock',
+  validateUpdateStatus: 'validateUpdateStatus-mock',
+  validateDeleteCase: 'validateDeleteCase-mock',
 }));
 
+// Mock the pagination middleware
 jest.mock('../../middleware/pagination.middleware.ts', () => ({
   paginationMiddleware: 'pagination-middleware-mock',
   DEFAULT_PAGE: 1,
@@ -45,13 +46,7 @@ describe('Case Routes', () => {
     jest.clearAllMocks();
     jest.resetModules();
 
-    jest.mock('../../middleware/pagination.middleware.ts', () => ({
-      paginationMiddleware: 'pagination-middleware-mock',
-      DEFAULT_PAGE: 1,
-      DEFAULT_LIMIT: 10,
-      MAX_LIMIT: 100,
-    }));
-
+    // Import the routes module
     routesModule = await import('../../routes/caseRoutes.ts');
   });
 
@@ -60,55 +55,47 @@ describe('Case Routes', () => {
   });
 
   it('should set up GET / route for getAllCases with pagination middleware', () => {
+    // Check that the route was registered with pagination middleware
     expect(mockRouter.get).toHaveBeenCalledWith(
       '/',
       'pagination-middleware-mock',
-      'getAllCases-mock',
+      mockBoundFunction,
     );
   });
 
   it('should set up GET /:id route for getCaseById', () => {
     expect(mockRouter.get).toHaveBeenCalledWith(
       '/:id',
-      'delete-validation-mock',
-      'validate-mock',
-      'getCaseById-mock',
+      'validateDeleteCase-mock',
+      mockBoundFunction,
     );
   });
 
   it('should set up POST / route for createCase', () => {
-    expect(mockRouter.post).toHaveBeenCalledWith(
-      '/',
-      'create-validation-mock',
-      'validate-mock',
-      'createCase-mock',
-    );
+    expect(mockRouter.post).toHaveBeenCalledWith('/', 'validateCreateCase-mock', mockBoundFunction);
   });
 
   it('should set up PUT /:id route for updateCase', () => {
     expect(mockRouter.put).toHaveBeenCalledWith(
       '/:id',
-      'update-validation-mock',
-      'validate-mock',
-      'updateCase-mock',
+      'validateUpdateCase-mock',
+      mockBoundFunction,
     );
   });
 
   it('should set up PATCH /:id/status route for updateCaseStatus', () => {
     expect(mockRouter.patch).toHaveBeenCalledWith(
       '/:id/status',
-      'updateStatus-validation-mock',
-      'validate-mock',
-      'updateCaseStatus-mock',
+      'validateUpdateStatus-mock',
+      mockBoundFunction,
     );
   });
 
   it('should set up DELETE /:id route for deleteCase', () => {
     expect(mockRouter.delete).toHaveBeenCalledWith(
       '/:id',
-      'delete-validation-mock',
-      'validate-mock',
-      'deleteCase-mock',
+      'validateDeleteCase-mock',
+      mockBoundFunction,
     );
   });
 

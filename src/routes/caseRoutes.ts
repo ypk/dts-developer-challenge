@@ -1,32 +1,35 @@
-import { Router } from 'express';
-import { caseController } from '../controllers/caseController.ts';
-import { caseValidation, validate } from '../middleware/validation.middleware.ts';
+import express from 'express';
+import { caseControllerImpl } from '../controllers/CaseControllerImpl.ts';
+import {
+  validateCreateCase,
+  validateUpdateCase,
+  validateUpdateStatus,
+  validateDeleteCase,
+} from '../middleware/validation.middleware.ts';
 import { paginationMiddleware } from '../middleware/pagination.middleware.ts';
 
-const router = Router();
+const router = express.Router();
 
 /**
  * @swagger
  * /cases:
  *   get:
  *     summary: Get all cases
- *     tags: [Cases]
+ *     description: Retrieve a list of all cases with optional pagination
  *     parameters:
  *       - in: query
  *         name: page
  *         schema:
  *           type: integer
  *           minimum: 1
- *           default: 1
- *         description: The page number for pagination
+ *         description: Page number
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
  *           minimum: 1
  *           maximum: 100
- *           default: 10
- *         description: The number of items per page
+ *         description: Number of items per page
  *     responses:
  *       200:
  *         description: A list of cases
@@ -43,7 +46,7 @@ const router = Router();
  *                   example: Cases retrieved successfully
  *                 count:
  *                   type: integer
- *                   example: 25
+ *                   example: 10
  *                 data:
  *                   type: array
  *                   items:
@@ -53,7 +56,7 @@ const router = Router();
  *                   properties:
  *                     total:
  *                       type: integer
- *                       example: 25
+ *                       example: 50
  *                     page:
  *                       type: integer
  *                       example: 1
@@ -62,18 +65,18 @@ const router = Router();
  *                       example: 10
  *                     totalPages:
  *                       type: integer
- *                       example: 3
+ *                       example: 5
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-router.get('/', paginationMiddleware, caseController.getAllCases);
+router.get('/', paginationMiddleware, caseControllerImpl.getAllCases.bind(caseControllerImpl));
 
 /**
  * @swagger
  * /cases/{id}:
  *   get:
  *     summary: Get a case by ID
- *     tags: [Cases]
+ *     description: Retrieve a specific case by its ID
  *     parameters:
  *       - in: path
  *         name: id
@@ -104,14 +107,14 @@ router.get('/', paginationMiddleware, caseController.getAllCases);
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-router.get('/:id', caseValidation.delete, validate, caseController.getCaseById);
+router.get('/:id', validateDeleteCase, caseControllerImpl.getCaseById.bind(caseControllerImpl));
 
 /**
  * @swagger
  * /cases:
  *   post:
  *     summary: Create a new case
- *     tags: [Cases]
+ *     description: Create a new case with the provided data
  *     requestBody:
  *       required: true
  *       content:
@@ -139,14 +142,14 @@ router.get('/:id', caseValidation.delete, validate, caseController.getCaseById);
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-router.post('/', caseValidation.create, validate, caseController.createCase);
+router.post('/', validateCreateCase, caseControllerImpl.createCase.bind(caseControllerImpl));
 
 /**
  * @swagger
  * /cases/{id}:
  *   put:
  *     summary: Update a case
- *     tags: [Cases]
+ *     description: Update an existing case with the provided data
  *     parameters:
  *       - in: path
  *         name: id
@@ -183,14 +186,14 @@ router.post('/', caseValidation.create, validate, caseController.createCase);
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-router.put('/:id', caseValidation.update, validate, caseController.updateCase);
+router.put('/:id', validateUpdateCase, caseControllerImpl.updateCase.bind(caseControllerImpl));
 
 /**
  * @swagger
  * /cases/{id}/status:
  *   patch:
- *     summary: Update a case status
- *     tags: [Cases]
+ *     summary: Update case status
+ *     description: Update only the status of an existing case
  *     parameters:
  *       - in: path
  *         name: id
@@ -227,14 +230,18 @@ router.put('/:id', caseValidation.update, validate, caseController.updateCase);
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-router.patch('/:id/status', caseValidation.updateStatus, validate, caseController.updateCaseStatus);
+router.patch(
+  '/:id/status',
+  validateUpdateStatus,
+  caseControllerImpl.updateCaseStatus.bind(caseControllerImpl),
+);
 
 /**
  * @swagger
  * /cases/{id}:
  *   delete:
  *     summary: Delete a case
- *     tags: [Cases]
+ *     description: Delete an existing case by its ID
  *     parameters:
  *       - in: path
  *         name: id
@@ -244,7 +251,7 @@ router.patch('/:id/status', caseValidation.updateStatus, validate, caseControlle
  *         description: The case ID
  *     responses:
  *       204:
- *         description: Case deleted successfully
+ *         description: Case deleted successfully (no content)
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  *       404:
@@ -252,6 +259,6 @@ router.patch('/:id/status', caseValidation.updateStatus, validate, caseControlle
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-router.delete('/:id', caseValidation.delete, validate, caseController.deleteCase);
+router.delete('/:id', validateDeleteCase, caseControllerImpl.deleteCase.bind(caseControllerImpl));
 
 export default router;
