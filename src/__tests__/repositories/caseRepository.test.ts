@@ -17,7 +17,7 @@ jest.mock('../../services/PrismaService.ts', () => ({
 }));
 
 import { prisma, CaseStatus } from '../../services/PrismaService.ts';
-import { caseRepository } from '../../repositories/caseRepository.ts';
+import { CaseRepositoryInstance } from '../../repositories/CaseRepository.ts';
 
 describe('Case Repository', () => {
   beforeEach(() => {
@@ -33,7 +33,7 @@ describe('Case Repository', () => {
 
       (prisma.case.findMany as jest.Mock).mockResolvedValue(mockCases);
 
-      const result = await caseRepository.findAll();
+      const result = await CaseRepositoryInstance.findAll();
 
       expect(prisma.case.findMany).toHaveBeenCalledTimes(1);
       expect(prisma.case.findMany).toHaveBeenCalledWith({
@@ -50,7 +50,7 @@ describe('Case Repository', () => {
 
       (prisma.case.findMany as jest.Mock).mockResolvedValue(mockCases);
 
-      const result = await caseRepository.findAll(10);
+      const result = await CaseRepositoryInstance.findAll(10);
 
       expect(prisma.case.findMany).toHaveBeenCalledTimes(1);
       expect(prisma.case.findMany).toHaveBeenCalledWith({
@@ -68,7 +68,7 @@ describe('Case Repository', () => {
 
       (prisma.case.findMany as jest.Mock).mockResolvedValue(mockCases);
 
-      const result = await caseRepository.findAll(undefined, 5);
+      const result = await CaseRepositoryInstance.findAll(undefined, 5);
 
       expect(prisma.case.findMany).toHaveBeenCalledTimes(1);
       expect(prisma.case.findMany).toHaveBeenCalledWith({
@@ -86,7 +86,7 @@ describe('Case Repository', () => {
 
       (prisma.case.findMany as jest.Mock).mockResolvedValue(mockCases);
 
-      const result = await caseRepository.findAll(10, 2);
+      const result = await CaseRepositoryInstance.findAll(10, 2);
 
       expect(prisma.case.findMany).toHaveBeenCalledTimes(1);
       expect(prisma.case.findMany).toHaveBeenCalledWith({
@@ -109,7 +109,7 @@ describe('Case Repository', () => {
       (prisma.case.findMany as jest.Mock).mockResolvedValue(mockCases);
       (prisma.case.count as jest.Mock).mockResolvedValue(totalCount);
 
-      const result = await caseRepository.findAllPaginated();
+      const result = await CaseRepositoryInstance.findAllPaginated();
 
       expect(prisma.case.findMany).toHaveBeenCalledTimes(1);
       expect(prisma.case.findMany).toHaveBeenCalledWith({
@@ -142,7 +142,7 @@ describe('Case Repository', () => {
       (prisma.case.findMany as jest.Mock).mockResolvedValue(mockCases);
       (prisma.case.count as jest.Mock).mockResolvedValue(totalCount);
 
-      const result = await caseRepository.findAllPaginated(skip, limit);
+      const result = await CaseRepositoryInstance.findAllPaginated(skip, limit);
 
       expect(prisma.case.findMany).toHaveBeenCalledWith({
         skip,
@@ -168,7 +168,7 @@ describe('Case Repository', () => {
       (prisma.case.findMany as jest.Mock).mockResolvedValue(mockCases);
       (prisma.case.count as jest.Mock).mockResolvedValue(totalCount);
 
-      const result = await caseRepository.findAllPaginated(0, 10);
+      const result = await CaseRepositoryInstance.findAllPaginated(0, 10);
 
       expect(result).toEqual({
         data: mockCases,
@@ -195,7 +195,7 @@ describe('Case Repository', () => {
       (prisma.case.findMany as jest.Mock).mockResolvedValue(mockCases);
       (prisma.case.count as jest.Mock).mockResolvedValue(totalCount);
 
-      const result = await caseRepository.findAllPaginated(5, 0);
+      const result = await CaseRepositoryInstance.findAllPaginated(5, 0);
 
       expect(result.meta.page).not.toBe(Infinity);
       expect(result.meta.totalPages).not.toBe(Infinity);
@@ -218,7 +218,7 @@ describe('Case Repository', () => {
       (prisma.case.findMany as jest.Mock).mockResolvedValue(mockCases);
       (prisma.case.count as jest.Mock).mockResolvedValue(totalCount);
 
-      const result = await caseRepository.findAllPaginated(5, -5);
+      const result = await CaseRepositoryInstance.findAllPaginated(5, -5);
 
       expect(result.meta.limit).toBe(10);
       expect(result.meta.page).toBe(1);
@@ -238,7 +238,7 @@ describe('Case Repository', () => {
 
       (prisma.case.findUnique as jest.Mock).mockResolvedValue(mockCase);
 
-      const result = await caseRepository.findById(1);
+      const result = await CaseRepositoryInstance.findById(1);
 
       expect(prisma.case.findUnique).toHaveBeenCalledTimes(1);
       expect(prisma.case.findUnique).toHaveBeenCalledWith({
@@ -250,7 +250,7 @@ describe('Case Repository', () => {
     it('should return null when case does not exist', async () => {
       (prisma.case.findUnique as jest.Mock).mockResolvedValue(null);
 
-      const result = await caseRepository.findById(999);
+      const result = await CaseRepositoryInstance.findById(999);
 
       expect(prisma.case.findUnique).toHaveBeenCalledTimes(1);
       expect(prisma.case.findUnique).toHaveBeenCalledWith({
@@ -275,7 +275,7 @@ describe('Case Repository', () => {
 
       (prisma.case.create as jest.Mock).mockResolvedValue(mockCreatedCase);
 
-      const result = await caseRepository.create(caseData);
+      const result = await CaseRepositoryInstance.create(caseData);
 
       expect(prisma.case.create).toHaveBeenCalledTimes(1);
       expect(prisma.case.create).toHaveBeenCalledWith({
@@ -301,7 +301,7 @@ describe('Case Repository', () => {
 
       (prisma.case.create as jest.Mock).mockResolvedValue(mockCreatedCase);
 
-      const result = await caseRepository.create(caseData);
+      const result = await CaseRepositoryInstance.create(caseData);
 
       expect(prisma.case.create).toHaveBeenCalledTimes(1);
       expect(prisma.case.create).toHaveBeenCalledWith({
@@ -328,7 +328,7 @@ describe('Case Repository', () => {
 
       (prisma.case.update as jest.Mock).mockResolvedValue(mockUpdatedCase);
 
-      const result = await caseRepository.update(1, updateData);
+      const result = await CaseRepositoryInstance.update(1, updateData);
 
       expect(prisma.case.update).toHaveBeenCalledTimes(1);
       expect(prisma.case.update).toHaveBeenCalledWith({
@@ -355,7 +355,7 @@ describe('Case Repository', () => {
 
       (prisma.case.update as jest.Mock).mockResolvedValue(mockUpdatedCase);
 
-      const result = await caseRepository.update(1, updateData);
+      const result = await CaseRepositoryInstance.update(1, updateData);
 
       expect(prisma.case.update).toHaveBeenCalledTimes(1);
       expect(prisma.case.update).toHaveBeenCalledWith({
@@ -378,7 +378,7 @@ describe('Case Repository', () => {
 
       (prisma.case.update as jest.Mock).mockResolvedValue(mockUpdatedCase);
 
-      const result = await caseRepository.updateStatus(1, CaseStatus.PENDING);
+      const result = await CaseRepositoryInstance.updateStatus(1, CaseStatus.PENDING);
 
       expect(prisma.case.update).toHaveBeenCalledTimes(1);
       expect(prisma.case.update).toHaveBeenCalledWith({
@@ -399,7 +399,7 @@ describe('Case Repository', () => {
 
       (prisma.case.update as jest.Mock).mockResolvedValue(mockUpdatedCase);
 
-      const result = await caseRepository.updateStatus(1, CaseStatus.IN_PROGRESS);
+      const result = await CaseRepositoryInstance.updateStatus(1, CaseStatus.IN_PROGRESS);
 
       expect(prisma.case.update).toHaveBeenCalledTimes(1);
       expect(prisma.case.update).toHaveBeenCalledWith({
@@ -420,7 +420,7 @@ describe('Case Repository', () => {
 
       (prisma.case.update as jest.Mock).mockResolvedValue(mockUpdatedCase);
 
-      const result = await caseRepository.updateStatus(1, CaseStatus.COMPLETED);
+      const result = await CaseRepositoryInstance.updateStatus(1, CaseStatus.COMPLETED);
 
       expect(prisma.case.update).toHaveBeenCalledTimes(1);
       expect(prisma.case.update).toHaveBeenCalledWith({
@@ -443,7 +443,7 @@ describe('Case Repository', () => {
 
       (prisma.case.delete as jest.Mock).mockResolvedValue(mockDeletedCase);
 
-      const result = await caseRepository.delete(1);
+      const result = await CaseRepositoryInstance.delete(1);
 
       expect(prisma.case.delete).toHaveBeenCalledTimes(1);
       expect(prisma.case.delete).toHaveBeenCalledWith({
@@ -456,7 +456,7 @@ describe('Case Repository', () => {
       const prismaError = new Error('Record not found');
       (prisma.case.delete as jest.Mock).mockRejectedValue(prismaError);
 
-      await expect(caseRepository.delete(999)).rejects.toThrow('Record not found');
+      await expect(CaseRepositoryInstance.delete(999)).rejects.toThrow('Record not found');
       expect(prisma.case.delete).toHaveBeenCalledWith({
         where: { id: 999 },
       });
