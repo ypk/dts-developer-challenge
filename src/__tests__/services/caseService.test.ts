@@ -1,10 +1,10 @@
 import { CaseStatus } from '../../services/PrismaService.ts';
 import { CaseServiceInstance } from '../../services/CaseService.ts';
-import { caseRepository } from '../../repositories/caseRepository.ts';
+import { CaseRepositoryInstance } from '../../repositories/CaseRepository.ts';
 import { NotFoundError } from '../../middleware/error.middleware.ts';
 
-jest.mock('../../repositories/caseRepository.ts', () => ({
-  caseRepository: {
+jest.mock('../../repositories/CaseRepository.ts', () => ({
+  CaseRepositoryInstance: {
     findAll: jest.fn(),
     findById: jest.fn(),
     create: jest.fn(),
@@ -27,11 +27,11 @@ describe('Case Service', () => {
         { id: 2, title: 'Case 2', status: CaseStatus.IN_PROGRESS },
       ];
 
-      (caseRepository.findAll as jest.Mock).mockResolvedValue(mockCases);
+      (CaseRepositoryInstance.findAll as jest.Mock).mockResolvedValue(mockCases);
 
       const result = await CaseServiceInstance.getAllCases();
 
-      expect(caseRepository.findAll).toHaveBeenCalledTimes(1);
+      expect(CaseRepositoryInstance.findAll).toHaveBeenCalledTimes(1);
       expect(result).toEqual(mockCases);
     });
   });
@@ -51,12 +51,12 @@ describe('Case Service', () => {
         },
       };
 
-      (caseRepository.findAllPaginated as jest.Mock).mockResolvedValue(mockPaginatedResult);
+      (CaseRepositoryInstance.findAllPaginated as jest.Mock).mockResolvedValue(mockPaginatedResult);
 
       const result = await CaseServiceInstance.getAllCasesPaginated();
 
-      expect(caseRepository.findAllPaginated).toHaveBeenCalledTimes(1);
-      expect(caseRepository.findAllPaginated).toHaveBeenCalledWith(0, 10);
+      expect(CaseRepositoryInstance.findAllPaginated).toHaveBeenCalledTimes(1);
+      expect(CaseRepositoryInstance.findAllPaginated).toHaveBeenCalledWith(0, 10);
       expect(result).toEqual(mockPaginatedResult);
     });
 
@@ -78,12 +78,12 @@ describe('Case Service', () => {
         },
       };
 
-      (caseRepository.findAllPaginated as jest.Mock).mockResolvedValue(mockPaginatedResult);
+      (CaseRepositoryInstance.findAllPaginated as jest.Mock).mockResolvedValue(mockPaginatedResult);
 
       const result = await CaseServiceInstance.getAllCasesPaginated(page, limit);
 
-      expect(caseRepository.findAllPaginated).toHaveBeenCalledTimes(1);
-      expect(caseRepository.findAllPaginated).toHaveBeenCalledWith(expectedSkip, limit);
+      expect(CaseRepositoryInstance.findAllPaginated).toHaveBeenCalledTimes(1);
+      expect(CaseRepositoryInstance.findAllPaginated).toHaveBeenCalledWith(expectedSkip, limit);
       expect(result).toEqual(mockPaginatedResult);
     });
   });
@@ -92,25 +92,25 @@ describe('Case Service', () => {
     it('should return a case when it exists', async () => {
       const mockCase = { id: 1, title: 'Case 1', status: CaseStatus.PENDING };
 
-      (caseRepository.findById as jest.Mock).mockResolvedValue(mockCase);
+      (CaseRepositoryInstance.findById as jest.Mock).mockResolvedValue(mockCase);
 
       const result = await CaseServiceInstance.getCaseById(1);
 
-      expect(caseRepository.findById).toHaveBeenCalledTimes(1);
-      expect(caseRepository.findById).toHaveBeenCalledWith(1);
+      expect(CaseRepositoryInstance.findById).toHaveBeenCalledTimes(1);
+      expect(CaseRepositoryInstance.findById).toHaveBeenCalledWith(1);
       expect(result).toEqual(mockCase);
     });
 
     it('should throw NotFoundError when case does not exist', async () => {
-      (caseRepository.findById as jest.Mock).mockResolvedValue(null);
+      (CaseRepositoryInstance.findById as jest.Mock).mockResolvedValue(null);
 
       await expect(CaseServiceInstance.getCaseById(999)).rejects.toThrow(NotFoundError);
       await expect(CaseServiceInstance.getCaseById(999)).rejects.toThrow(
         'Case with ID 999 not found',
       );
 
-      expect(caseRepository.findById).toHaveBeenCalledTimes(2);
-      expect(caseRepository.findById).toHaveBeenCalledWith(999);
+      expect(CaseRepositoryInstance.findById).toHaveBeenCalledTimes(2);
+      expect(CaseRepositoryInstance.findById).toHaveBeenCalledWith(999);
     });
   });
 
@@ -129,12 +129,12 @@ describe('Case Service', () => {
         updatedAt: new Date(),
       };
 
-      (caseRepository.create as jest.Mock).mockResolvedValue(mockCreatedCase);
+      (CaseRepositoryInstance.create as jest.Mock).mockResolvedValue(mockCreatedCase);
 
       const result = await CaseServiceInstance.createCase(caseData);
 
-      expect(caseRepository.create).toHaveBeenCalledTimes(1);
-      expect(caseRepository.create).toHaveBeenCalledWith(caseData);
+      expect(CaseRepositoryInstance.create).toHaveBeenCalledTimes(1);
+      expect(CaseRepositoryInstance.create).toHaveBeenCalledWith(caseData);
       expect(result).toEqual(mockCreatedCase);
     });
   });
@@ -145,27 +145,27 @@ describe('Case Service', () => {
       const updateData = { title: 'Updated Case' };
       const mockUpdatedCase = { ...mockCase, ...updateData };
 
-      (caseRepository.findById as jest.Mock).mockResolvedValue(mockCase);
-      (caseRepository.update as jest.Mock).mockResolvedValue(mockUpdatedCase);
+      (CaseRepositoryInstance.findById as jest.Mock).mockResolvedValue(mockCase);
+      (CaseRepositoryInstance.update as jest.Mock).mockResolvedValue(mockUpdatedCase);
 
       const result = await CaseServiceInstance.updateCase(1, updateData);
 
-      expect(caseRepository.findById).toHaveBeenCalledTimes(1);
-      expect(caseRepository.findById).toHaveBeenCalledWith(1);
-      expect(caseRepository.update).toHaveBeenCalledTimes(1);
-      expect(caseRepository.update).toHaveBeenCalledWith(1, updateData);
+      expect(CaseRepositoryInstance.findById).toHaveBeenCalledTimes(1);
+      expect(CaseRepositoryInstance.findById).toHaveBeenCalledWith(1);
+      expect(CaseRepositoryInstance.update).toHaveBeenCalledTimes(1);
+      expect(CaseRepositoryInstance.update).toHaveBeenCalledWith(1, updateData);
       expect(result).toEqual(mockUpdatedCase);
     });
 
     it('should throw NotFoundError when case does not exist', async () => {
       const updateData = { title: 'Updated Case' };
 
-      (caseRepository.findById as jest.Mock).mockResolvedValue(null);
+      (CaseRepositoryInstance.findById as jest.Mock).mockResolvedValue(null);
 
       await expect(CaseServiceInstance.updateCase(999, updateData)).rejects.toThrow(NotFoundError);
 
-      expect(caseRepository.findById).toHaveBeenCalledTimes(1);
-      expect(caseRepository.update).not.toHaveBeenCalled();
+      expect(CaseRepositoryInstance.findById).toHaveBeenCalledTimes(1);
+      expect(CaseRepositoryInstance.update).not.toHaveBeenCalled();
     });
   });
 
@@ -175,29 +175,29 @@ describe('Case Service', () => {
       const newStatus = CaseStatus.COMPLETED;
       const mockUpdatedCase = { ...mockCase, status: newStatus };
 
-      (caseRepository.findById as jest.Mock).mockResolvedValue(mockCase);
-      (caseRepository.updateStatus as jest.Mock).mockResolvedValue(mockUpdatedCase);
+      (CaseRepositoryInstance.findById as jest.Mock).mockResolvedValue(mockCase);
+      (CaseRepositoryInstance.updateStatus as jest.Mock).mockResolvedValue(mockUpdatedCase);
 
       const result = await CaseServiceInstance.updateCaseStatus(1, newStatus);
 
-      expect(caseRepository.findById).toHaveBeenCalledTimes(1);
-      expect(caseRepository.findById).toHaveBeenCalledWith(1);
-      expect(caseRepository.updateStatus).toHaveBeenCalledTimes(1);
-      expect(caseRepository.updateStatus).toHaveBeenCalledWith(1, newStatus);
+      expect(CaseRepositoryInstance.findById).toHaveBeenCalledTimes(1);
+      expect(CaseRepositoryInstance.findById).toHaveBeenCalledWith(1);
+      expect(CaseRepositoryInstance.updateStatus).toHaveBeenCalledTimes(1);
+      expect(CaseRepositoryInstance.updateStatus).toHaveBeenCalledWith(1, newStatus);
       expect(result).toEqual(mockUpdatedCase);
     });
 
     it('should throw NotFoundError when case does not exist', async () => {
       const newStatus = CaseStatus.COMPLETED;
 
-      (caseRepository.findById as jest.Mock).mockResolvedValue(null);
+      (CaseRepositoryInstance.findById as jest.Mock).mockResolvedValue(null);
 
       await expect(CaseServiceInstance.updateCaseStatus(999, newStatus)).rejects.toThrow(
         NotFoundError,
       );
 
-      expect(caseRepository.findById).toHaveBeenCalledTimes(1);
-      expect(caseRepository.updateStatus).not.toHaveBeenCalled();
+      expect(CaseRepositoryInstance.findById).toHaveBeenCalledTimes(1);
+      expect(CaseRepositoryInstance.updateStatus).not.toHaveBeenCalled();
     });
   });
 
@@ -205,24 +205,24 @@ describe('Case Service', () => {
     it('should delete the case when it exists', async () => {
       const mockCase = { id: 1, title: 'Case to delete', status: CaseStatus.PENDING };
 
-      (caseRepository.findById as jest.Mock).mockResolvedValue(mockCase);
-      (caseRepository.delete as jest.Mock).mockResolvedValue(mockCase);
+      (CaseRepositoryInstance.findById as jest.Mock).mockResolvedValue(mockCase);
+      (CaseRepositoryInstance.delete as jest.Mock).mockResolvedValue(mockCase);
 
       await CaseServiceInstance.deleteCase(1);
 
-      expect(caseRepository.findById).toHaveBeenCalledTimes(1);
-      expect(caseRepository.findById).toHaveBeenCalledWith(1);
-      expect(caseRepository.delete).toHaveBeenCalledTimes(1);
-      expect(caseRepository.delete).toHaveBeenCalledWith(1);
+      expect(CaseRepositoryInstance.findById).toHaveBeenCalledTimes(1);
+      expect(CaseRepositoryInstance.findById).toHaveBeenCalledWith(1);
+      expect(CaseRepositoryInstance.delete).toHaveBeenCalledTimes(1);
+      expect(CaseRepositoryInstance.delete).toHaveBeenCalledWith(1);
     });
 
     it('should throw NotFoundError when case does not exist', async () => {
-      (caseRepository.findById as jest.Mock).mockResolvedValue(null);
+      (CaseRepositoryInstance.findById as jest.Mock).mockResolvedValue(null);
 
       await expect(CaseServiceInstance.deleteCase(999)).rejects.toThrow(NotFoundError);
 
-      expect(caseRepository.findById).toHaveBeenCalledTimes(1);
-      expect(caseRepository.delete).not.toHaveBeenCalled();
+      expect(CaseRepositoryInstance.findById).toHaveBeenCalledTimes(1);
+      expect(CaseRepositoryInstance.delete).not.toHaveBeenCalled();
     });
   });
 });

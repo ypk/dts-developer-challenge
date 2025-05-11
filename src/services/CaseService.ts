@@ -5,7 +5,7 @@
  */
 
 import { Case, CaseStatus, Prisma } from './PrismaService.js';
-import { caseRepository, PaginatedResult } from '../repositories/caseRepository.js';
+import { CaseRepositoryInstance, PaginatedResult } from '../repositories/CaseRepository.ts';
 import { NotFoundError } from '../middleware/error.middleware.js';
 
 /**
@@ -19,7 +19,7 @@ export class CaseService {
    * @returns {Promise<Case[]>} Promise resolving to an array of all cases
    */
   public async getAllCases(): Promise<Case[]> {
-    return caseRepository.findAll();
+    return CaseRepositoryInstance.findAll();
   }
 
   /**
@@ -31,7 +31,7 @@ export class CaseService {
    */
   public async getAllCasesPaginated(page = 1, limit = 10): Promise<PaginatedResult<Case>> {
     const skip = (page - 1) * limit;
-    return caseRepository.findAllPaginated(skip, limit);
+    return CaseRepositoryInstance.findAllPaginated(skip, limit);
   }
 
   /**
@@ -42,7 +42,7 @@ export class CaseService {
    * @throws {NotFoundError} If no case with the specified ID exists
    */
   public async getCaseById(id: number): Promise<Case> {
-    const caseData = await caseRepository.findById(id);
+    const caseData = await CaseRepositoryInstance.findById(id);
     if (!caseData) {
       throw new NotFoundError(`Case with ID ${id} not found`);
     }
@@ -56,7 +56,7 @@ export class CaseService {
    * @returns {Promise<Case>} Promise resolving to the newly created case
    */
   public async createCase(data: Prisma.CaseCreateInput): Promise<Case> {
-    return caseRepository.create(data);
+    return CaseRepositoryInstance.create(data);
   }
 
   /**
@@ -69,7 +69,7 @@ export class CaseService {
    */
   public async updateCase(id: number, data: Prisma.CaseUpdateInput): Promise<Case> {
     await this.getCaseById(id);
-    return caseRepository.update(id, data);
+    return CaseRepositoryInstance.update(id, data);
   }
 
   /**
@@ -82,7 +82,7 @@ export class CaseService {
    */
   public async updateCaseStatus(id: number, status: CaseStatus): Promise<Case> {
     await this.getCaseById(id);
-    return caseRepository.updateStatus(id, status);
+    return CaseRepositoryInstance.updateStatus(id, status);
   }
 
   /**
@@ -94,7 +94,7 @@ export class CaseService {
    */
   public async deleteCase(id: number): Promise<void> {
     await this.getCaseById(id);
-    await caseRepository.delete(id);
+    await CaseRepositoryInstance.delete(id);
   }
 }
 
