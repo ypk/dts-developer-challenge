@@ -11,7 +11,7 @@ jest.mock('express', () => ({
 }));
 
 jest.mock('../../controllers/CaseController.ts', () => ({
-  caseController: {
+  CaseControllerInstance: {
     getAllCases: 'getAllCases-mock',
     getCaseById: 'getCaseById-mock',
     createCase: 'createCase-mock',
