@@ -19,6 +19,8 @@ function getBaseRules(args) {
         '@typescript-eslint/no-unsafe-function-type': args,
         '@typescript-eslint/no-require-imports': args,
         '@typescript-eslint/only-throw-error': args,
+        '@typescript-eslint/no-unnecessary-type-assertion': args,
+        '@typescript-eslint/no-unused-expressions': args,
     }
 }
 
