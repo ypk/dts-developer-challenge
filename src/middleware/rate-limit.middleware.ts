@@ -1,42 +1,125 @@
+/**
+ * Rate Limiting Middleware Module
+ * @module rateLimitMiddleware
+ * @description Provides rate limiting functionality to protect API endpoints from abuse
+ */
+
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../middleware/logger.middleware.ts';
 
+/**
+ * HTTP status codes used for rate limiting responses
+ * @enum {number}
+ */
 export enum HttpStatus {
+  /** HTTP status code for too many requests */
   TOO_MANY_REQUESTS = 429,
 }
 
+/**
+ * Time windows for rate limiting in milliseconds
+ * @enum {number}
+ */
 export enum TimeWindow {
+  /** 15 minute window (in milliseconds) */
   FIFTEEN_MINUTES = 15 * 60 * 1000,
+  /** 1 hour window (in milliseconds) */
   ONE_HOUR = 60 * 60 * 1000,
 }
 
+/**
+ * Types of rate limiting strategies
+ * @enum {number}
+ */
 export enum RateLimitType {
+  /** General API rate limiting */
   API = 0,
+  /** Authentication endpoint rate limiting */
   AUTH = 1,
+  /** Speed-based rate limiting (adds delays) */
   SPEED = 2,
 }
 
+/**
+ * Type definition for storing rate limit data
+ * @typedef {Map<string, { count: number; resetTime: number }>} RequestStore
+ */
 type RequestStore = Map<string, { count: number; resetTime: number }>;
 
+/**
+ * Storage for API request rate limiting
+ * @type {RequestStore}
+ */
 export const apiRequestStore: RequestStore = new Map();
+
+/**
+ * Storage for authentication request rate limiting
+ * @type {RequestStore}
+ */
 export const authRequestStore: RequestStore = new Map();
+
+/**
+ * Storage for speed-based rate limiting
+ * @type {RequestStore}
+ */
 export const speedRequestStore: RequestStore = new Map();
 
+/**
+ * Extracts the client IP address from the request
+ * @function getClientIp
+ * @param {Request} req - Express request object
+ * @returns {string} The client's IP address or 'unknown' if not available
+ */
 export const getClientIp = (req: Request): string => {
   return req.ip || 'unknown';
 };
 
+/**
+ * Base class for rate limiter implementations
+ * @abstract
+ * @class BaseRateLimiter
+ */
 abstract class BaseRateLimiter {
+  /**
+   * Storage for rate limit data
+   * @protected
+   * @type {RequestStore}
+   */
   protected store: RequestStore;
+
+  /**
+   * Time window for rate limiting in milliseconds
+   * @protected
+   * @type {number}
+   */
   protected windowMs: number;
+
+  /**
+   * Message to log when rate limit is exceeded
+   * @protected
+   * @type {string}
+   */
   protected logMessage: string;
 
+  /**
+   * Creates an instance of BaseRateLimiter
+   * @constructor
+   * @param {RequestStore} store - Storage for rate limit data
+   * @param {number} windowMs - Time window for rate limiting in milliseconds
+   * @param {string} logMessage - Message to log when rate limit is exceeded
+   */
   constructor(store: RequestStore, windowMs: number, logMessage: string) {
     this.store = store;
     this.windowMs = windowMs;
     this.logMessage = logMessage;
   }
 
+  /**
+   * Gets or creates a rate limit entry for an IP address
+   * @protected
+   * @param {string} ip - Client IP address
+   * @returns {{ count: number; resetTime: number }} Rate limit entry
+   */
   protected getOrCreateEntry(ip: string): { count: number; resetTime: number } {
     const now = Date.now();
 
@@ -53,6 +136,11 @@ abstract class BaseRateLimiter {
     return entry;
   }
 
+  /**
+   * Removes expired entries from the store
+   * @protected
+   * @returns {void}
+   */
   protected cleanupExpiredEntries(): void {
     const now = Date.now();
     for (const [key, value] of this.store.entries()) {
@@ -62,6 +150,13 @@ abstract class BaseRateLimiter {
     }
   }
 
+  /**
+   * Logs a warning when rate limit is exceeded
+   * @protected
+   * @param {Request} req - Express request object
+   * @param {object} [additionalData={}] - Additional data to include in the log
+   * @returns {void}
+   */
   protected logWarning(req: Request, additionalData: object = {}): void {
     logger.warn({
       message: this.logMessage,
@@ -72,16 +167,46 @@ abstract class BaseRateLimiter {
     });
   }
 
+  /**
+   * Handles the rate limiting logic
+   * @abstract
+   * @param {Request} req - Express request object
+   * @param {Response} res - Express response object
+   * @param {NextFunction} next - Express next function
+   * @returns {void}
+   */
   abstract handle(req: Request, res: Response, next: NextFunction): void;
 }
 
 /**
  * Standard rate limiter implementation (for API and Auth endpoints)
+ * @class StandardRateLimiter
+ * @extends {BaseRateLimiter}
  */
 class StandardRateLimiter extends BaseRateLimiter {
+  /**
+   * Maximum number of requests allowed in the time window
+   * @private
+   * @type {number}
+   */
   private maxRequests: number;
+
+  /**
+   * Error message to return when rate limit is exceeded
+   * @private
+   * @type {string}
+   */
   private errorMessage: string;
 
+  /**
+   * Creates an instance of StandardRateLimiter
+   * @constructor
+   * @param {RequestStore} store - Storage for rate limit data
+   * @param {number} windowMs - Time window for rate limiting in milliseconds
+   * @param {string} logMessage - Message to log when rate limit is exceeded
+   * @param {number} maxRequests - Maximum number of requests allowed in the time window
+   * @param {string} errorMessage - Error message to return when rate limit is exceeded
+   */
   constructor(
     store: RequestStore,
     windowMs: number,
@@ -94,6 +219,13 @@ class StandardRateLimiter extends BaseRateLimiter {
     this.errorMessage = errorMessage;
   }
 
+  /**
+   * Handles the standard rate limiting logic
+   * @param {Request} req - Express request object
+   * @param {Response} res - Express response object
+   * @param {NextFunction} next - Express next function
+   * @returns {void}
+   */
   handle(req: Request, res: Response, next: NextFunction): void {
     const ip = getClientIp(req);
     const entry = this.getOrCreateEntry(ip);
@@ -118,6 +250,14 @@ class StandardRateLimiter extends BaseRateLimiter {
     next();
   }
 
+  /**
+   * Sets rate limit headers on the response
+   * @private
+   * @param {Response} res - Express response object
+   * @param {{ resetTime: number }} entry - Rate limit entry
+   * @param {number} remaining - Number of requests remaining
+   * @returns {void}
+   */
   private setRateLimitHeaders(
     res: Response,
     entry: { resetTime: number },
@@ -132,11 +272,33 @@ class StandardRateLimiter extends BaseRateLimiter {
 
 /**
  * Speed limiter implementation (adds delays to requests)
+ * @class SpeedLimiter
+ * @extends {BaseRateLimiter}
  */
 class SpeedLimiter extends BaseRateLimiter {
+  /**
+   * Number of requests after which delays are added
+   * @private
+   * @type {number}
+   */
   private delayAfter: number;
+
+  /**
+   * Delay in milliseconds to add per request over the threshold
+   * @private
+   * @type {number}
+   */
   private delayMs: number;
 
+  /**
+   * Creates an instance of SpeedLimiter
+   * @constructor
+   * @param {RequestStore} store - Storage for rate limit data
+   * @param {number} windowMs - Time window for rate limiting in milliseconds
+   * @param {string} logMessage - Message to log when rate limit is exceeded
+   * @param {number} delayAfter - Number of requests after which delays are added
+   * @param {number} delayMs - Delay in milliseconds to add per request over the threshold
+   */
   constructor(
     store: RequestStore,
     windowMs: number,
@@ -149,6 +311,13 @@ class SpeedLimiter extends BaseRateLimiter {
     this.delayMs = delayMs;
   }
 
+  /**
+   * Handles the speed limiting logic
+   * @param {Request} req - Express request object
+   * @param {Response} res - Express response object
+   * @param {NextFunction} next - Express next function
+   * @returns {void}
+   */
   handle(req: Request, res: Response, next: NextFunction): void {
     const ip = getClientIp(req);
     const entry = this.getOrCreateEntry(ip);
@@ -178,6 +347,9 @@ class SpeedLimiter extends BaseRateLimiter {
 
 /**
  * Factory function to create middleware from a rate limiter
+ * @function createMiddleware
+ * @param {BaseRateLimiter} limiter - Rate limiter instance
+ * @returns {(req: Request, res: Response, next: NextFunction) => void} Express middleware function
  */
 function createMiddleware(
   limiter: BaseRateLimiter,
@@ -187,6 +359,11 @@ function createMiddleware(
   };
 }
 
+/**
+ * Standard rate limiter for API endpoints
+ * @type {StandardRateLimiter}
+ * @description Limits to 100 requests per 15 minutes
+ */
 const apiLimiterInstance = new StandardRateLimiter(
   apiRequestStore,
   TimeWindow.FIFTEEN_MINUTES,
@@ -195,6 +372,11 @@ const apiLimiterInstance = new StandardRateLimiter(
   'Too many requests, please try again later.',
 );
 
+/**
+ * Standard rate limiter for authentication endpoints
+ * @type {StandardRateLimiter}
+ * @description Limits to 10 requests per hour
+ */
 const authLimiterInstance = new StandardRateLimiter(
   authRequestStore,
   TimeWindow.ONE_HOUR,
@@ -203,6 +385,11 @@ const authLimiterInstance = new StandardRateLimiter(
   'Too many login attempts, please try again later.',
 );
 
+/**
+ * Speed limiter for general use
+ * @type {SpeedLimiter}
+ * @description Adds delays after 50 requests within 15 minutes
+ */
 const speedLimiterInstance = new SpeedLimiter(
   speedRequestStore,
   TimeWindow.FIFTEEN_MINUTES,
@@ -211,6 +398,20 @@ const speedLimiterInstance = new SpeedLimiter(
   100,
 );
 
+/**
+ * Express middleware for API rate limiting
+ * @type {(req: Request, res: Response, next: NextFunction) => void}
+ */
 export const apiLimiter = createMiddleware(apiLimiterInstance);
+
+/**
+ * Express middleware for authentication rate limiting
+ * @type {(req: Request, res: Response, next: NextFunction) => void}
+ */
 export const authLimiter = createMiddleware(authLimiterInstance);
+
+/**
+ * Express middleware for speed-based rate limiting
+ * @type {(req: Request, res: Response, next: NextFunction) => void}
+ */
 export const speedLimiter = createMiddleware(speedLimiterInstance);
