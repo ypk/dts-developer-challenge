@@ -1,40 +1,42 @@
-import express from 'express';
-import { container } from '../di/container.ts';
-import { TYPES } from '../di/types.ts';
-import { ICaseController } from '../interfaces/ICaseController.ts';
-import {
-  validateCreateCase,
-  validateUpdateCase,
-  validateUpdateStatus,
-  validateDeleteCase,
-} from '../middleware/validation.middleware.ts';
-import { paginationMiddleware } from '../middleware/pagination.middleware.ts';
-import { ParamsDictionary } from 'express-serve-static-core';
-import { ParsedQs } from 'qs';
+/**
+ * Case Routes Module
+ * @module caseRoutes
+ * @description Defines API routes for case management operations
+ */
 
-const router = express.Router();
-const CaseController = container.get<ICaseController>(TYPES.CaseController);
+import { Router } from 'express';
+import { CaseControllerInstance } from '../controllers/CaseController.js';
+import { caseValidation, validate } from '../middleware/validation.middleware.js';
+import { paginationMiddleware } from '../middleware/pagination.middleware.js';
+
+/**
+ * Express router for case-related endpoints
+ * @type {Router}
+ */
+const router = Router();
 
 /**
  * @swagger
  * /cases:
  *   get:
  *     summary: Get all cases
- *     description: Retrieve a list of all cases with optional pagination
+ *     tags: [Cases]
  *     parameters:
  *       - in: query
  *         name: page
  *         schema:
  *           type: integer
  *           minimum: 1
- *         description: Page number
+ *           default: 1
+ *         description: The page number for pagination
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
  *           minimum: 1
  *           maximum: 100
- *         description: Number of items per page
+ *           default: 10
+ *         description: The number of items per page
  *     responses:
  *       200:
  *         description: A list of cases
@@ -51,7 +53,7 @@ const CaseController = container.get<ICaseController>(TYPES.CaseController);
  *                   example: Cases retrieved successfully
  *                 count:
  *                   type: integer
- *                   example: 10
+ *                   example: 25
  *                 data:
  *                   type: array
  *                   items:
@@ -61,7 +63,7 @@ const CaseController = container.get<ICaseController>(TYPES.CaseController);
  *                   properties:
  *                     total:
  *                       type: integer
- *                       example: 50
+ *                       example: 25
  *                     page:
  *                       type: integer
  *                       example: 1
@@ -70,18 +72,28 @@ const CaseController = container.get<ICaseController>(TYPES.CaseController);
  *                       example: 10
  *                     totalPages:
  *                       type: integer
- *                       example: 5
+ *                       example: 3
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-router.get('/', paginationMiddleware, (req, res) => CaseController.getAllCases(req, res));
+/**
+ * Route to retrieve all cases with optional pagination
+ * @name GET /cases
+ * @function
+ * @memberof module:caseRoutes
+ * @inner
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} Promise representing the completion of the request handling
+ */
+router.get('/', paginationMiddleware, CaseControllerInstance.getAllCases);
 
 /**
  * @swagger
  * /cases/{id}:
  *   get:
  *     summary: Get a case by ID
- *     description: Retrieve a specific case by its ID
+ *     tags: [Cases]
  *     parameters:
  *       - in: path
  *         name: id
@@ -112,21 +124,24 @@ router.get('/', paginationMiddleware, (req, res) => CaseController.getAllCases(r
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-router.get(
-  '/:id',
-  validateDeleteCase,
-  (
-    req: express.Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>,
-    res: express.Response<any, Record<string, any>>,
-  ) => CaseController.getCaseById(req, res),
-);
+/**
+ * Route to retrieve a specific case by ID
+ * @name GET /cases/:id
+ * @function
+ * @memberof module:caseRoutes
+ * @inner
+ * @param {Object} req - Express request object with case ID in params
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} Promise representing the completion of the request handling
+ */
+router.get('/:id', caseValidation.delete, validate, CaseControllerInstance.getCaseById);
 
 /**
  * @swagger
  * /cases:
  *   post:
  *     summary: Create a new case
- *     description: Create a new case with the provided data
+ *     tags: [Cases]
  *     requestBody:
  *       required: true
  *       content:
@@ -154,21 +169,24 @@ router.get(
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-router.post(
-  '/',
-  validateCreateCase,
-  (
-    req: express.Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>,
-    res: express.Response<any, Record<string, any>>,
-  ) => CaseController.createCase(req, res),
-);
+/**
+ * Route to create a new case
+ * @name POST /cases
+ * @function
+ * @memberof module:caseRoutes
+ * @inner
+ * @param {Object} req - Express request object with case data in body
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} Promise representing the completion of the request handling
+ */
+router.post('/', caseValidation.create, validate, CaseControllerInstance.createCase);
 
 /**
  * @swagger
  * /cases/{id}:
  *   put:
  *     summary: Update a case
- *     description: Update an existing case with the provided data
+ *     tags: [Cases]
  *     parameters:
  *       - in: path
  *         name: id
@@ -205,21 +223,24 @@ router.post(
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-router.put(
-  '/:id',
-  validateUpdateCase,
-  (
-    req: express.Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>,
-    res: express.Response<any, Record<string, any>>,
-  ) => CaseController.updateCase(req, res),
-);
+/**
+ * Route to update an existing case
+ * @name PUT /cases/:id
+ * @function
+ * @memberof module:caseRoutes
+ * @inner
+ * @param {Object} req - Express request object with case ID in params and update data in body
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} Promise representing the completion of the request handling
+ */
+router.put('/:id', caseValidation.update, validate, CaseControllerInstance.updateCase);
 
 /**
  * @swagger
  * /cases/{id}/status:
  *   patch:
- *     summary: Update case status
- *     description: Update only the status of an existing case
+ *     summary: Update a case status
+ *     tags: [Cases]
  *     parameters:
  *       - in: path
  *         name: id
@@ -256,13 +277,21 @@ router.put(
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
+/**
+ * Route to update only the status of an existing case
+ * @name PATCH /cases/:id/status
+ * @function
+ * @memberof module:caseRoutes
+ * @inner
+ * @param {Object} req - Express request object with case ID in params and status in body
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} Promise representing the completion of the request handling
+ */
 router.patch(
   '/:id/status',
-  validateUpdateStatus,
-  (
-    req: express.Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>,
-    res: express.Response<any, Record<string, any>>,
-  ) => CaseController.updateCaseStatus(req, res),
+  caseValidation.updateStatus,
+  validate,
+  CaseControllerInstance.updateCaseStatus,
 );
 
 /**
@@ -270,7 +299,7 @@ router.patch(
  * /cases/{id}:
  *   delete:
  *     summary: Delete a case
- *     description: Delete an existing case by its ID
+ *     tags: [Cases]
  *     parameters:
  *       - in: path
  *         name: id
@@ -280,7 +309,7 @@ router.patch(
  *         description: The case ID
  *     responses:
  *       204:
- *         description: Case deleted successfully (no content)
+ *         description: Case deleted successfully
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  *       404:
@@ -288,13 +317,16 @@ router.patch(
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-router.delete(
-  '/:id',
-  validateDeleteCase,
-  (
-    req: express.Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>,
-    res: express.Response<any, Record<string, any>>,
-  ) => CaseController.deleteCase(req, res),
-);
+/**
+ * Route to delete a case
+ * @name DELETE /cases/:id
+ * @function
+ * @memberof module:caseRoutes
+ * @inner
+ * @param {Object} req - Express request object with case ID in params
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} Promise representing the completion of the request handling
+ */
+router.delete('/:id', caseValidation.delete, validate, CaseControllerInstance.deleteCase);
 
 export default router;

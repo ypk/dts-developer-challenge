@@ -5,34 +5,31 @@ jest.mock('log-symbols', () => ({
   warning: '⚠',
 }));
 
-import { safelyApplyMiddleware, MiddlewareUtils } from '../../utils/middleware.utils.ts';
-import { IMiddlewareUtils } from '../../interfaces/IMiddlewareUtils';
+import { safelyApplyMiddleware } from '../../utils/middleware.utils.ts';
 import { Application } from 'express';
 
 describe('middleware.utils', () => {
-  let mockApp: Partial<Application>;
-  let mockConsoleLog: jest.SpyInstance;
-  let mockConsoleError: jest.SpyInstance;
-  let middlewareUtils: IMiddlewareUtils;
+  describe('safelyApplyMiddleware', () => {
+    let mockApp: Partial<Application>;
+    let mockConsoleLog: jest.SpyInstance;
+    let mockConsoleError: jest.SpyInstance;
 
-  beforeEach(() => {
-    mockApp = {};
-    mockConsoleLog = jest.spyOn(console, 'log').mockImplementation();
-    mockConsoleError = jest.spyOn(console, 'error').mockImplementation();
-    middlewareUtils = new MiddlewareUtils();
-  });
+    beforeEach(() => {
+      mockApp = {};
+      mockConsoleLog = jest.spyOn(console, 'log').mockImplementation();
+      mockConsoleError = jest.spyOn(console, 'error').mockImplementation();
+    });
 
-  afterEach(() => {
-    mockConsoleLog.mockRestore();
-    mockConsoleError.mockRestore();
-  });
+    afterEach(() => {
+      mockConsoleLog.mockRestore();
+      mockConsoleError.mockRestore();
+    });
 
-  describe('MiddlewareUtils class', () => {
     it('should execute the middleware function successfully', () => {
       const middlewareName = 'Test Middleware';
       const mockFn = jest.fn();
 
-      middlewareUtils.safelyApplyMiddleware(mockApp as Application, middlewareName, mockFn);
+      safelyApplyMiddleware(mockApp as Application, middlewareName, mockFn);
 
       expect(mockFn).toHaveBeenCalledTimes(1);
       expect(mockConsoleLog).toHaveBeenCalledWith('✓', expect.stringContaining(middlewareName));
@@ -46,7 +43,7 @@ describe('middleware.utils', () => {
         throw new Error(errorMessage);
       });
 
-      middlewareUtils.safelyApplyMiddleware(mockApp as Application, middlewareName, mockFn);
+      safelyApplyMiddleware(mockApp as Application, middlewareName, mockFn);
 
       expect(mockFn).toHaveBeenCalledTimes(1);
       expect(mockConsoleLog).not.toHaveBeenCalled();
@@ -63,7 +60,7 @@ describe('middleware.utils', () => {
         throw 'String error';
       });
 
-      middlewareUtils.safelyApplyMiddleware(mockApp as Application, middlewareName, mockFn);
+      safelyApplyMiddleware(mockApp as Application, middlewareName, mockFn);
 
       expect(mockFn).toHaveBeenCalledTimes(1);
       expect(mockConsoleLog).not.toHaveBeenCalled();
@@ -71,37 +68,6 @@ describe('middleware.utils', () => {
         '✖',
         expect.stringContaining(middlewareName),
         'Unknown error',
-      );
-    });
-  });
-
-  describe('Exported function', () => {
-    it('should execute the middleware function successfully', () => {
-      const middlewareName = 'Test Middleware';
-      const mockFn = jest.fn();
-
-      safelyApplyMiddleware(mockApp as Application, middlewareName, mockFn);
-
-      expect(mockFn).toHaveBeenCalledTimes(1);
-      expect(mockConsoleLog).toHaveBeenCalledWith('✓', expect.stringContaining(middlewareName));
-      expect(mockConsoleError).not.toHaveBeenCalled();
-    });
-
-    it('should handle errors when middleware function throws', () => {
-      const middlewareName = 'Error Middleware';
-      const errorMessage = 'Middleware error';
-      const mockFn = jest.fn().mockImplementation(() => {
-        throw new Error(errorMessage);
-      });
-
-      safelyApplyMiddleware(mockApp as Application, middlewareName, mockFn);
-
-      expect(mockFn).toHaveBeenCalledTimes(1);
-      expect(mockConsoleLog).not.toHaveBeenCalled();
-      expect(mockConsoleError).toHaveBeenCalledWith(
-        '✖',
-        expect.stringContaining(middlewareName),
-        errorMessage,
       );
     });
   });
