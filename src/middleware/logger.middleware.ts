@@ -1,14 +1,35 @@
+/**
+ * Logging Middleware Module
+ * @module loggerMiddleware
+ * @description Provides centralized logging capabilities and request logging middleware
+ */
+
 import { Request, Response, NextFunction } from 'express';
 import winston from 'winston';
 import fs from 'fs';
 import path from 'path';
 
+/**
+ * Directory path where log files will be stored
+ * @constant {string}
+ */
 const logsDir = path.join(process.cwd(), 'logs');
 
+// Create logs directory if it doesn't exist
 if (!fs.existsSync(logsDir)) {
   fs.mkdirSync(logsDir, { recursive: true });
 }
 
+/**
+ * Configured Winston logger instance
+ * @type {winston.Logger}
+ * @description
+ * Configured with the following settings:
+ * - Default log level: 'info'
+ * - JSON format with timestamps
+ * - Console transport with colorized output
+ * - File transports for error.log and combined.log (except in test environment)
+ */
 const logger = winston.createLogger({
   level: 'info',
   format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
@@ -29,7 +50,22 @@ const logger = winston.createLogger({
   ],
 });
 
-export const requestLogger = (req: Request, res: Response, next: NextFunction) => {
+/**
+ * Express middleware for logging HTTP requests
+ * @function requestLogger
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @param {NextFunction} next - Express next function
+ * @returns {void}
+ * @description
+ * Logs each incoming request and its completion with the following:
+ * - Log entry when a request is received
+ * - Log entry when a response is sent
+ * - Request details (method, URL, IP, user agent)
+ * - Response details (status code, duration)
+ * - Uses appropriate log level based on response status code
+ */
+export const requestLogger = (req: Request, res: Response, next: NextFunction): void => {
   const start = Date.now();
 
   logger.info({
@@ -57,4 +93,8 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
   next();
 };
 
+/**
+ * Export the configured Winston logger instance
+ * @exports logger
+ */
 export { logger };
