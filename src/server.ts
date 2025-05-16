@@ -1,5 +1,6 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import path from 'path';
 import cors from 'cors';
 import logSymbols from 'log-symbols';
 import routes from './routes/index.ts';
@@ -7,7 +8,7 @@ import compression from 'compression';
 import { setupSwagger } from './utils/swagger.ts';
 import { errorHandler } from './middleware/error.middleware.ts';
 import { requestLogger } from './middleware/logger.middleware.ts';
-import { securityHeaders } from './middleware/security.middleware.ts';
+import { securityHeaders, logSecurityConfig } from './middleware/security.middleware.ts';
 import { apiLimiter, authLimiter } from './middleware/rate-limit.middleware.ts';
 import { safelyApplyMiddleware } from './utils/middleware.utils.ts';
 
@@ -21,7 +22,13 @@ import { safelyApplyMiddleware } from './utils/middleware.utils.ts';
  *     name: HMCTS
  */
 
-dotenv.config();
+const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development';
+
+dotenv.config({ path: path.resolve(process.cwd(), envFile) });
+console.log(
+  `Loading environment from ${envFile} (NODE_ENV: ${process.env.NODE_ENV || 'development'})`,
+);
+logSecurityConfig();
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -46,7 +53,20 @@ safelyApplyMiddleware(app, 'Auth rate limiter', () => app.use(authPath, authLimi
 safelyApplyMiddleware(app, 'API routes', () => app.use('/api', routes));
 
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
+  const healthStatus: {
+    status: string;
+    environment: string | undefined;
+    securityEnabled?: boolean;
+  } = {
+    status: 'ok',
+    environment: process.env.NODE_ENV,
+  };
+
+  if (process.env.NODE_ENV === 'production') {
+    healthStatus.securityEnabled = true;
+  }
+
+  res.status(200).json(healthStatus);
 });
 
 if (typeof setupSwagger === 'function') {

@@ -14,6 +14,9 @@ export default {
             },
         ],
     },
+    transformIgnorePatterns: [
+        'node_modules/(?!(log-symbols)/)'
+    ],
     extensionsToTreatAsEsm: ['.ts'],
     moduleFileExtensions: ['ts', 'js', 'json'],
     testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],

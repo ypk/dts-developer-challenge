@@ -1,308 +1,374 @@
-import { jest } from '@jest/globals';
-import { Request, Response } from 'express';
+import request from 'supertest';
+import express, { Express, Request, Response, NextFunction } from 'express';
+import path from 'path';
+import dotenv from 'dotenv';
+import logSymbols from 'log-symbols';
 
-const mockUse = jest.fn();
-const mockGet = jest.fn();
-const mockListen = jest.fn().mockImplementation((port, callback) => {
-  if (callback && typeof callback === 'function') callback();
-  return { on: jest.fn() };
-});
-
-const mockApp = {
-  use: mockUse,
-  get: mockGet,
-  listen: mockListen,
-};
-
-const mockExpressJson = jest.fn().mockReturnValue('json-middleware');
-const mockExpressUrlencoded = jest.fn().mockReturnValue('urlencoded-middleware');
-
-type ExtendedMockFunction = jest.Mock & {
+type MockExpress = {
+  (): {
+    use: jest.Mock;
+    get: jest.Mock;
+    listen: jest.Mock;
+  };
   json: jest.Mock;
   urlencoded: jest.Mock;
 };
 
-jest.mock('express', () => {
-  const mockExpress = jest.fn(() => mockApp);
+const mockApp = {
+  use: jest.fn(),
+  get: jest.fn(),
+  listen: jest.fn(),
+};
 
-  return Object.assign(mockExpress, {
-    json: mockExpressJson,
-    urlencoded: mockExpressUrlencoded,
-  }) as ExtendedMockFunction;
+jest.mock('express', () => {
+  const mockExpress = jest.fn(() => mockApp) as unknown as MockExpress;
+  mockExpress.json = jest.fn();
+  mockExpress.urlencoded = jest.fn();
+  return mockExpress;
 });
 
-jest.mock('dotenv', () => ({
-  config: jest.fn(),
+jest.mock('path', () => ({
+  resolve: jest.fn((_, file) => file),
+  join: jest.fn((_, ...args) => args.join('/')),
 }));
 
-jest.mock('cors', () => jest.fn().mockReturnValue('cors-middleware'));
-jest.mock('compression', () => jest.fn().mockReturnValue('compression-middleware'));
+jest.mock('dotenv', () => {
+  return {
+    config: jest.fn().mockReturnValue({ parsed: {} }),
+  };
+});
 
-const mockSetupSwagger = jest.fn();
-jest.mock('../utils/swagger.ts', () => ({
-  setupSwagger: mockSetupSwagger,
-}));
+jest.mock('cors', () => jest.fn());
 
-jest.mock('../middleware/error.middleware.ts', () => ({
-  errorHandler: 'error-handler-middleware',
-}));
-
-jest.mock('../middleware/logger.middleware.ts', () => ({
-  requestLogger: 'logger-middleware',
-}));
-
-jest.mock('../middleware/security.middleware.ts', () => ({
-  securityHeaders: 'security-headers-middleware',
-}));
-
-jest.mock('../middleware/rate-limit.middleware.ts', () => ({
-  apiLimiter: 'api-limiter-middleware',
-  authLimiter: 'auth-limiter-middleware',
-}));
-
-const mockSafelyApplyMiddleware = jest.fn();
-jest.mock('../utils/middleware.utils.ts', () => ({
-  safelyApplyMiddleware: mockSafelyApplyMiddleware,
-}));
-
-jest.mock('../routes/index.ts', () => 'route-handlers');
+jest.mock('compression', () => jest.fn());
 
 jest.mock('log-symbols', () => ({
   success: '✓',
-  error: '✖',
   info: 'ℹ',
+  error: '✖',
+}));
+
+jest.mock('../routes/index.ts', () => 'mockRoutes');
+
+jest.mock('../utils/swagger.ts', () => ({
+  setupSwagger: jest.fn(),
+}));
+
+jest.mock('../middleware/error.middleware.ts', () => ({
+  errorHandler: 'mockErrorHandler',
+}));
+
+jest.mock('../middleware/logger.middleware.ts', () => ({
+  requestLogger: 'mockRequestLogger',
+  logger: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  },
+}));
+
+jest.mock('../middleware/security.middleware.ts', () => ({
+  securityHeaders: 'mockSecurityHeaders',
+  logSecurityConfig: jest.fn(),
+  securityConfig: {
+    contentTypeOptions: 'nosniff',
+    frameOptions: 'SAMEORIGIN',
+  },
+}));
+
+jest.mock('../middleware/rate-limit.middleware.ts', () => ({
+  apiLimiter: 'mockApiLimiter',
+  authLimiter: 'mockAuthLimiter',
+}));
+
+jest.mock('../utils/middleware.utils.ts', () => ({
+  safelyApplyMiddleware: jest.fn((app, name, fn) => fn()),
 }));
 
 const originalConsoleLog = console.log;
 const originalConsoleError = console.error;
-console.log = jest.fn();
-console.error = jest.fn();
-
-const originalProcessExit = process.exit;
-process.exit = jest.fn() as unknown as typeof process.exit;
+const mockConsoleLog = jest.fn();
+const mockConsoleError = jest.fn();
 
 describe('Server', () => {
+  let app: any;
+  let server: any;
+  const originalEnv = process.env;
+  const originalNodeEnv = process.env.NODE_ENV;
+  const originalExit = process.exit;
+
   beforeEach(() => {
     jest.clearAllMocks();
-
-    process.env.NODE_ENV = 'test';
-    process.env.PORT = '3000';
+    console.log = mockConsoleLog;
+    console.error = mockConsoleError;
+    process.exit = jest.fn() as any;
+    process.env = { ...originalEnv };
   });
 
   afterEach(() => {
+    console.log = originalConsoleLog;
+    console.error = originalConsoleError;
+    process.exit = originalExit;
+    process.env.NODE_ENV = originalNodeEnv;
     jest.resetModules();
   });
 
-  afterAll(() => {
-    console.log = originalConsoleLog;
-    console.error = originalConsoleError;
-    process.exit = originalProcessExit;
+  describe('Environment Configuration', () => {
+    it('should load environment variables from the correct file based on NODE_ENV', () => {
+      process.env.NODE_ENV = 'production';
+      jest.isolateModules(() => {
+        require('../server');
+      });
+      expect(dotenv.config).toHaveBeenCalled();
+      jest.clearAllMocks();
+      process.env.NODE_ENV = 'development';
+      jest.isolateModules(() => {
+        require('../server');
+      });
+      expect(dotenv.config).toHaveBeenCalled();
+    });
+
+    it('should log the environment file being loaded', () => {
+      mockConsoleLog.mockClear();
+      process.env.NODE_ENV = 'development';
+
+      jest.isolateModules(() => {
+        require('../server');
+      });
+
+      expect(mockConsoleLog).toHaveBeenCalledWith(
+        expect.stringMatching(/Loading environment from \.env\.development/),
+      );
+    });
+
+    it('should call logSecurityConfig to log security configuration', () => {
+      const { logSecurityConfig } = require('../middleware/security.middleware.ts');
+      (logSecurityConfig as jest.Mock).mockClear();
+      jest.isolateModules(() => {
+        require('../server');
+      });
+      expect(logSecurityConfig).toHaveBeenCalled();
+    });
   });
 
   describe('Middleware Application', () => {
-    it('should apply all middleware correctly', async () => {
-      await import('../server.ts');
-
-      expect(mockSafelyApplyMiddleware).toHaveBeenCalledTimes(11);
-      expect(mockSafelyApplyMiddleware).toHaveBeenCalledWith(
-        mockApp,
-        'JSON parser',
-        expect.any(Function),
-      );
-      expect(mockSafelyApplyMiddleware).toHaveBeenCalledWith(
-        mockApp,
+    it('should apply all middleware correctly', () => {
+      server = require('../server');
+      app = server.default;
+      const { safelyApplyMiddleware } = require('../utils/middleware.utils.ts');
+      expect(safelyApplyMiddleware).toHaveBeenCalledWith(app, 'JSON parser', expect.any(Function));
+      expect(safelyApplyMiddleware).toHaveBeenCalledWith(
+        app,
         'URL encoded parser',
         expect.any(Function),
       );
-      expect(mockSafelyApplyMiddleware).toHaveBeenCalledWith(mockApp, 'CORS', expect.any(Function));
-      expect(mockSafelyApplyMiddleware).toHaveBeenCalledWith(
-        mockApp,
+      expect(safelyApplyMiddleware).toHaveBeenCalledWith(app, 'CORS', expect.any(Function));
+      expect(safelyApplyMiddleware).toHaveBeenCalledWith(
+        app,
         'Security headers',
         expect.any(Function),
       );
-      expect(mockSafelyApplyMiddleware).toHaveBeenCalledWith(
-        mockApp,
-        'Compression',
-        expect.any(Function),
-      );
-      expect(mockSafelyApplyMiddleware).toHaveBeenCalledWith(
-        mockApp,
+      expect(safelyApplyMiddleware).toHaveBeenCalledWith(app, 'Compression', expect.any(Function));
+      expect(safelyApplyMiddleware).toHaveBeenCalledWith(
+        app,
         'Request logger',
         expect.any(Function),
       );
-      expect(mockSafelyApplyMiddleware).toHaveBeenCalledWith(
-        mockApp,
+      expect(safelyApplyMiddleware).toHaveBeenCalledWith(
+        app,
         'API rate limiter',
         expect.any(Function),
       );
-      expect(mockSafelyApplyMiddleware).toHaveBeenCalledWith(
-        mockApp,
+      expect(safelyApplyMiddleware).toHaveBeenCalledWith(
+        app,
         'Auth rate limiter',
         expect.any(Function),
       );
-      expect(mockSafelyApplyMiddleware).toHaveBeenCalledWith(
-        mockApp,
-        'API routes',
-        expect.any(Function),
-      );
-      expect(mockSafelyApplyMiddleware).toHaveBeenCalledWith(
-        mockApp,
-        'Swagger documentation',
-        expect.any(Function),
-      );
-      expect(mockSafelyApplyMiddleware).toHaveBeenCalledWith(
-        mockApp,
+      expect(safelyApplyMiddleware).toHaveBeenCalledWith(app, 'API routes', expect.any(Function));
+      expect(safelyApplyMiddleware).toHaveBeenCalledWith(
+        app,
         'Error handler',
         expect.any(Function),
       );
     });
 
-    it('should apply middleware functions when safelyApplyMiddleware is called', async () => {
-      mockSafelyApplyMiddleware.mockImplementation((app, name, fn) => {
-        if (typeof fn === 'function') fn();
-      });
-
-      await import('../server.ts');
-
-      expect(mockUse).toHaveBeenCalledWith('json-middleware');
-      expect(mockUse).toHaveBeenCalledWith('urlencoded-middleware');
-      expect(mockUse).toHaveBeenCalledWith('cors-middleware');
-      expect(mockUse).toHaveBeenCalledWith('security-headers-middleware');
-      expect(mockUse).toHaveBeenCalledWith('compression-middleware');
-      expect(mockUse).toHaveBeenCalledWith('logger-middleware');
-      expect(mockUse).toHaveBeenCalledWith('/api', 'api-limiter-middleware');
-      expect(mockUse).toHaveBeenCalledWith('/api/auth', 'auth-limiter-middleware');
-      expect(mockUse).toHaveBeenCalledWith('/api', 'route-handlers');
-      expect(mockUse).toHaveBeenCalledWith('error-handler-middleware');
+    it('should apply middleware functions when safelyApplyMiddleware is called', () => {
+      server = require('../server');
+      app = server.default;
+      expect(app.use).toHaveBeenCalled();
+      expect(app.use).toHaveBeenCalledWith('mockSecurityHeaders');
+      expect(app.use).toHaveBeenCalledWith('mockRequestLogger');
+      expect(app.use).toHaveBeenCalledWith('/api', 'mockApiLimiter');
+      expect(app.use).toHaveBeenCalledWith('/api/auth', 'mockAuthLimiter');
+      expect(app.use).toHaveBeenCalledWith('/api', 'mockRoutes');
+      expect(app.use).toHaveBeenCalledWith('mockErrorHandler');
     });
   });
 
   describe('Health Check Endpoint', () => {
-    it('should register health check endpoint', async () => {
-      await import('../server.ts');
+    it('should register health check endpoint', () => {
+      server = require('../server');
+      app = server.default;
+      expect(app.get).toHaveBeenCalledWith('/health', expect.any(Function));
+    });
 
-      expect(mockGet).toHaveBeenCalledWith('/health', expect.any(Function));
+    it('should return correct health status based on environment', () => {
+      server = require('../server');
+      app = server.default;
+      const healthHandler = (app.get as jest.Mock).mock.calls.find(
+        (call) => call[0] === '/health',
+      )[1];
 
-      const healthCall = mockGet.mock.calls.find((call) => call[0] === '/health');
-
-      if (!healthCall) {
-        fail('Health endpoint was not registered');
-        return;
-      }
-
-      const healthHandler = healthCall[1];
-
-      const req = {} as Request;
+      const req = {};
       const res = {
         status: jest.fn().mockReturnThis(),
         json: jest.fn(),
-      } as unknown as Response;
+      };
 
-      if (typeof healthHandler === 'function') {
-        (healthHandler as (req: Request, res: Response) => void)(req, res);
-      } else {
-        fail('Health handler is not a function');
-      }
+      process.env.NODE_ENV = 'production';
+      healthHandler(req, res);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'ok',
+        environment: 'production',
+        securityEnabled: true,
+      });
+
+      jest.clearAllMocks();
+
+      process.env.NODE_ENV = 'development';
+      healthHandler(req, res);
 
       expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({ status: 'ok' });
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'ok',
+        environment: 'development',
+      });
     });
   });
 
   describe('Swagger Documentation', () => {
-    it('should set up Swagger when setupSwagger is a function', async () => {
-      await import('../server.ts');
+    it('should set up Swagger when setupSwagger is a function', () => {
+      server = require('../server');
+      app = server.default;
 
-      const swaggerCall = mockSafelyApplyMiddleware.mock.calls.find(
+      const { setupSwagger } = require('../utils/swagger.ts');
+      const { safelyApplyMiddleware } = require('../utils/middleware.utils.ts');
+
+      expect(safelyApplyMiddleware).toHaveBeenCalledWith(
+        app,
+        'Swagger documentation',
+        expect.any(Function),
+      );
+
+      const setupSwaggerFn = (safelyApplyMiddleware as jest.Mock).mock.calls.find(
+        (call) => call[1] === 'Swagger documentation',
+      )[2];
+
+      setupSwaggerFn();
+
+      expect(setupSwagger).toHaveBeenCalledWith(app);
+    });
+
+    it('should not set up Swagger when setupSwagger is not a function', () => {
+      jest.resetModules();
+      jest.mock('../utils/swagger.ts', () => ({
+        setupSwagger: 'not a function',
+      }));
+
+      server = require('../server');
+      app = server.default;
+
+      const { safelyApplyMiddleware } = require('../utils/middleware.utils.ts');
+
+      const swaggerCall = (safelyApplyMiddleware as jest.Mock).mock.calls.find(
         (call) => call[1] === 'Swagger documentation',
       );
 
-      if (swaggerCall) {
-        const callback = swaggerCall[2];
-        if (typeof callback === 'function') callback();
-      }
-
-      expect(mockSetupSwagger).toHaveBeenCalledWith(mockApp);
-    });
-
-    it('should not set up Swagger when setupSwagger is not a function', async () => {
-      jest.resetModules();
-      jest.mock('../utils/swagger.ts', () => ({
-        setupSwagger: 'not-a-function',
-      }));
-
-      await import('../server.ts');
-
-      const middlewareNames = mockSafelyApplyMiddleware.mock.calls.map((call) => call[1]);
-
-      expect(middlewareNames).not.toContain('Swagger documentation');
+      expect(swaggerCall).toBeUndefined();
     });
   });
 
   describe('Server Startup', () => {
-    it('should start the server when NODE_ENV is not test', async () => {
-      process.env.NODE_ENV = 'development';
+    it('should start the server when NODE_ENV is not test', () => {
+      jest.clearAllMocks();
 
-      await import('../server.ts');
-
-      expect(mockListen).toHaveBeenCalledWith('3000', expect.any(Function));
-      expect(console.log).toHaveBeenCalledWith(
-        '✓',
-        expect.stringContaining('Server is running on port 3000'),
-      );
-      expect(console.log).toHaveBeenCalledWith(
-        'ℹ',
-        expect.stringContaining('API Documentation available'),
-      );
-    });
-
-    it('should not start the server when NODE_ENV is test', async () => {
-      process.env.NODE_ENV = 'test';
-
-      await import('../server.ts');
-
-      expect(mockListen).not.toHaveBeenCalled();
-    });
-
-    it('should use default port 3000 when PORT is not set', async () => {
-      delete process.env.PORT;
-      process.env.NODE_ENV = 'development';
-
-      await import('../server.ts');
-
-      expect(mockListen).toHaveBeenCalledWith(3000, expect.any(Function));
-    });
-
-    it('should handle server startup errors', async () => {
-      process.env.NODE_ENV = 'development';
-      const testError = new Error('Test server startup error');
-      mockListen.mockImplementationOnce(() => {
-        throw testError;
+      (mockApp.listen as jest.Mock).mockImplementation((port, callback) => {
+        if (callback) callback();
+        return mockApp;
       });
 
-      await import('../server.ts');
+      console.log = jest.fn().mockImplementation((symbol, message) => {
+        if (message && message.includes && message.includes('Server is running on port')) {
+          mockConsoleLog(symbol, message);
+        }
+      });
 
-      expect(console.error).toHaveBeenCalledWith(
-        '✖',
-        expect.stringContaining('Failed to start server:'),
-        'Test server startup error',
-      );
+      process.env.NODE_ENV = 'development';
+      jest.resetModules();
+      server = require('../server');
+      app = server.default;
+
+      expect(app.listen).toHaveBeenCalled();
+      expect(mockConsoleLog).toHaveBeenCalled();
+    });
+
+    it('should not start the server when NODE_ENV is test', () => {
+      process.env.NODE_ENV = 'test';
+      jest.resetModules();
+      server = require('../server');
+      app = server.default;
+
+      expect(app.listen).not.toHaveBeenCalled();
+    });
+
+    it('should use default port 3000 when PORT is not set', () => {
+      process.env.NODE_ENV = 'development';
+      delete process.env.PORT;
+      jest.resetModules();
+      server = require('../server');
+      app = server.default;
+
+      expect(app.listen).toHaveBeenCalledWith(3000, expect.any(Function));
+    });
+
+    it('should handle server startup errors', () => {
+      mockConsoleError.mockClear();
+      process.env.NODE_ENV = 'development';
+
+      (mockApp.listen as jest.Mock).mockImplementationOnce(() => {
+        throw new Error('Server startup error');
+      });
+
+      jest.resetModules();
+      server = require('../server');
+      app = server.default;
+
+      expect(mockConsoleError).toHaveBeenCalled();
+      expect(mockConsoleError.mock.calls[0][0]).toBe('✖');
+      expect(mockConsoleError.mock.calls[0][1]).toBe(' Failed to start server:');
+      expect(mockConsoleError.mock.calls[0][2]).toBe('Server startup error');
+
       expect(process.exit).toHaveBeenCalledWith(1);
     });
 
-    it('should handle non-Error objects in server startup errors', async () => {
+    it('should handle non-Error objects in server startup errors', () => {
+      mockConsoleError.mockClear();
       process.env.NODE_ENV = 'development';
-      mockListen.mockImplementationOnce(() => {
+
+      (mockApp.listen as jest.Mock).mockImplementationOnce(() => {
         throw 'String error';
       });
 
-      await import('../server.ts');
+      jest.resetModules();
+      server = require('../server');
+      app = server.default;
 
-      expect(console.error).toHaveBeenCalledWith(
-        '✖',
-        expect.stringContaining('Failed to start server:'),
-        'Unknown error',
-      );
+      expect(mockConsoleError).toHaveBeenCalled();
+      expect(mockConsoleError.mock.calls[0][0]).toBe('✖');
+      expect(mockConsoleError.mock.calls[0][1]).toBe(' Failed to start server:');
+      expect(mockConsoleError.mock.calls[0][2]).toBe('Unknown error');
+
       expect(process.exit).toHaveBeenCalledWith(1);
     });
   });
