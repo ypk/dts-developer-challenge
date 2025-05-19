@@ -1,6 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
-import path from 'path';
+import { fileURLToPath } from 'url';
+import path, { dirname } from 'path';
 import cors from 'cors';
 import logSymbols from 'log-symbols';
 import routes from './routes/index.ts';
@@ -11,6 +12,16 @@ import { requestLogger } from './middleware/logger.middleware.ts';
 import { securityHeaders, logSecurityConfig } from './middleware/security.middleware.ts';
 import { apiLimiter, authLimiter } from './middleware/rate-limit.middleware.ts';
 import { safelyApplyMiddleware } from './utils/middleware.utils.ts';
+import crypto from 'crypto';
+import dartSass from 'express-dart-sass';
+import session from 'express-session';
+import flash from 'connect-flash';
+import methodOverride from 'method-override';
+// import frontendRoutes from './routes/frontend.routes';
+
+const generateSessionSecret = () => {
+  return crypto.randomBytes(64).toString('hex');
+};
 
 /**
  * @swagger
@@ -22,21 +33,44 @@ import { safelyApplyMiddleware } from './utils/middleware.utils.ts';
  *     name: HMCTS
  */
 
+const apiPath = '/api';
+const authPath = '/api/auth';
+const assetsPath = '/assets';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development';
 
 dotenv.config({ path: path.resolve(process.cwd(), envFile) });
+
 console.log(
   `Loading environment from ${envFile} (NODE_ENV: ${process.env.NODE_ENV || 'development'})`,
 );
+
 logSecurityConfig();
 
 const app = express();
 const port = process.env.PORT || 3000;
 
+if (!process.env.SESSION_SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('ERROR: SESSION_SECRET environment variable is required in production');
+    process.exit(1);
+  } else {
+    console.warn(
+      'WARNING: Using randomly generated session secret. Sessions will be invalidated on server restart.',
+    );
+  }
+}
+
+const sessionSecret = process.env.SESSION_SECRET || generateSessionSecret();
+
 safelyApplyMiddleware(app, 'JSON parser', () => app.use(express.json()));
+
 safelyApplyMiddleware(app, 'URL encoded parser', () =>
   app.use(express.urlencoded({ extended: true })),
 );
+
 safelyApplyMiddleware(app, 'CORS', () => app.use(cors()));
 
 safelyApplyMiddleware(app, 'Security headers', () => app.use(securityHeaders));
@@ -45,10 +79,51 @@ safelyApplyMiddleware(app, 'Compression', () => app.use(compression()));
 
 safelyApplyMiddleware(app, 'Request logger', () => app.use(requestLogger));
 
-const apiPath = '/api';
-const authPath = '/api/auth';
 safelyApplyMiddleware(app, 'API rate limiter', () => app.use(apiPath, apiLimiter));
+
 safelyApplyMiddleware(app, 'Auth rate limiter', () => app.use(authPath, authLimiter));
+
+safelyApplyMiddleware(app, 'Method Override', () => app.use(methodOverride('_method')));
+
+safelyApplyMiddleware(app, 'Session', () =>
+  app.use(
+    session({
+      secret: sessionSecret,
+      resave: false,
+      saveUninitialized: false,
+    }),
+  ),
+);
+
+safelyApplyMiddleware(app, 'Flash Messages', () => app.use(flash()));
+
+safelyApplyMiddleware(app, 'SASS Middleware', () =>
+  app.use(
+    dartSass({
+      src: path.join(__dirname, '../src/assets/sass'),
+      dest: path.join(__dirname, '../public/assets/stylesheets'),
+      outputStyle: 'compressed',
+      prefix: `${assetsPath}/stylesheets`,
+    }),
+  ),
+);
+
+safelyApplyMiddleware(app, 'Template Locals', () =>
+  app.use((req, res, next) => {
+    res.locals.messages = {
+      success: req.flash('success'),
+      error: req.flash('error'),
+    };
+    res.locals.paths = {
+      assets: assetsPath,
+    };
+    next();
+  }),
+);
+
+// safelyApplyMiddleware(app, 'Frontend Routes', () =>
+//   app.use('/', frontendRoutes)
+// );
 
 safelyApplyMiddleware(app, 'API routes', () => app.use('/api', routes));
 
@@ -78,7 +153,7 @@ safelyApplyMiddleware(app, 'Error handler', () => app.use(errorHandler));
 if (process.env.NODE_ENV !== 'test') {
   try {
     app.listen(port, () => {
-      console.log(logSymbols.success, `Server is running on port ${port}`);
+      console.log(logSymbols.success, ` Server is running on port ${port}`);
       console.log(
         logSymbols.info,
         ` API Documentation available at http://localhost:${port}/api-docs`,
