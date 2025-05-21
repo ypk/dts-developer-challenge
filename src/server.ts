@@ -13,7 +13,7 @@ import { errorHandler } from './middleware/error.middleware.ts';
 import { requestLogger } from './middleware/logger.middleware.ts';
 import { securityHeaders, logSecurityConfig } from './middleware/security.middleware.ts';
 import { apiLimiter, authLimiter } from './middleware/rate-limit.middleware.ts';
-import { safelyApplyMiddleware } from './utils/middleware.utils.ts';
+import { getSVG, safelyApplyMiddleware } from './utils/middleware.utils.ts';
 import crypto from 'crypto';
 import dartSass from 'express-dart-sass';
 import session from 'express-session';
@@ -98,6 +98,13 @@ safelyApplyMiddleware(app, 'Static Files', () =>
   app.use('/assets', express.static(staticAssetsPath)),
 );
 
+safelyApplyMiddleware(app, 'SVG Helper', () =>
+  app.use((req, res, next) => {
+    res.locals.getSVG = (filename: string) => getSVG(filename);
+    next();
+  }),
+);
+
 safelyApplyMiddleware(app, 'Method Override', () =>
   app.use(
     methodOverride((req, _res) => {
@@ -149,6 +156,7 @@ safelyApplyMiddleware(app, 'Template Locals', () =>
     res.locals.paths = {
       assets: assetsPath,
     };
+    res.locals.currentPath = req.path;
     next();
   }),
 );

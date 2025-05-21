@@ -3,8 +3,14 @@
  * @module utils/middleware.utils
  */
 
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { Application } from 'express';
 import logSymbols from 'log-symbols';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * Helper function to safely apply middleware with error handling
@@ -27,3 +33,19 @@ export const safelyApplyMiddleware = (app: Application, name: string, fn: () => 
     );
   }
 };
+
+/**
+ * Reads an SVG file from the assets directory and returns its contents as a string
+ *
+ * @param {string} filename - The name of the SVG file to read
+ * @returns {string} The contents of the SVG file, or an empty string if the file cannot be read
+ */
+export function getSVG(filename: string): string {
+  const svgPath = path.join(__dirname, '../../src/assets/images', filename);
+  try {
+    return fs.readFileSync(svgPath, 'utf8');
+  } catch (error) {
+    console.error(`Error reading SVG file: ${filename}`, error);
+    return '';
+  }
+}
