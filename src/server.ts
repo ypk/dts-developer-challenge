@@ -4,7 +4,9 @@ import { fileURLToPath } from 'url';
 import path, { dirname } from 'path';
 import cors from 'cors';
 import logSymbols from 'log-symbols';
-import routes from './routes/api.routes.ts';
+import apiRoutes from './routes/api.routes.ts';
+import frontendRoutes from './routes/frontend.routes.js';
+import ejsLayouts from 'express-ejs-layouts';
 import compression from 'compression';
 import { setupSwagger } from './utils/swagger.ts';
 import { errorHandler } from './middleware/error.middleware.ts';
@@ -17,7 +19,6 @@ import dartSass from 'express-dart-sass';
 import session from 'express-session';
 import flash from 'connect-flash';
 import methodOverride from 'method-override';
-// import frontendRoutes from './routes/frontend.routes';
 
 const generateSessionSecret = () => {
   return crypto.randomBytes(64).toString('hex');
@@ -38,6 +39,11 @@ const authPath = '/api/auth';
 const assetsPath = '/assets';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+const staticAssetsPath = path.join(__dirname, '../public/assets');
+const viewPath = path.join(__dirname, './views');
+const sassSrcPath = path.join(__dirname, '../assets/sass');
+const sassDestPath = path.join(__dirname, '../public/assets/stylesheets');
 
 const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development';
 
@@ -83,7 +89,26 @@ safelyApplyMiddleware(app, 'API rate limiter', () => app.use(apiPath, apiLimiter
 
 safelyApplyMiddleware(app, 'Auth rate limiter', () => app.use(authPath, authLimiter));
 
-safelyApplyMiddleware(app, 'Method Override', () => app.use(methodOverride('_method')));
+safelyApplyMiddleware(app, 'View Engine Setup', () => {
+  app.set('views', viewPath);
+  app.set('view engine', 'ejs');
+});
+
+safelyApplyMiddleware(app, 'Static Files', () =>
+  app.use('/assets', express.static(staticAssetsPath)),
+);
+
+safelyApplyMiddleware(app, 'Method Override', () =>
+  app.use(
+    methodOverride((req, _res) => {
+      if (req.body && typeof req.body === 'object' && '_method' in req.body) {
+        const method = req.body._method;
+        delete req.body._method;
+        return method;
+      }
+    }),
+  ),
+);
 
 safelyApplyMiddleware(app, 'Session', () =>
   app.use(
@@ -100,13 +125,20 @@ safelyApplyMiddleware(app, 'Flash Messages', () => app.use(flash()));
 safelyApplyMiddleware(app, 'SASS Middleware', () =>
   app.use(
     dartSass({
-      src: path.join(__dirname, '../src/assets/sass'),
-      dest: path.join(__dirname, '../public/assets/stylesheets'),
+      src: sassSrcPath,
+      dest: sassDestPath,
       outputStyle: 'compressed',
       prefix: `${assetsPath}/stylesheets`,
     }),
   ),
 );
+
+safelyApplyMiddleware(app, 'EJS Layouts', () => {
+  app.use(ejsLayouts);
+  app.set('layout', 'layouts/main');
+  app.set('layout extractScripts', true);
+  app.set('layout extractStyles', true);
+});
 
 safelyApplyMiddleware(app, 'Template Locals', () =>
   app.use((req, res, next) => {
@@ -121,11 +153,11 @@ safelyApplyMiddleware(app, 'Template Locals', () =>
   }),
 );
 
-// safelyApplyMiddleware(app, 'Frontend Routes', () =>
-//   app.use('/', frontendRoutes)
-// );
+safelyApplyMiddleware(app, 'Frontend Routes', () => app.use('/', frontendRoutes));
 
-safelyApplyMiddleware(app, 'API routes', () => app.use('/api', routes));
+safelyApplyMiddleware(app, 'API routes', () => app.use('/api', apiRoutes));
+
+safelyApplyMiddleware(app, 'Error handler', () => app.use(errorHandler));
 
 app.get('/health', (req, res) => {
   const healthStatus: {
@@ -147,8 +179,6 @@ app.get('/health', (req, res) => {
 if (typeof setupSwagger === 'function') {
   safelyApplyMiddleware(app, 'Swagger documentation', () => setupSwagger(app));
 }
-
-safelyApplyMiddleware(app, 'Error handler', () => app.use(errorHandler));
 
 if (process.env.NODE_ENV !== 'test') {
   try {
