@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import path, { dirname } from 'path';
 import cors from 'cors';
 import logSymbols from 'log-symbols';
-import routes from './routes/index.ts';
+import routes from './routes/api.routes.ts';
 import compression from 'compression';
 import { setupSwagger } from './utils/swagger.ts';
 import { errorHandler } from './middleware/error.middleware.ts';

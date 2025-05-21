@@ -20,7 +20,7 @@ describe('Routes Index', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
     jest.resetModules();
-    routesModule = await import('../../routes/index.ts');
+    routesModule = await import('../../routes/api.routes.ts');
   });
 
   afterEach(() => {
