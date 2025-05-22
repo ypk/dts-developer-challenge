@@ -107,4 +107,38 @@ router.get('/cases/:id', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * Edit case form route
+ * @name GET /cases/:id/edit
+ */
+router.get('/cases/:id/edit', async (req: Request, res: Response) => {
+  try {
+    const caseId = parseInt(req.params.id);
+
+    if (isNaN(caseId)) {
+      throw new Error('Invalid case ID');
+    }
+
+    const caseData = await CaseServiceInstance.getCaseById(caseId);
+
+    res.render('pages/cases/edit', {
+      title: `Edit Case #${caseId}`,
+      pageHeading: `Edit Case: ${caseData.title}`,
+      caseData,
+    });
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      req.flash('error', error.message);
+      return res.redirect('/cases');
+    }
+
+    handleErrorWithRedirect(
+      req,
+      res,
+      error,
+      'An error occurred while retrieving the case for editing',
+    );
+  }
+});
+
 export default router;

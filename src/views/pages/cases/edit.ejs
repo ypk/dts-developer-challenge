@@ -1,0 +1,74 @@
+<div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds">
+        <form action="/cases/<%= caseData.id %>" method="POST" novalidate>
+            <input type="hidden" name="_method" value="PUT">
+
+            <div class="govuk-form-group">
+                <label class="govuk-label" for="title">
+                    Case title
+                </label>
+                <span id="title-hint" class="govuk-hint">
+                    Required field
+                </span>
+                <input class="govuk-input" id="title" name="title" type="text" value="<%= caseData.title %>"
+                    aria-describedby="title-hint" required>
+            </div>
+
+            <div class="govuk-form-group">
+                <label class="govuk-label" for="description">
+                    Description
+                </label>
+                <span id="description-hint" class="govuk-hint">
+                    Optional field
+                </span>
+                <textarea class="govuk-textarea" id="description" name="description" rows="5"
+                    aria-describedby="description-hint"><%= caseData.description || '' %></textarea>
+            </div>
+
+            <div class="govuk-form-group">
+                <label class="govuk-label" for="status">
+                    Status
+                </label>
+                <select class="govuk-select" id="status" name="status">
+                    <option value="PENDING" <%=caseData.status==='PENDING' ? 'selected' : '' %>>Pending</option>
+                    <option value="IN_PROGRESS" <%=caseData.status==='IN_PROGRESS' ? 'selected' : '' %>>In Progress
+                    </option>
+                    <option value="COMPLETED" <%=caseData.status==='COMPLETED' ? 'selected' : '' %>>Completed</option>
+                </select>
+            </div>
+
+            <div class="govuk-form-group">
+                <label class="govuk-label" for="dueDate">
+                    Due Date
+                </label>
+                <span id="dueDate-hint" class="govuk-hint">
+                    Optional field. Format: YYYY-MM-DD
+                </span>
+                <input class="govuk-input" id="dueDate" name="dueDate" type="date"
+                    min="<%= new Date().toISOString().split('T')[0] %>"
+                    value="<%= caseData.dueDate ? new Date(caseData.dueDate).toISOString().split('T')[0] : '' %>"
+                    aria-describedby="dueDate-hint">
+            </div>
+
+            <div class="govuk-button-group">
+                <button type="submit" class="govuk-button" data-module="govuk-button">
+                    Save changes
+                </button>
+
+                <a href="/cases/<%= caseData.id %>" class="govuk-link">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const dueDateInput = document.getElementById('dueDate');
+    const today = new Date().toISOString().split('T')[0];
+    dueDateInput.setAttribute('min', today);
+    
+    if (dueDateInput.value && dueDateInput.value < today) {
+      // Uncomment this line if you want to clear past dates
+      dueDateInput.value = '';
+    }
+  });
+</script>

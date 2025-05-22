@@ -103,18 +103,35 @@ function copyRecursive(source, target) {
  * Copies GOV.UK Frontend assets to the public directory
  */
 function copyGovUkAssets() {
-    // Updated path to use the correct directory structure
-    const sourceDir = path.join(rootDir, 'node_modules/govuk-frontend/dist/govuk/assets');
-    const targetDir = path.join(rootDir, 'public/assets');
+    // Copy images
+    const sourceImagesDir = path.join(rootDir, 'node_modules/govuk-frontend/dist/govuk/assets/images');
+    const targetImagesDir = path.join(rootDir, 'public/assets/images');
     
-    // Create target directory if it doesn't exist
-    if (!fs.existsSync(targetDir)) {
-        fs.mkdirSync(targetDir, { recursive: true });
-    }
+    // Copy fonts
+    const sourceFontsDir = path.join(rootDir, 'node_modules/govuk-frontend/dist/govuk/assets/fonts');
+    const targetFontsDir = path.join(rootDir, 'public/assets/fonts');
+    
+    // Copy manifest.json
+    const sourceManifest = path.join(rootDir, 'node_modules/govuk-frontend/dist/govuk/assets/manifest.json');
+    const targetManifest = path.join(rootDir, 'public/assets/manifest.json');
     
     try {
-        // Use recursive copy
-        copyRecursive(sourceDir, targetDir);
+        // Create target directories if they don't exist
+        if (!fs.existsSync(targetImagesDir)) {
+            fs.mkdirSync(targetImagesDir, { recursive: true });
+        }
+        
+        if (!fs.existsSync(targetFontsDir)) {
+            fs.mkdirSync(targetFontsDir, { recursive: true });
+        }
+        
+        // Copy assets
+        copyRecursive(sourceImagesDir, targetImagesDir);
+        copyRecursive(sourceFontsDir, targetFontsDir);
+        
+        // Copy manifest
+        fs.copyFileSync(sourceManifest, targetManifest);
+        
         console.log(
             logSymbols.success,
             ` Copied GOV.UK Frontend assets to public/assets`
@@ -131,8 +148,7 @@ function copyGovUkAssets() {
  * Copies GOV.UK Frontend JavaScript to the public directory
  */
 function copyGovUkJavaScript() {
-    // Updated path to use the correct file
-    const sourceFile = path.join(rootDir, 'node_modules/govuk-frontend/dist/govuk/all.mjs');
+    const sourceFile = path.join(rootDir, 'node_modules/govuk-frontend/dist/govuk/govuk-frontend.min.js');
     const targetDir = path.join(rootDir, 'public/assets/javascripts');
     const targetFile = path.join(targetDir, 'govuk-frontend.min.js');
     
@@ -156,6 +172,35 @@ function copyGovUkJavaScript() {
     }
 }
 
+/**
+ * Copies GOV.UK Frontend CSS to the public directory
+ */
+function copyGovUkCSS() {
+    const sourceFile = path.join(rootDir, 'node_modules/govuk-frontend/dist/govuk/govuk-frontend.min.css');
+    const targetDir = path.join(rootDir, 'public/assets/stylesheets');
+    const targetFile = path.join(targetDir, 'govuk-frontend.min.css');
+    
+    // Create target directory if it doesn't exist
+    if (!fs.existsSync(targetDir)) {
+        fs.mkdirSync(targetDir, { recursive: true });
+    }
+    
+    try {
+        // Copy file
+        fs.copyFileSync(sourceFile, targetFile);
+        console.log(
+            logSymbols.success,
+            ` Copied GOV.UK Frontend CSS to public/assets/stylesheets`
+        );
+    } catch (error) {
+        console.error(
+            logSymbols.error,
+            ` Error copying GOV.UK Frontend CSS: `, error.message
+        );
+    }
+}
+
+
 // Main execution logic
 if (fs.existsSync(targetEnvPath)) {
     console.log(
@@ -176,3 +221,4 @@ if (isRunningInDocker()) {
 console.log(logSymbols.info, ' Copying GOV.UK Frontend assets...');
 copyGovUkAssets();
 copyGovUkJavaScript();
+copyGovUkCSS();
