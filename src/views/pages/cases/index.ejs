@@ -1,0 +1,116 @@
+<div class="govuk-grid-row">
+    <div class="govuk-grid-column-full">
+        <div class="govuk-button-group">
+            <a href="/cases/new" role="button" draggable="false" class="govuk-button" data-module="govuk-button">
+                Create new case
+            </a>
+        </div>
+
+        <% if (cases && cases.length> 0) { %>
+            <table class="govuk-table">
+                <caption class="govuk-table__caption govuk-table__caption--m">All cases</caption>
+                <thead class="govuk-table__head">
+                    <tr class="govuk-table__row">
+                        <th scope="col" class="govuk-table__header">ID</th>
+                        <th scope="col" class="govuk-table__header">Title</th>
+                        <th scope="col" class="govuk-table__header">Status</th>
+                        <th scope="col" class="govuk-table__header">Due Date</th>
+                        <th scope="col" class="govuk-table__header">Created</th>
+                        <th scope="col" class="govuk-table__header">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="govuk-table__body">
+                    <% cases.forEach(function(caseItem) { %>
+                        <tr class="govuk-table__row">
+                            <td class="govuk-table__cell">
+                                <%= caseItem.id %>
+                            </td>
+                            <td class="govuk-table__cell">
+                                <a href="/cases/<%= caseItem.id %>" class="govuk-link">
+                                    <%= caseItem.title %>
+                                </a>
+                            </td>
+                            <td class="govuk-table__cell">
+                                <%- include('../../components/status-tag.ejs', { status: caseItem.status, dueDate: caseItem.dueDate }) %>
+                            </td>
+                            <td class="govuk-table__cell">
+                                <%= caseItem.dueDate ? new Date(caseItem.dueDate).toLocaleDateString() : 'Not set' %>
+                            </td>
+                            <td class="govuk-table__cell">
+                                <%= new Date(caseItem.createdAt).toLocaleDateString() %>
+                            </td>
+                            <td class="govuk-table__cell">
+                                <a href="/cases/<%= caseItem.id %>/edit" class="govuk-link">Edit</a>
+                            </td>
+                        </tr>
+                        <% }); %>
+                </tbody>
+            </table>
+
+            <% if (pagination && pagination.totalPages> 1) { %>
+                <nav class="govuk-pagination" role="navigation" aria-label="Pagination">
+                    <% if (pagination.page> 1) { %>
+                        <div class="govuk-pagination__prev">
+                            <a class="govuk-link govuk-pagination__link"
+                                href="/cases?page=<%= pagination.page - 1 %>&limit=<%= pagination.limit %>" rel="prev">
+                                <svg class="govuk-pagination__icon govuk-pagination__icon--prev"
+                                    xmlns="http://www.w3.org/2000/svg" height="13" width="15" aria-hidden="true"
+                                    focusable="false" viewBox="0 0 15 13">
+                                    <path
+                                        d="m6.5938-0.0078125-6.7266 6.7266 6.7441 6.4062 1.377-1.449-4.1856-3.9768h12.896v-2h-12.984l4.2931-4.293-1.414-1.414z">
+                                    </path>
+                                </svg>
+                                <span class="govuk-pagination__link-title">Previous</span>
+                            </a>
+                        </div>
+                        <% } %>
+
+                            <ul class="govuk-pagination__list">
+                                <% for(let i=1; i <=pagination.totalPages; i++) { %>
+                                    <li
+                                        class="govuk-pagination__item <%= pagination.page === i ? 'govuk-pagination__item--current' : '' %>">
+                                        <a class="govuk-link govuk-pagination__link"
+                                            href="/cases?page=<%= i %>&limit=<%= pagination.limit %>"
+                                            aria-label="Page <%= i %>" <%=pagination.page===i ? 'aria-current="page"'
+                                            : '' %>>
+                                            <%= i %>
+                                        </a>
+                                    </li>
+                                    <% } %>
+                            </ul>
+
+                            <% if (pagination.page < pagination.totalPages) { %>
+                                <div class="govuk-pagination__next">
+                                    <a class="govuk-link govuk-pagination__link"
+                                        href="/cases?page=<%= pagination.page + 1 %>&limit=<%= pagination.limit %>"
+                                        rel="next">
+                                        <span class="govuk-pagination__link-title">Next</span>
+                                        <svg class="govuk-pagination__icon govuk-pagination__icon--next"
+                                            xmlns="http://www.w3.org/2000/svg" height="13" width="15" aria-hidden="true"
+                                            focusable="false" viewBox="0 0 15 13">
+                                            <path
+                                                d="m8.107-0.0078125-1.4136 1.414 4.2926 4.293h-12.986v2h12.896l-4.1855 3.9766 1.377 1.4492 6.7441-6.4062-6.7246-6.7266z">
+                                            </path>
+                                        </svg>
+                                    </a>
+                                </div>
+                                <% } %>
+                </nav>
+                <% } %>
+                    <% } else { %>
+                        <div class="govuk-notification-banner" role="region"
+                            aria-labelledby="govuk-notification-banner-title">
+                            <div class="govuk-notification-banner__header">
+                                <h2 class="govuk-notification-banner__title" id="govuk-notification-banner-title">
+                                    Information
+                                </h2>
+                            </div>
+                            <div class="govuk-notification-banner__content">
+                                <p class="govuk-notification-banner__heading">
+                                    No cases found.
+                                </p>
+                            </div>
+                        </div>
+                        <% } %>
+    </div>
+</div>

@@ -9,11 +9,11 @@ import frontendRoutes from './routes/frontend.routes.js';
 import ejsLayouts from 'express-ejs-layouts';
 import compression from 'compression';
 import { setupSwagger } from './utils/swagger.ts';
-import { errorHandler } from './middleware/error.middleware.ts';
+import { APIErrorHandler, FrontEndErrorHandler } from './middleware/error.middleware.ts';
 import { requestLogger } from './middleware/logger.middleware.ts';
 import { securityHeaders, logSecurityConfig } from './middleware/security.middleware.ts';
 import { apiLimiter, authLimiter } from './middleware/rate-limit.middleware.ts';
-import { getSVG, safelyApplyMiddleware } from './utils/middleware.utils.ts';
+import { getSVG, formatStatus, safelyApplyMiddleware } from './utils/middleware.utils.ts';
 import crypto from 'crypto';
 import dartSass from 'express-dart-sass';
 import session from 'express-session';
@@ -157,6 +157,7 @@ safelyApplyMiddleware(app, 'Template Locals', () =>
       assets: assetsPath,
     };
     res.locals.currentPath = req.path;
+    res.locals.formatStatus = formatStatus;
     next();
   }),
 );
@@ -165,7 +166,9 @@ safelyApplyMiddleware(app, 'Frontend Routes', () => app.use('/', frontendRoutes)
 
 safelyApplyMiddleware(app, 'API routes', () => app.use('/api', apiRoutes));
 
-safelyApplyMiddleware(app, 'Error handler', () => app.use(errorHandler));
+safelyApplyMiddleware(app, 'FrontEnd Error handler', () => app.use(FrontEndErrorHandler));
+
+safelyApplyMiddleware(app, 'API Error handler', () => app.use(APIErrorHandler));
 
 app.get('/health', (req, res) => {
   const healthStatus: {

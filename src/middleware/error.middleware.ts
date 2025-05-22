@@ -70,7 +70,7 @@ class DatabaseError extends Error {
  * - Returns standardized error responses
  * - In production, hides implementation details
  */
-const errorHandler = (err: Error, req: Request, res: Response, next: NextFunction): void => {
+const APIErrorHandler = (err: Error, req: Request, res: Response, next: NextFunction): void => {
   logger.error({
     message: 'Error caught by error handler',
     error: err.message,
@@ -96,4 +96,34 @@ const errorHandler = (err: Error, req: Request, res: Response, next: NextFunctio
   });
 };
 
-export { NotFoundError, ValidationError, DatabaseError, errorHandler };
+/**
+ * Front-end error handling middleware for rendering error pages
+ * @function FrontEndErrorHandler
+ * @param {Error} err - The error object
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @param {NextFunction} next - Express next function
+ * @returns {void}
+ * @description
+ * Handles errors for non-API routes by:
+ * - Passing API route errors to the next error handler
+ * - Rendering an error page with optional error details
+ * - Conditionally displaying error stack in development environment
+ */
+const FrontEndErrorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
+  if (req.path.startsWith('/api')) {
+    return next(err);
+  }
+
+  const errorMessage = err.message || 'An unexpected error occurred';
+  const errorStack = process.env.NODE_ENV === 'development' ? err.stack : '';
+
+  res.status(err.status || 500).render('pages/error', {
+    title: 'Error',
+    pageHeading: 'An error occurred',
+    errorMessage,
+    errorStack,
+  });
+};
+
+export { NotFoundError, ValidationError, DatabaseError, APIErrorHandler, FrontEndErrorHandler };

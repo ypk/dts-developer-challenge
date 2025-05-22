@@ -13,7 +13,6 @@ import viewRoutes from './viewRoutes.js';
  */
 const router = Router();
 
-// Mount the view routes
 router.use('/', viewRoutes);
 
 export default router;

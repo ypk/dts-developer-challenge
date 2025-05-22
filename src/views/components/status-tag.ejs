@@ -1,0 +1,25 @@
+<% 
+  let tagClass = 'govuk-tag';
+
+  switch(status.toLowerCase()) {
+    case 'pending':
+      tagClass += ' govuk-tag--blue';
+      break;
+    case 'in_progress':
+      tagClass += ' govuk-tag--yellow';
+      break;
+    case 'completed':
+      tagClass += ' govuk-tag--green';
+      break;
+    default:
+      break;
+  }
+
+  if(dueDate && dueDate < new Date()) {
+    tagClass += ' govuk-tag--red';
+  }
+
+  const displayStatus = formatStatus(status);
+%>
+
+<strong class="<%= tagClass %>"><%= displayStatus %></strong>

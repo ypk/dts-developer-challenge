@@ -40,12 +40,27 @@ export const safelyApplyMiddleware = (app: Application, name: string, fn: () => 
  * @param {string} filename - The name of the SVG file to read
  * @returns {string} The contents of the SVG file, or an empty string if the file cannot be read
  */
-export function getSVG(filename: string): string {
+export const getSVG = (filename: string): string => {
   const svgPath = path.join(__dirname, '../../src/assets/images', filename);
+
   try {
     return fs.readFileSync(svgPath, 'utf8');
   } catch (error) {
     console.error(`Error reading SVG file: ${filename}`, error);
     return '';
   }
-}
+};
+
+/**
+ * Formats a string by replacing underscores with spaces and capitalizing each word
+ * @param {string} text - The text to format
+ * @returns {string} The formatted text
+ */
+export const formatStatus = (text: string): string => {
+  if (!text) return '';
+
+  return text
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
