@@ -19,14 +19,11 @@
 
   <a href="#main-content" class="govuk-skip-link" data-module="govuk-skip-link">Skip to main content</a>
 
-  <!-- Include the header partial -->
   <%- include('../partials/header') %>
 
   <div class="govuk-width-container">
-    <!-- Include the phase banner partial -->
     <%- include('../partials/phase-banner') %>
 
-    <!-- Flash messages -->
     <% if (typeof messages !== 'undefined' && messages.success && messages.success.length > 0) { %>
       <div class="govuk-notification-banner govuk-notification-banner--success" role="alert" aria-labelledby="govuk-notification-banner-title" data-module="govuk-notification-banner">
         <div class="govuk-notification-banner__header">
@@ -65,6 +62,10 @@
       <%- body %>
     </main>
   </div>
+
+  
+  <%- include('../partials/footer') %>
+
   <script src="/assets/javascripts/govuk-frontend.min.js"></script>
   <script>window.GOVUKFrontend.initAll()</script>
 </body>
