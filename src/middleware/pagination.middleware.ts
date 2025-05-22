@@ -71,23 +71,19 @@ export const paginationMiddleware = (req: Request, res: Response, next: NextFunc
   let page = parseInt(req.query.page as string) || DEFAULT_PAGE;
   let limit = parseInt(req.query.limit as string) || DEFAULT_LIMIT;
 
-  // Ensure page is at least 1
   if (page < 1) {
     page = DEFAULT_PAGE;
     req.query.page = DEFAULT_PAGE.toString();
   }
 
-  // Ensure limit is within acceptable range
   if (limit > MAX_LIMIT) {
     limit = MAX_LIMIT;
   } else if (limit < 1) {
     limit = DEFAULT_LIMIT;
   }
 
-  // Calculate number of items to skip
   const skip = (page - 1) * limit;
 
-  // Attach pagination object to request
   req.pagination = {
     page,
     limit,

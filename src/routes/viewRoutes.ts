@@ -30,6 +30,20 @@ const handleErrorWithRedirect = (
 };
 
 /**
+ * Helper function to parse date string to Date object or null
+ * @param {string} dateString - Date string from form
+ * @returns {Date|null} - Date object or null if invalid
+ */
+const parseDate = (dateString: string): Date | null => {
+  if (!dateString || dateString.trim() === '') {
+    return null;
+  }
+
+  const date = new Date(dateString);
+  return isNaN(date.getTime()) ? null : date;
+};
+
+/**
  * Home page route
  * @name GET /
  */
@@ -75,6 +89,50 @@ router.get('/cases', async (req: Request, res: Response) => {
     });
   } catch (error) {
     handleErrorWithRedirect(req, res, error, 'An error occurred while loading cases');
+  }
+});
+
+/**
+ * New case form route
+ * @name GET /cases/new
+ */
+router.get('/cases/new', (req: Request, res: Response) => {
+  res.render('pages/cases/new', {
+    title: 'Create New Case',
+    pageHeading: 'Create New Case',
+    formData: {},
+  });
+});
+
+/**
+ * Create case route
+ * @name POST /cases
+ */
+router.post('/cases', async (req: Request, res: Response) => {
+  try {
+    if (!req.body.title || req.body.title.trim() === '') {
+      throw new Error('Title is required');
+    }
+
+    const caseData = {
+      title: req.body.title.trim(),
+      description: req.body.description ? req.body.description.trim() : undefined,
+      dueDate: parseDate(req.body.dueDate),
+    };
+
+    const newCase = await CaseServiceInstance.createCase(caseData);
+
+    req.flash('success', 'Case created successfully');
+    res.redirect(`/cases/${newCase.id}`);
+  } catch (error) {
+    req.flash('error', error instanceof Error ? error.message : 'An error occurred');
+
+    res.render('pages/cases/new', {
+      title: 'Create New Case',
+      pageHeading: 'Create New Case',
+      formData: req.body,
+      error: error instanceof Error ? error.message : 'An error occurred',
+    });
   }
 });
 
