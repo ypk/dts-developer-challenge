@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { CaseServiceInstance } from '../services/CaseService.js';
+import { NotFoundError } from '../middleware/error.middleware.ts';
 
 const router = Router();
 
@@ -74,6 +75,35 @@ router.get('/cases', async (req: Request, res: Response) => {
     });
   } catch (error) {
     handleErrorWithRedirect(req, res, error, 'An error occurred while loading cases');
+  }
+});
+
+/**
+ * Case details route
+ * @name GET /cases/:id
+ */
+router.get('/cases/:id', async (req: Request, res: Response) => {
+  try {
+    const caseId = parseInt(req.params.id);
+
+    if (isNaN(caseId)) {
+      throw new Error('Invalid case ID');
+    }
+
+    const caseData = await CaseServiceInstance.getCaseById(caseId);
+
+    res.render('pages/cases/details', {
+      title: `Case #${caseId}`,
+      pageHeading: `Case: ${caseData.title}`,
+      caseData,
+    });
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      req.flash('error', error.message);
+      return res.redirect('/cases');
+    }
+
+    handleErrorWithRedirect(req, res, error, 'An error occurred while retrieving the case');
   }
 });
 

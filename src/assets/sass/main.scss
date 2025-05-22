@@ -2,3 +2,7 @@ $govuk-assets-path: "/assets/";
 $govuk-font-family: "Arial", sans-serif;
 
 @use "../../../node_modules/govuk-frontend/dist/govuk/all" as govuk;
+
+.govuk-\!-no-align {
+    align-items: center !important;
+}

@@ -1,0 +1,77 @@
+<div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds">
+        <dl class="govuk-summary-list">
+            <div class="govuk-summary-list__row">
+                <dt class="govuk-summary-list__key">
+                    Case ID
+                </dt>
+                <dd class="govuk-summary-list__value">
+                    <%= caseData.id %>
+                </dd>
+            </div>
+            <div class="govuk-summary-list__row">
+                <dt class="govuk-summary-list__key">
+                    Title
+                </dt>
+                <dd class="govuk-summary-list__value">
+                    <%= caseData.title %>
+                </dd>
+            </div>
+            <div class="govuk-summary-list__row">
+                <dt class="govuk-summary-list__key">
+                    Description
+                </dt>
+                <dd class="govuk-summary-list__value">
+                    <%= caseData.description || 'No description provided' %>
+                </dd>
+            </div>
+            <div class="govuk-summary-list__row">
+                <dt class="govuk-summary-list__key">
+                    Status
+                </dt>
+                <dd class="govuk-summary-list__value">
+                    <%- include('../../components/status-tag.ejs', { status: caseData.status, dueDate: caseData.dueDate }) %>
+                </dd>
+            </div>
+            <div class="govuk-summary-list__row">
+                <dt class="govuk-summary-list__key">
+                    Due Date
+                </dt>
+                <dd class="govuk-summary-list__value">
+                    <%= caseData.dueDate ? new Date(caseData.dueDate).toLocaleDateString() : 'Not set' %>
+                </dd>
+            </div>
+            <div class="govuk-summary-list__row">
+                <dt class="govuk-summary-list__key">
+                    Created
+                </dt>
+                <dd class="govuk-summary-list__value">
+                    <%= new Date(caseData.createdAt).toLocaleString() %>
+                </dd>
+            </div>
+            <div class="govuk-summary-list__row">
+                <dt class="govuk-summary-list__key">
+                    Last Updated
+                </dt>
+                <dd class="govuk-summary-list__value">
+                    <%= new Date(caseData.updatedAt).toLocaleString() %>
+                </dd>
+            </div>
+        </dl>
+
+        <div class="govuk-button-group govuk-!-no-align">
+            <a href="/cases/<%= caseData.id %>/edit" role="button" draggable="false" class="govuk-button"
+                data-module="govuk-button">
+                Edit case
+            </a>
+
+            <form action="/cases/<%= caseData.id %>/delete" method="POST" class="govuk-!-display-inline">
+                <button type="submit" class="govuk-button govuk-button--warning" data-module="govuk-button">
+                    Delete case
+                </button>
+            </form>
+
+            <a href="/cases" class="govuk-link">Back to all cases</a>
+        </div>
+    </div>
+</div>

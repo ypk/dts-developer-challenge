@@ -42,7 +42,7 @@ const __dirname = dirname(__filename);
 
 const staticAssetsPath = path.join(__dirname, '../public/assets');
 const viewPath = path.join(__dirname, './views');
-const sassSrcPath = path.join(__dirname, '../assets/sass');
+const sassSrcPath = path.join(__dirname, './assets/sass');
 const sassDestPath = path.join(__dirname, '../public/assets/stylesheets');
 
 const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development';
