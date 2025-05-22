@@ -1,17 +1,31 @@
 <div class="govuk-grid-row">
     <div class="govuk-grid-column-two-thirds">
+        <% 
+            const formData = viewHelpers.getFormData(session, caseData);
+            
+            const hasError = (field) => viewHelpers.hasError(messages, field);
+            const getErrorMessage = (field) => viewHelpers.getErrorMessage(messages, field);
+        %>
+
         <form action="/cases/<%= caseData.id %>" method="POST" novalidate>
             <input type="hidden" name="_method" value="PUT">
-
-            <div class="govuk-form-group">
+    
+            <div class="govuk-form-group <%= hasError('title') ? 'govuk-form-group--error' : '' %>">
                 <label class="govuk-label" for="title">
                     Case title
                 </label>
                 <span id="title-hint" class="govuk-hint">
                     Required field
                 </span>
-                <input class="govuk-input" id="title" name="title" type="text" value="<%= caseData.title %>"
-                    aria-describedby="title-hint" required>
+                <% if (hasError('title')) { %>
+                    <span id="title-error" class="govuk-error-message">
+                        <span class="govuk-visually-hidden">Error:</span>
+                        <%= getErrorMessage('title') %>
+                    </span>
+                <% } %>
+                <input class="govuk-input <%= hasError('title') ? 'govuk-input--error' : '' %>" id="title"
+                    name="title" type="text" value="<%= formData.title || '' %>"
+                    aria-describedby="<%= hasError('title') ? 'title-hint title-error' : 'title-hint' %>">
             </div>
 
             <div class="govuk-form-group">
@@ -22,32 +36,49 @@
                     Optional field
                 </span>
                 <textarea class="govuk-textarea" id="description" name="description" rows="5"
-                    aria-describedby="description-hint"><%= caseData.description || '' %></textarea>
+                    aria-describedby="description-hint"><%= formData.description || '' %></textarea>
             </div>
 
-            <div class="govuk-form-group">
+            <div class="govuk-form-group <%= hasError('status') ? 'govuk-form-group--error' : '' %>">
                 <label class="govuk-label" for="status">
                     Status
                 </label>
-                <select class="govuk-select" id="status" name="status">
-                    <option value="PENDING" <%=caseData.status==='PENDING' ? 'selected' : '' %>>Pending</option>
-                    <option value="IN_PROGRESS" <%=caseData.status==='IN_PROGRESS' ? 'selected' : '' %>>In Progress
+                <% if (hasError('status')) { %>
+                    <span id="status-error" class="govuk-error-message">
+                        <span class="govuk-visually-hidden">Error:</span>
+                        <%= getErrorMessage('status') %>
+                    </span>
+                <% } %>
+                <select class="govuk-select <%= hasError('status') ? 'govuk-select--error' : '' %>"
+                    id="status" name="status"
+                    aria-describedby="<%= hasError('status') ? 'status-error' : '' %>">
+                    <option value="PENDING" <%= formData.status === 'PENDING' ? 'selected' : '' %>>Pending
                     </option>
-                    <option value="COMPLETED" <%=caseData.status==='COMPLETED' ? 'selected' : '' %>>Completed</option>
+                    <option value="IN_PROGRESS" <%= formData.status === 'IN_PROGRESS' ? 'selected' : '' %>>In
+                        Progress</option>
+                    <option value="COMPLETED" <%= formData.status === 'COMPLETED' ? 'selected' : '' %>
+                        >Completed</option>
                 </select>
             </div>
 
-            <div class="govuk-form-group">
+            <div class="govuk-form-group <%= hasError('dueDate') ? 'govuk-form-group--error' : '' %>">
                 <label class="govuk-label" for="dueDate">
                     Due Date
                 </label>
                 <span id="dueDate-hint" class="govuk-hint">
                     Optional field. Format: YYYY-MM-DD
                 </span>
-                <input class="govuk-input" id="dueDate" name="dueDate" type="date"
+                <% if (hasError('dueDate')) { %>
+                    <span id="dueDate-error" class="govuk-error-message">
+                        <span class="govuk-visually-hidden">Error:</span>
+                        <%= getErrorMessage('dueDate') %>
+                    </span>
+                <% } %>
+                <input class="govuk-input <%= hasError('dueDate') ? 'govuk-input--error' : '' %>"
+                    id="dueDate" name="dueDate" type="date"
                     min="<%= new Date().toISOString().split('T')[0] %>"
-                    value="<%= caseData.dueDate ? new Date(caseData.dueDate).toISOString().split('T')[0] : '' %>"
-                    aria-describedby="dueDate-hint">
+                    value="<%= formData.dueDate ? new Date(formData.dueDate).toISOString().split('T')[0] : '' %>"
+                    aria-describedby="<%= hasError('dueDate') ? 'dueDate-hint dueDate-error' : 'dueDate-hint' %>">
             </div>
 
             <div class="govuk-button-group">
@@ -60,14 +91,3 @@
         </form>
     </div>
 </div>
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const dueDateInput = document.getElementById('dueDate');
-    const today = new Date().toISOString().split('T')[0];
-    dueDateInput.setAttribute('min', today);
-    
-    if (dueDateInput.value && dueDateInput.value < today) {
-        dueDateInput.value = '';
-    }
-  });
-</script>
