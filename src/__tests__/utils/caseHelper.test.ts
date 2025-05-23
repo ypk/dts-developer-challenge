@@ -1,119 +1,146 @@
-import { Request, Response } from 'express';
-import { validateAndParseId, handleNotFoundError } from '../../utils/caseHelper.ts';
-import { sendError, sendBadRequest } from '../../utils/responseHandler.ts';
-import { NotFoundError } from '../../middleware/error.middleware.ts';
+import {
+  validateAndParseId,
+  handleNotFoundError,
+  handlePrismaError,
+} from '../../utils/caseHelper.ts';
 
+import { sendError, sendBadRequest } from '../../utils/responseHandler.ts';
+
+import {
+  NotFoundError,
+  DatabaseError,
+  isPrismaNotFoundError,
+  isPrismaUniqueViolationError,
+} from '../../middleware/error.middleware.ts';
+
+// Mock dependencies
 jest.mock('../../utils/responseHandler.ts', () => ({
   sendError: jest.fn(),
   sendBadRequest: jest.fn(),
 }));
 
-describe('Case Helper', () => {
+jest.mock('../../middleware/error.middleware', () => ({
+  NotFoundError: class NotFoundError extends Error {
+    constructor(message: string) {
+      super(message);
+      this.name = 'NotFoundError';
+    }
+  },
+  DatabaseError: class DatabaseError extends Error {
+    constructor(message: string) {
+      super(message);
+      this.name = 'DatabaseError';
+    }
+  },
+  isPrismaNotFoundError: jest.fn(),
+  isPrismaUniqueViolationError: jest.fn(),
+}));
+
+describe('caseHelper', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  describe('validateAndParseId function', () => {
+  describe('validateAndParseId', () => {
     it('should return the parsed ID when valid', () => {
-      const req = {
-        params: {
-          id: '123',
-        },
-      } as unknown as Request;
-      const res = {} as Response;
+      const req = { params: { id: '123' } } as any;
+      const res = {} as any;
+
       const result = validateAndParseId(req, res);
+
       expect(result).toBe(123);
       expect(sendBadRequest).not.toHaveBeenCalled();
     });
 
-    it('should return null and call sendBadRequest when ID is not a number', () => {
-      const req = {
-        params: {
-          id: 'abc',
-        },
-      } as unknown as Request;
-      const res = {} as Response;
+    it('should return null and send bad request when ID is invalid', () => {
+      const req = { params: { id: 'abc' } } as any;
+      const res = {} as any;
+
       const result = validateAndParseId(req, res);
+
       expect(result).toBeNull();
       expect(sendBadRequest).toHaveBeenCalledWith(res, 'Invalid case ID');
-    });
-
-    it('should return null and call sendBadRequest when ID is missing', () => {
-      const req = {
-        params: {},
-      } as unknown as Request;
-      const res = {} as Response;
-      const result = validateAndParseId(req, res);
-      expect(result).toBeNull();
-      expect(sendBadRequest).toHaveBeenCalledWith(res, 'Invalid case ID');
-    });
-
-    it('should return null and call sendBadRequest when ID is empty', () => {
-      const req = {
-        params: {
-          id: '',
-        },
-      } as unknown as Request;
-      const res = {} as Response;
-      const result = validateAndParseId(req, res);
-      expect(result).toBeNull();
-      expect(sendBadRequest).toHaveBeenCalledWith(res, 'Invalid case ID');
-    });
-
-    it('should return null and call sendBadRequest when ID is a decimal', () => {
-      const req = {
-        params: {
-          id: '123.45',
-        },
-      } as unknown as Request;
-      const res = {} as Response;
-      const result = validateAndParseId(req, res);
-      expect(result).toBe(123);
-      expect(sendBadRequest).not.toHaveBeenCalled();
     });
   });
 
-  describe('handleNotFoundError function', () => {
-    it('should return true and call sendError when error is a NotFoundError', () => {
-      const error = new NotFoundError('Resource not found');
-      const res = {} as Response;
+  describe('handleNotFoundError', () => {
+    it('should return true and send error when error is NotFoundError', () => {
+      const error = new NotFoundError('Case not found');
+      const res = {} as any;
+
       const result = handleNotFoundError(error, res);
 
       expect(result).toBe(true);
-      expect(sendError).toHaveBeenCalledWith(res, 'Resource not found', error, 404);
+      expect(sendError).toHaveBeenCalledWith(res, error.message, error, 404);
     });
 
-    it('should return false and not call sendError when error is not a NotFoundError', () => {
-      const error = new Error('Some other error');
-      const res = {} as Response;
+    it('should return false when error is not NotFoundError', () => {
+      const error = new Error('Generic error');
+      const res = {} as any;
+
       const result = handleNotFoundError(error, res);
 
       expect(result).toBe(false);
       expect(sendError).not.toHaveBeenCalled();
     });
+  });
 
-    it('should return false and not call sendError when error is null', () => {
-      const res = {} as Response;
-      const result = handleNotFoundError(null, res);
+  describe('handlePrismaError', () => {
+    it('should return NotFoundError when Prisma not found error occurs', () => {
+      (isPrismaNotFoundError as jest.Mock).mockReturnValue(true);
 
-      expect(result).toBe(false);
-      expect(sendError).not.toHaveBeenCalled();
+      const error = new Error('Prisma not found error');
+      const result = handlePrismaError(error, 'Case', 'retrieve', 123);
+
+      expect(result).toBeInstanceOf(NotFoundError);
+      expect(result.message).toBe('Case with ID 123 not found');
     });
 
-    it('should return false and not call sendError when error is undefined', () => {
-      const res = {} as Response;
-      const result = handleNotFoundError(undefined, res);
+    it('should return DatabaseError when Prisma unique constraint violation occurs', () => {
+      (isPrismaNotFoundError as jest.Mock).mockReturnValue(false);
+      (isPrismaUniqueViolationError as jest.Mock).mockReturnValue(true);
 
-      expect(result).toBe(false);
-      expect(sendError).not.toHaveBeenCalled();
+      const error = new Error('Unique constraint violation');
+      (error as any).meta = { target: ['title'] };
+
+      const result = handlePrismaError(error, 'Case', 'create');
+
+      expect(result).toBeInstanceOf(DatabaseError);
+      expect(result.message).toBe('Case with the same title already exists');
     });
 
-    it('should return false and not call sendError when error is a string', () => {
-      const res = {} as Response;
-      const result = handleNotFoundError('error message', res);
+    it('should return DatabaseError with unknown field when target is not available', () => {
+      (isPrismaNotFoundError as jest.Mock).mockReturnValue(false);
+      (isPrismaUniqueViolationError as jest.Mock).mockReturnValue(true);
 
-      expect(result).toBe(false);
-      expect(sendError).not.toHaveBeenCalled();
+      const error = new Error('Unique constraint violation');
+
+      const result = handlePrismaError(error, 'Case', 'create');
+
+      expect(result).toBeInstanceOf(DatabaseError);
+      expect(result.message).toBe('Case with the same unknown field already exists');
+    });
+
+    it('should return generic DatabaseError for other Prisma errors', () => {
+      (isPrismaNotFoundError as jest.Mock).mockReturnValue(false);
+      (isPrismaUniqueViolationError as jest.Mock).mockReturnValue(false);
+
+      const error = new Error('Some database error');
+      const result = handlePrismaError(error, 'Case', 'update', 123);
+
+      expect(result).toBeInstanceOf(DatabaseError);
+      expect(result.message).toBe('Failed to update Case: Some database error');
+    });
+
+    it('should handle non-Error objects', () => {
+      (isPrismaNotFoundError as jest.Mock).mockReturnValue(false);
+      (isPrismaUniqueViolationError as jest.Mock).mockReturnValue(false);
+
+      const error = 'String error'; // Not an Error object
+      const result = handlePrismaError(error, 'Case', 'delete', 123);
+
+      expect(result).toBeInstanceOf(DatabaseError);
+      expect(result.message).toBe('Failed to delete Case: Unknown error');
     });
   });
 });

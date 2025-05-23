@@ -1,145 +1,144 @@
-import { Response } from 'express';
-import {
-  sendSuccess,
-  sendNoContent,
-  sendError,
-  sendBadRequest,
-} from '../../utils/responseHandler.ts';
+import { sendSuccess, sendNoContent, sendError, sendBadRequest } from '../../utils/responseHandler';
 
-interface MockResponse {
-  status: jest.Mock;
-  json: jest.Mock;
-  send: jest.Mock;
-}
+// Mock console.error to prevent actual logging during tests
+const originalConsoleError = console.error;
+beforeAll(() => {
+  console.error = jest.fn();
+});
 
-describe('Response Handler Utilities', () => {
-  let mockResponse: MockResponse;
+afterAll(() => {
+  console.error = originalConsoleError;
+});
+
+describe('responseHandler', () => {
+  let res: any;
 
   beforeEach(() => {
-    const res = {} as Record<string, jest.Mock>;
-    res.status = jest.fn().mockReturnValue(res);
-    res.json = jest.fn().mockReturnValue(res);
-    res.send = jest.fn().mockReturnValue(res);
-    mockResponse = res as unknown as MockResponse;
-
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    // Create a mock Express response object
+    res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn().mockReturnThis(),
+      send: jest.fn().mockReturnThis(),
+    };
   });
 
   describe('sendSuccess', () => {
-    it('should send a success response with status 200 by default', () => {
-      const data = { message: 'Operation successful', items: [1, 2, 3] };
+    it('should send a success response with default status code 200', () => {
+      const data = { message: 'Success', data: { id: 1, name: 'Test' } };
 
-      sendSuccess(mockResponse as unknown as Response, data);
+      sendSuccess(res, data);
 
-      expect(mockResponse.status).toHaveBeenCalledWith(200);
-      expect(mockResponse.json).toHaveBeenCalledWith({
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
         success: true,
-        message: 'Operation successful',
-        items: [1, 2, 3],
+        ...data,
       });
     });
 
     it('should send a success response with custom status code', () => {
-      const data = { message: 'Resource created' };
+      const data = { message: 'Created', data: { id: 1, name: 'Test' } };
       const statusCode = 201;
 
-      sendSuccess(mockResponse as unknown as Response, data, statusCode);
+      sendSuccess(res, data, statusCode);
 
-      expect(mockResponse.status).toHaveBeenCalledWith(201);
-      expect(mockResponse.json).toHaveBeenCalledWith({
+      expect(res.status).toHaveBeenCalledWith(statusCode);
+      expect(res.json).toHaveBeenCalledWith({
         success: true,
-        message: 'Resource created',
+        ...data,
       });
     });
 
     it('should handle empty data object', () => {
-      sendSuccess(mockResponse as unknown as Response, {});
+      sendSuccess(res, {});
 
-      expect(mockResponse.status).toHaveBeenCalledWith(200);
-      expect(mockResponse.json).toHaveBeenCalledWith({
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
         success: true,
       });
     });
   });
 
   describe('sendNoContent', () => {
-    it('should send a 204 No Content response', () => {
-      sendNoContent(mockResponse as unknown as Response);
+    it('should send a no content response with status code 204', () => {
+      sendNoContent(res);
 
-      expect(mockResponse.status).toHaveBeenCalledWith(204);
-      expect(mockResponse.send).toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(204);
+      expect(res.send).toHaveBeenCalled();
     });
   });
 
   describe('sendError', () => {
-    it('should send an error response with status 500 by default', () => {
+    it('should send an error response with default status code 500', () => {
       const message = 'Something went wrong';
-      const error = new Error('Database connection failed');
+      const error = new Error('Test error');
 
-      sendError(mockResponse as unknown as Response, message, error);
+      sendError(res, message, error);
 
-      expect(mockResponse.status).toHaveBeenCalledWith(500);
-      expect(mockResponse.json).toHaveBeenCalledWith({
-        success: false,
-        message: 'Something went wrong',
-        error: 'Database connection failed',
-      });
       expect(console.error).toHaveBeenCalledWith(`Error: ${message}`, error);
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message,
+        error: error.message,
+      });
     });
 
     it('should send an error response with custom status code', () => {
-      const message = 'Resource not found';
-      const error = new Error('Item does not exist');
+      const message = 'Not found';
+      const error = new Error('Resource not found');
       const statusCode = 404;
 
-      sendError(mockResponse as unknown as Response, message, error, statusCode);
+      sendError(res, message, error, statusCode);
 
-      expect(mockResponse.status).toHaveBeenCalledWith(404);
-      expect(mockResponse.json).toHaveBeenCalledWith({
+      expect(console.error).toHaveBeenCalledWith(`Error: ${message}`, error);
+      expect(res.status).toHaveBeenCalledWith(statusCode);
+      expect(res.json).toHaveBeenCalledWith({
         success: false,
-        message: 'Resource not found',
-        error: 'Item does not exist',
+        message,
+        error: error.message,
       });
     });
 
     it('should handle non-Error objects', () => {
       const message = 'Something went wrong';
-      const error = 'Just a string error';
+      const error = 'String error'; // Not an Error object
 
-      sendError(mockResponse as unknown as Response, message, error);
+      sendError(res, message, error);
 
-      expect(mockResponse.status).toHaveBeenCalledWith(500);
-      expect(mockResponse.json).toHaveBeenCalledWith({
+      expect(console.error).toHaveBeenCalledWith(`Error: ${message}`, error);
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
         success: false,
-        message: 'Something went wrong',
+        message,
         error: 'Unknown error',
       });
     });
 
-    it('should handle undefined errors', () => {
+    it('should handle undefined error', () => {
       const message = 'Something went wrong';
 
-      sendError(mockResponse as unknown as Response, message, undefined);
+      sendError(res, message, undefined);
 
-      expect(mockResponse.status).toHaveBeenCalledWith(500);
-      expect(mockResponse.json).toHaveBeenCalledWith({
+      expect(console.error).toHaveBeenCalledWith(`Error: ${message}`, undefined);
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
         success: false,
-        message: 'Something went wrong',
+        message,
         error: 'Unknown error',
       });
     });
   });
 
   describe('sendBadRequest', () => {
-    it('should send a 400 Bad Request response', () => {
-      const message = 'Invalid input data';
+    it('should send a bad request response with status code 400', () => {
+      const message = 'Invalid request';
 
-      sendBadRequest(mockResponse as unknown as Response, message);
+      sendBadRequest(res, message);
 
-      expect(mockResponse.status).toHaveBeenCalledWith(400);
-      expect(mockResponse.json).toHaveBeenCalledWith({
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
         success: false,
-        message: 'Invalid input data',
+        message,
       });
     });
   });

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import {
-  errorHandler,
+  APIErrorHandler,
   NotFoundError,
   ValidationError,
   DatabaseError,
@@ -37,7 +37,7 @@ describe('Error Middleware', () => {
     it('should call logger when error has occurred', () => {
       const mockError = new Error('Test error message');
 
-      errorHandler(mockError, mockRequest as Request, mockResponse as Response, nextFunction);
+      APIErrorHandler(mockError, mockRequest as Request, mockResponse as Response, nextFunction);
 
       expect(logger.error).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -50,7 +50,7 @@ describe('Error Middleware', () => {
     it('should set status code to 500 when no specific status code is set', () => {
       const mockError = new Error('Test error message');
 
-      errorHandler(mockError, mockRequest as Request, mockResponse as Response, nextFunction);
+      APIErrorHandler(mockError, mockRequest as Request, mockResponse as Response, nextFunction);
 
       expect(mockResponse.status).toHaveBeenCalledWith(500);
       expect(mockResponse.json).toHaveBeenCalledWith({
@@ -64,7 +64,7 @@ describe('Error Middleware', () => {
       const mockError = new Error('Not found');
       mockResponse.statusCode = 404;
 
-      errorHandler(mockError, mockRequest as Request, mockResponse as Response, nextFunction);
+      APIErrorHandler(mockError, mockRequest as Request, mockResponse as Response, nextFunction);
 
       expect(mockResponse.status).toHaveBeenCalledWith(404);
       expect(mockResponse.json).toHaveBeenCalledWith({
@@ -80,7 +80,7 @@ describe('Error Middleware', () => {
 
       const mockError = new Error('Sensitive error details');
 
-      errorHandler(mockError, mockRequest as Request, mockResponse as Response, nextFunction);
+      APIErrorHandler(mockError, mockRequest as Request, mockResponse as Response, nextFunction);
 
       expect(mockResponse.status).toHaveBeenCalledWith(500);
       expect(mockResponse.json).toHaveBeenCalledWith({
@@ -108,7 +108,7 @@ describe('Error Middleware', () => {
       it('should format NotFoundError with 404 status code and include error message', () => {
         const mockError = new NotFoundError('Resource not found');
 
-        errorHandler(mockError, mockRequest as Request, mockResponse as Response, nextFunction);
+        APIErrorHandler(mockError, mockRequest as Request, mockResponse as Response, nextFunction);
 
         expect(mockResponse.status).toHaveBeenCalledWith(404);
         expect(mockResponse.json).toHaveBeenCalledWith({
@@ -133,7 +133,7 @@ describe('Error Middleware', () => {
       it('should format ValidationError with 400 status code and include validation message', () => {
         const mockError = new ValidationError('Invalid input data');
 
-        errorHandler(mockError, mockRequest as Request, mockResponse as Response, nextFunction);
+        APIErrorHandler(mockError, mockRequest as Request, mockResponse as Response, nextFunction);
 
         expect(mockResponse.status).toHaveBeenCalledWith(400);
         expect(mockResponse.json).toHaveBeenCalledWith({
@@ -158,7 +158,7 @@ describe('Error Middleware', () => {
       it('should format DatabaseError with 500 status code and include database error message', () => {
         const mockError = new DatabaseError('Database connection failed');
 
-        errorHandler(mockError, mockRequest as Request, mockResponse as Response, nextFunction);
+        APIErrorHandler(mockError, mockRequest as Request, mockResponse as Response, nextFunction);
 
         expect(mockResponse.status).toHaveBeenCalledWith(500);
         expect(mockResponse.json).toHaveBeenCalledWith({

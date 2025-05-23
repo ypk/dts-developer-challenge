@@ -24,11 +24,22 @@ jest.mock('express-validator', () => {
       isISO8601: jest.fn().mockImplementation(() => {
         return { ...chainable, _chain: [...(chainable._chain || []), 'isISO8601'] };
       }),
-      optional: jest.fn().mockImplementation(() => {
-        return { ...chainable, _chain: [...(chainable._chain || []), 'optional'] };
+      optional: jest.fn().mockImplementation((options) => {
+        return {
+          ...chainable,
+          _chain: [...(chainable._chain || []), 'optional'],
+          // Add trim method to the result of optional()
+          trim: jest.fn().mockImplementation(() => {
+            return { ...chainable, _chain: [...(chainable._chain || []), 'trim'] };
+          }),
+        };
       }),
       isInt: jest.fn().mockImplementation(() => {
         return { ...chainable, _chain: [...(chainable._chain || []), 'isInt'] };
+      }),
+      // Add trim method to the top level chainable object
+      trim: jest.fn().mockImplementation(() => {
+        return { ...chainable, _chain: [...(chainable._chain || []), 'trim'] };
       }),
       _chain: prefix ? [prefix] : [],
     };
