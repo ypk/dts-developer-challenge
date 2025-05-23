@@ -5,6 +5,7 @@
  */
 
 import { prisma, CaseStatus, Case, Prisma } from '../services/PrismaService.ts';
+import { handlePrismaError } from '../utils/caseHelper.ts';
 
 /**
  * Interface for paginated query results
@@ -33,13 +34,18 @@ export class CaseRepository {
    * @param {number} [skip] - Number of records to skip
    * @param {number} [limit] - Maximum number of records to return
    * @returns {Promise<Case[]>} Promise resolving to an array of cases
+   * @throws {DatabaseError} If there's an error retrieving cases
    */
   public async findAll(skip?: number, limit?: number): Promise<Case[]> {
-    return prisma.case.findMany({
-      ...(skip !== undefined && { skip }),
-      ...(limit !== undefined && { take: limit }),
-      orderBy: { updatedAt: 'desc' },
-    });
+    try {
+      return await prisma.case.findMany({
+        ...(skip !== undefined && { skip }),
+        ...(limit !== undefined && { take: limit }),
+        orderBy: { updatedAt: 'desc' },
+      });
+    } catch (error) {
+      throw handlePrismaError(error, 'Case', 'find all');
+    }
   }
 
   /**
@@ -48,28 +54,33 @@ export class CaseRepository {
    * @param {number} [skip=0] - Number of records to skip
    * @param {number} [limit=10] - Maximum number of records to return per page
    * @returns {Promise<PaginatedResult<Case>>} Promise resolving to paginated cases with metadata
+   * @throws {DatabaseError} If there's an error retrieving cases
    */
   public async findAllPaginated(skip = 0, limit = 10): Promise<PaginatedResult<Case>> {
-    const safeLimit = limit <= 0 ? 10 : limit;
+    try {
+      const safeLimit = limit <= 0 ? 10 : limit;
 
-    const [data, total] = await Promise.all([
-      prisma.case.findMany({
-        skip,
-        take: safeLimit,
-        orderBy: { updatedAt: 'desc' },
-      }),
-      prisma.case.count(),
-    ]);
+      const [data, total] = await Promise.all([
+        prisma.case.findMany({
+          skip,
+          take: safeLimit,
+          orderBy: { updatedAt: 'desc' },
+        }),
+        prisma.case.count(),
+      ]);
 
-    return {
-      data,
-      meta: {
-        total,
-        page: Math.floor(skip / safeLimit) + 1,
-        limit: safeLimit,
-        totalPages: Math.ceil(total / safeLimit),
-      },
-    };
+      return {
+        data,
+        meta: {
+          total,
+          page: Math.floor(skip / safeLimit) + 1,
+          limit: safeLimit,
+          totalPages: Math.ceil(total / safeLimit),
+        },
+      };
+    } catch (error) {
+      throw handlePrismaError(error, 'Case', 'find paginated');
+    }
   }
 
   /**
@@ -77,11 +88,16 @@ export class CaseRepository {
    * @async
    * @param {number} id - The ID of the case to retrieve
    * @returns {Promise<Case | null>} Promise resolving to the case or null if not found
+   * @throws {DatabaseError} If there's an error retrieving the case
    */
   public async findById(id: number): Promise<Case | null> {
-    return prisma.case.findUnique({
-      where: { id },
-    });
+    try {
+      return await prisma.case.findUnique({
+        where: { id },
+      });
+    } catch (error) {
+      throw handlePrismaError(error, 'Case', 'find by id', id);
+    }
   }
 
   /**
@@ -89,11 +105,16 @@ export class CaseRepository {
    * @async
    * @param {Prisma.CaseCreateInput} data - The case data to create
    * @returns {Promise<Case>} Promise resolving to the newly created case
+   * @throws {DatabaseError} If there's an error creating the case
    */
   public async create(data: Prisma.CaseCreateInput): Promise<Case> {
-    return prisma.case.create({
-      data,
-    });
+    try {
+      return await prisma.case.create({
+        data,
+      });
+    } catch (error) {
+      throw handlePrismaError(error, 'Case', 'create');
+    }
   }
 
   /**
@@ -102,13 +123,18 @@ export class CaseRepository {
    * @param {number} id - The ID of the case to update
    * @param {Prisma.CaseUpdateInput} data - The data to update the case with
    * @returns {Promise<Case>} Promise resolving to the updated case
-   * @throws {PrismaClientKnownRequestError} If the case with the specified ID doesn't exist
+   * @throws {NotFoundError} If the case with the specified ID doesn't exist
+   * @throws {DatabaseError} If there's an error updating the case
    */
   public async update(id: number, data: Prisma.CaseUpdateInput): Promise<Case> {
-    return prisma.case.update({
-      where: { id },
-      data,
-    });
+    try {
+      return await prisma.case.update({
+        where: { id },
+        data,
+      });
+    } catch (error) {
+      throw handlePrismaError(error, 'Case', 'update', id);
+    }
   }
 
   /**
@@ -117,13 +143,18 @@ export class CaseRepository {
    * @param {number} id - The ID of the case to update
    * @param {CaseStatus} status - The new status for the case
    * @returns {Promise<Case>} Promise resolving to the updated case
-   * @throws {PrismaClientKnownRequestError} If the case with the specified ID doesn't exist
+   * @throws {NotFoundError} If the case with the specified ID doesn't exist
+   * @throws {DatabaseError} If there's an error updating the case status
    */
   public async updateStatus(id: number, status: CaseStatus): Promise<Case> {
-    return prisma.case.update({
-      where: { id },
-      data: { status },
-    });
+    try {
+      return await prisma.case.update({
+        where: { id },
+        data: { status },
+      });
+    } catch (error) {
+      throw handlePrismaError(error, 'Case', 'update status', id);
+    }
   }
 
   /**
@@ -131,12 +162,17 @@ export class CaseRepository {
    * @async
    * @param {number} id - The ID of the case to delete
    * @returns {Promise<Case>} Promise resolving to the deleted case
-   * @throws {PrismaClientKnownRequestError} If the case with the specified ID doesn't exist
+   * @throws {NotFoundError} If the case with the specified ID doesn't exist
+   * @throws {DatabaseError} If there's an error deleting the case
    */
   public async delete(id: number): Promise<Case> {
-    return prisma.case.delete({
-      where: { id },
-    });
+    try {
+      return await prisma.case.delete({
+        where: { id },
+      });
+    } catch (error) {
+      throw handlePrismaError(error, 'Case', 'delete', id);
+    }
   }
 }
 

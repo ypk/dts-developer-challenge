@@ -5,6 +5,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { logger } from './logger.middleware.js';
 
 /**
@@ -53,6 +54,26 @@ class DatabaseError extends Error {
     super(message);
     this.name = 'DatabaseError';
   }
+}
+
+/**
+ * Determines if a Prisma error is a not found error (P2025)
+ * @function isPrismaNotFoundError
+ * @param {unknown} error - The error to check
+ * @returns {boolean} True if the error is a not found error
+ */
+function isPrismaNotFoundError(error: unknown): boolean {
+  return error instanceof PrismaClientKnownRequestError && error.code === 'P2025';
+}
+
+/**
+ * Determines if a Prisma error is a unique constraint violation (P2002)
+ * @function isPrismaUniqueViolationError
+ * @param {unknown} error - The error to check
+ * @returns {boolean} True if the error is a unique constraint violation
+ */
+function isPrismaUniqueViolationError(error: unknown): boolean {
+  return error instanceof PrismaClientKnownRequestError && error.code === 'P2002';
 }
 
 /**
@@ -126,4 +147,12 @@ const FrontEndErrorHandler = (err: any, req: Request, res: Response, next: NextF
   });
 };
 
-export { NotFoundError, ValidationError, DatabaseError, APIErrorHandler, FrontEndErrorHandler };
+export {
+  NotFoundError,
+  ValidationError,
+  DatabaseError,
+  isPrismaNotFoundError,
+  isPrismaUniqueViolationError,
+  APIErrorHandler,
+  FrontEndErrorHandler,
+};

@@ -5,7 +5,12 @@
 
 import { Request, Response } from 'express';
 import { sendError, sendBadRequest } from '../utils/responseHandler.ts';
-import { NotFoundError } from '../middleware/error.middleware.ts';
+import {
+  NotFoundError,
+  DatabaseError,
+  isPrismaNotFoundError,
+  isPrismaUniqueViolationError,
+} from '../middleware/error.middleware.ts';
 
 /**
  * Validates and parses a case ID from request parameters
@@ -38,4 +43,33 @@ export const handleNotFoundError = (error: unknown, res: Response): boolean => {
     return true;
   }
   return false;
+};
+
+/**
+ * Handles Prisma errors and converts them to appropriate application errors
+ *
+ * @param {unknown} error - The error to handle
+ * @param {string} entityName - The name of the entity being operated on
+ * @param {string} operation - The operation being performed
+ * @param {number|string} [identifier] - The entity identifier (for not found errors)
+ * @returns {Error} An application-specific error
+ */
+export const handlePrismaError = (
+  error: unknown,
+  entityName: string,
+  operation: string,
+  identifier?: number | string,
+): Error => {
+  if (isPrismaNotFoundError(error)) {
+    return new NotFoundError(`${entityName} with ID ${identifier} not found`);
+  }
+
+  if (isPrismaUniqueViolationError(error)) {
+    const field = (error as any).meta?.target?.[0] || 'unknown field';
+    return new DatabaseError(`${entityName} with the same ${field} already exists`);
+  }
+
+  return new DatabaseError(
+    `Failed to ${operation} ${entityName}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+  );
 };
