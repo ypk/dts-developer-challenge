@@ -10,9 +10,7 @@
  * @template T - The type of data returned in the response
  */
 export interface APIResponse<T> {
-  /** The main response data */
   data: T;
-  /** Optional message providing additional context about the response */
   message?: string;
 }
 
@@ -22,11 +20,8 @@ export interface APIResponse<T> {
  * @description Used for communicating errors to API consumers
  */
 export interface ErrorResponse {
-  /** Error details object */
   error: {
-    /** Human-readable error message */
     message: string;
-    /** Optional error code for client-side error handling */
     code?: string;
   };
 }
@@ -37,13 +32,9 @@ export interface ErrorResponse {
  * @description Contains information about the pagination state
  */
 export interface PaginationMeta {
-  /** Total number of items across all pages */
   total: number;
-  /** Current page number (1-based) */
   page: number;
-  /** Number of items per page */
   pageSize: number;
-  /** Total number of pages available */
   totalPages: number;
 }
 
@@ -54,8 +45,6 @@ export interface PaginationMeta {
  * @description Standard structure for returning paginated collections of items
  */
 export interface PaginatedResponse<T> {
-  /** Array of paginated items */
   data: T[];
-  /** Pagination metadata */
   meta: PaginationMeta;
 }

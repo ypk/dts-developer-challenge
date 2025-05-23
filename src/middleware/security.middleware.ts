@@ -29,13 +29,12 @@ interface SecurityConfig {
  * @returns {SecurityConfig} The security configuration
  */
 const loadSecurityConfig = (): SecurityConfig => {
-  // For test environment, use a simplified configuration
   if (process.env.NODE_ENV === 'test') {
     return {
       contentTypeOptions: 'nosniff',
       frameOptions: 'SAMEORIGIN',
       xssProtection: '1; mode=block',
-      hstsMaxAge: 0, // Disable HSTS for tests
+      hstsMaxAge: 0,
       hstsIncludeSubdomains: false,
       hstsPreload: false,
       referrerPolicy: 'no-referrer-when-downgrade',
@@ -43,32 +42,28 @@ const loadSecurityConfig = (): SecurityConfig => {
     };
   }
 
-  // For production, ensure strict defaults if env vars are missing
   if (process.env.NODE_ENV === 'production') {
-    // Parse HSTS max age with a fallback to 1 year if invalid
     const hstsMaxAge = parseInt(process.env.SECURITY_HSTS_MAX_AGE || '31536000', 10);
 
     return {
       contentTypeOptions: process.env.SECURITY_CONTENT_TYPE_OPTIONS || 'nosniff',
-      frameOptions: process.env.SECURITY_FRAME_OPTIONS || 'DENY', // Stricter default for production
+      frameOptions: process.env.SECURITY_FRAME_OPTIONS || 'DENY',
       xssProtection: process.env.SECURITY_XSS_PROTECTION || '1; mode=block',
-      hstsMaxAge: isNaN(hstsMaxAge) ? 31536000 : hstsMaxAge, // Default to 1 year if invalid
-      hstsIncludeSubdomains: process.env.SECURITY_HSTS_INCLUDE_SUBDOMAINS !== 'false', // Default to true in production
-      hstsPreload: process.env.SECURITY_HSTS_PRELOAD !== 'false', // Default to true in production
+      hstsMaxAge: isNaN(hstsMaxAge) ? 31536000 : hstsMaxAge,
+      hstsIncludeSubdomains: process.env.SECURITY_HSTS_INCLUDE_SUBDOMAINS !== 'false',
+      hstsPreload: process.env.SECURITY_HSTS_PRELOAD !== 'false',
       referrerPolicy: process.env.SECURITY_REFERRER_POLICY || 'no-referrer-when-downgrade',
-      removePoweredBy: process.env.SECURITY_REMOVE_POWERED_BY !== 'false', // Default to true
+      removePoweredBy: process.env.SECURITY_REMOVE_POWERED_BY !== 'false',
     };
   }
 
-  // For development or any other environment
-  // Parse HSTS max age with a fallback to 0 if invalid
   const hstsMaxAge = parseInt(process.env.SECURITY_HSTS_MAX_AGE || '0', 10);
 
   return {
     contentTypeOptions: process.env.SECURITY_CONTENT_TYPE_OPTIONS || 'nosniff',
     frameOptions: process.env.SECURITY_FRAME_OPTIONS || 'SAMEORIGIN',
     xssProtection: process.env.SECURITY_XSS_PROTECTION || '1; mode=block',
-    hstsMaxAge: isNaN(hstsMaxAge) ? 0 : hstsMaxAge, // Default to disabled if invalid
+    hstsMaxAge: isNaN(hstsMaxAge) ? 0 : hstsMaxAge,
     hstsIncludeSubdomains: process.env.SECURITY_HSTS_INCLUDE_SUBDOMAINS === 'true',
     hstsPreload: process.env.SECURITY_HSTS_PRELOAD === 'true',
     referrerPolicy: process.env.SECURITY_REFERRER_POLICY || 'no-referrer-when-downgrade',
@@ -129,7 +124,6 @@ const validateProductionSecurity = (config: SecurityConfig): void => {
   }
 
   if (issues.length > 0) {
-    // Log warnings but don't throw errors to avoid breaking the application
     logger.warn('Production security configuration issues detected', { issues });
   }
 };
@@ -155,32 +149,24 @@ export const securityHeaders = (req: Request, res: Response, next: NextFunction)
   try {
     const config = loadSecurityConfig();
 
-    // Validate production security settings
     validateProductionSecurity(config);
 
-    // Prevents MIME type sniffing security risks
     res.setHeader('X-Content-Type-Options', config.contentTypeOptions);
 
-    // Prevents clickjacking by restricting framing
     res.setHeader('X-Frame-Options', config.frameOptions);
 
-    // Enables browser's built-in XSS filtering
     res.setHeader('X-XSS-Protection', config.xssProtection);
 
-    // Enforces HTTPS connections
     res.setHeader('Strict-Transport-Security', buildHstsHeader(config));
 
-    // Controls how much referrer information is included with requests
     res.setHeader('Referrer-Policy', config.referrerPolicy);
 
-    // Optionally removes server information to avoid information disclosure
     if (config.removePoweredBy) {
       res.removeHeader('X-Powered-By');
     }
 
     next();
   } catch (error) {
-    // Log the error but continue processing the request
     logger.error('Error applying security headers', {
       error: error instanceof Error ? error.message : 'Unknown error',
     });
@@ -200,14 +186,12 @@ export const securityConfig = loadSecurityConfig();
  * @returns {void}
  */
 export const logSecurityConfig = (): void => {
-  // Skip logging in test environment
   if (process.env.NODE_ENV === 'test') {
     return;
   }
 
   const config = loadSecurityConfig();
 
-  // In production, only log that security headers are enabled, not the specific values
   if (process.env.NODE_ENV === 'production') {
     logger.info('Security headers enabled', {
       environment: 'production',
@@ -217,7 +201,6 @@ export const logSecurityConfig = (): void => {
     return;
   }
 
-  // In development, log the full configuration
   logger.info('Security headers configuration loaded', {
     contentTypeOptions: config.contentTypeOptions,
     frameOptions: config.frameOptions,

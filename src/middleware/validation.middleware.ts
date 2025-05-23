@@ -40,20 +40,15 @@ export const validateFutureDate = (value: string): boolean => {
 export const validateForm = (req: Request, res: Response, next: NextFunction): void => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    // Extract error messages
     const errorMessages = errors.array().map((error) => error.msg);
 
-    // Add to flash messages
     req.flash('error', errorMessages);
 
-    // Store form data in session to repopulate the form
     (req.session as any).formData = req.body;
 
-    // Get the case ID if it exists
     const caseId = req.params.id;
 
-    // Redirect to the appropriate form
-    if (req.path.includes('/new')) {
+    if (req.path === '/cases') {
       return res.redirect('/cases/new');
     } else if (caseId) {
       return res.redirect(`/cases/${caseId}/edit`);
@@ -62,7 +57,6 @@ export const validateForm = (req: Request, res: Response, next: NextFunction): v
     }
   }
 
-  // Clear any saved form data if validation passes
   if ((req.session as any).formData) {
     delete (req.session as any).formData;
   }
@@ -142,15 +136,13 @@ export const caseValidation = {
     body('title').notEmpty().withMessage('Title is required'),
     body('description').optional(),
     body('status')
-      .notEmpty()
-      .withMessage('Status is required')
+      .optional()
       .isIn(['PENDING', 'IN_PROGRESS', 'COMPLETED'])
       .withMessage('Invalid status'),
     body('dueDate')
-      .optional()
+      .optional({ checkFalsy: true, nullable: true })
       .isISO8601()
-      .withMessage('Invalid date format')
-      .custom(validateFutureDate),
+      .withMessage('Invalid date format'),
   ],
 };
 

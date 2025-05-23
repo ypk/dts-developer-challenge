@@ -12,7 +12,6 @@ import { logger } from '../middleware/logger.middleware.ts';
  * @enum {number}
  */
 export enum HttpStatus {
-  /** HTTP status code for too many requests */
   TOO_MANY_REQUESTS = 429,
 }
 
@@ -21,9 +20,7 @@ export enum HttpStatus {
  * @enum {number}
  */
 export enum TimeWindow {
-  /** 15 minute window (in milliseconds) */
   FIFTEEN_MINUTES = 15 * 60 * 1000,
-  /** 1 hour window (in milliseconds) */
   ONE_HOUR = 60 * 60 * 1000,
 }
 
@@ -32,11 +29,8 @@ export enum TimeWindow {
  * @enum {number}
  */
 export enum RateLimitType {
-  /** General API rate limiting */
   API = 0,
-  /** Authentication endpoint rate limiting */
   AUTH = 1,
-  /** Speed-based rate limiting (adds delays) */
   SPEED = 2,
 }
 
