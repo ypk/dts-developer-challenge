@@ -19,6 +19,7 @@ import dartSass from 'express-dart-sass';
 import session from 'express-session';
 import flash from 'connect-flash';
 import methodOverride from 'method-override';
+import * as viewHelpers from './utils/viewHelpers.ts';
 
 const generateSessionSecret = () => {
   return crypto.randomBytes(64).toString('hex');
@@ -147,17 +148,22 @@ safelyApplyMiddleware(app, 'EJS Layouts', () => {
   app.set('layout extractStyles', true);
 });
 
-safelyApplyMiddleware(app, 'Template Locals', () =>
+safelyApplyMiddleware(app, 'Session & Template Locals', () =>
   app.use((req, res, next) => {
     res.locals.messages = {
       success: req.flash('success'),
       error: req.flash('error'),
     };
+
     res.locals.paths = {
       assets: assetsPath,
     };
+
+    res.locals.session = req.session;
     res.locals.currentPath = req.path;
     res.locals.formatStatus = formatStatus;
+    res.locals.viewHelpers = viewHelpers;
+
     next();
   }),
 );

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { CaseServiceInstance } from '../services/CaseService.js';
-import { NotFoundError } from '../middleware/error.middleware.ts';
+import { NotFoundError } from '../middleware/error.middleware.js';
+import { caseValidation, validateForm } from '../middleware/validation.middleware.js';
 
 const router = Router();
 
@@ -21,7 +22,6 @@ const handleErrorWithRedirect = (
   const errorStack = error instanceof Error ? error.stack : '';
 
   res.render('pages/error', {
-    // Match this path to your actual error template
     title: 'Error',
     pageHeading: 'An error occurred',
     errorMessage,
@@ -51,22 +51,6 @@ router.get('/', (req: Request, res: Response) => {
   res.render('pages/home', {
     title: 'Home',
     pageHeading: 'Case Management System',
-  });
-});
-
-/**
- * Error page route
- * @name GET /error
- */
-router.get('/error', (req: Request, res: Response) => {
-  const errorMessage = req.query.message || 'An unexpected error occurred';
-  const errorStack = req.query.stack || '';
-
-  res.render('pages/error', {
-    title: 'Error',
-    pageHeading: 'An error occurred',
-    errorMessage,
-    errorStack,
   });
 });
 
@@ -108,7 +92,7 @@ router.get('/cases/new', (req: Request, res: Response) => {
  * Create case route
  * @name POST /cases
  */
-router.post('/cases', async (req: Request, res: Response) => {
+router.post('/cases', caseValidation.webForm, validateForm, async (req: Request, res: Response) => {
   try {
     if (!req.body.title || req.body.title.trim() === '') {
       throw new Error('Title is required');
@@ -117,6 +101,7 @@ router.post('/cases', async (req: Request, res: Response) => {
     const caseData = {
       title: req.body.title.trim(),
       description: req.body.description ? req.body.description.trim() : undefined,
+      status: req.body.status,
       dueDate: parseDate(req.body.dueDate),
     };
 
@@ -197,6 +182,113 @@ router.get('/cases/:id/edit', async (req: Request, res: Response) => {
       'An error occurred while retrieving the case for editing',
     );
   }
+});
+
+/**
+ * Update case route
+ * @name PUT /cases/:id
+ */
+router.put('/cases/:id', async (req: Request, res: Response) => {
+  try {
+    const caseId = parseInt(req.params.id);
+
+    if (isNaN(caseId)) {
+      req.flash('error', 'Invalid case ID');
+      throw new Error('Invalid case ID');
+    }
+
+    if (!req.body.title || req.body.title.trim() === '') {
+      throw new Error('Title is required');
+    }
+
+    const caseData = {
+      title: req.body.title.trim(),
+      description: req.body.description !== undefined ? req.body.description.trim() : null,
+      status: req.body.status,
+      dueDate: parseDate(req.body.dueDate),
+    };
+
+    await CaseServiceInstance.updateCase(caseId, caseData);
+
+    req.flash('success', 'Case updated successfully');
+    res.redirect(`/cases/${caseId}`);
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      req.flash('error', error.message);
+      return res.redirect('/cases');
+    }
+
+    req.flash('error', error instanceof Error ? error.message : 'An error occurred');
+    res.redirect(`/cases/${req.params.id}/edit`);
+  }
+});
+
+/**
+ * Case deletion confirmation page
+ * @name GET /cases/:id/delete
+ */
+router.get('/cases/:id/delete', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+
+    if (isNaN(id)) {
+      req.flash('error', 'Invalid case ID');
+      return res.redirect('/cases');
+    }
+
+    const caseData = await CaseServiceInstance.getCaseById(id);
+
+    res.render('pages/cases/confirm-delete', {
+      title: `Delete Case #${id}`,
+      pageHeading: `Are you sure you want to delete this case?`,
+      caseData,
+    });
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      req.flash('error', error.message);
+      return res.redirect('/cases');
+    }
+
+    req.flash('error', error instanceof Error ? error.message : 'An error occurred');
+    res.redirect('/cases');
+  }
+});
+
+/**
+ * Delete case route
+ * @name DELETE /cases/:id/delete
+ */
+router.delete('/cases/:id/delete', async (req: Request, res: Response) => {
+  try {
+    const caseId = parseInt(req.params.id);
+
+    if (isNaN(caseId)) {
+      throw new Error('Invalid case ID');
+    }
+
+    await CaseServiceInstance.deleteCase(caseId);
+
+    req.flash('success', 'Case deleted successfully');
+    res.redirect('/cases');
+  } catch (error) {
+    handleErrorWithRedirect(req, res, error, 'An error occurred while deleting the case');
+  }
+});
+
+/**
+ * Error page route
+ * @name GET /error
+ */
+router.get('/error', (req: Request, res: Response) => {
+  const errorMessage = req.query.message || 'An unexpected error occurred';
+  const errorStack = req.query.stack || '';
+
+  res.render('pages/error', {
+    title: 'Error',
+    pageHeading: 'An error occurred',
+    errorMessage,
+    errorStack,
+  });
 });
 
 export default router;
