@@ -2,11 +2,9 @@
     <div class="govuk-grid-column-two-thirds">
         <% 
             const formData = viewHelpers.getFormData(session, caseData);
-            
             const hasError = (field) => viewHelpers.hasError(messages, field);
             const getErrorMessage = (field) => viewHelpers.getErrorMessage(messages, field);
         %>
-
         <form action="/cases/<%= caseData.id %>" method="POST" novalidate>
             <input type="hidden" name="_method" value="PUT">
     

@@ -23,6 +23,9 @@
                                 <a href="/cases/<%= caseItem.id %>" class="govuk-link">
                                     <%= caseItem.title %>
                                 </a>
+                                <p class="govuk-task-list__hint">
+                                    <%= caseItem.description || 'No description provided' %>
+                                </p>    
                             </td>
                             <td class="govuk-table__cell">
                                 <%- include('../../components/status-tag.ejs', { status: caseItem.status, dueDate: caseItem.dueDate }) %>

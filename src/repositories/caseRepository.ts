@@ -12,17 +12,11 @@ import { prisma, CaseStatus, Case, Prisma } from '../services/PrismaService.ts';
  * @template T - The type of items in the result collection
  */
 export interface PaginatedResult<T> {
-  /** Array of data items */
   data: T[];
-  /** Pagination metadata */
   meta: {
-    /** Total number of items across all pages */
     total: number;
-    /** Current page number (1-based) */
     page: number;
-    /** Number of items per page */
     limit: number;
-    /** Total number of pages available */
     totalPages: number;
   };
 }
