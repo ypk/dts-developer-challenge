@@ -97,12 +97,12 @@ export class CaseRepository {
   }
 
   /**
-   * Updates an existing case record
+   * Updates an existing case
    * @async
    * @param {number} id - The ID of the case to update
-   * @param {Prisma.CaseUpdateInput} data - The case data to update
+   * @param {Prisma.CaseUpdateInput} data - The data to update the case with
    * @returns {Promise<Case>} Promise resolving to the updated case
-   * @throws Will throw an error if the case doesn't exist
+   * @throws {PrismaClientKnownRequestError} If the case with the specified ID doesn't exist
    */
   public async update(id: number, data: Prisma.CaseUpdateInput): Promise<Case> {
     return prisma.case.update({
@@ -115,9 +115,9 @@ export class CaseRepository {
    * Updates only the status of an existing case
    * @async
    * @param {number} id - The ID of the case to update
-   * @param {CaseStatus} status - The new status value
+   * @param {CaseStatus} status - The new status for the case
    * @returns {Promise<Case>} Promise resolving to the updated case
-   * @throws Will throw an error if the case doesn't exist
+   * @throws {PrismaClientKnownRequestError} If the case with the specified ID doesn't exist
    */
   public async updateStatus(id: number, status: CaseStatus): Promise<Case> {
     return prisma.case.update({
@@ -131,7 +131,7 @@ export class CaseRepository {
    * @async
    * @param {number} id - The ID of the case to delete
    * @returns {Promise<Case>} Promise resolving to the deleted case
-   * @throws Will throw an error if the case doesn't exist
+   * @throws {PrismaClientKnownRequestError} If the case with the specified ID doesn't exist
    */
   public async delete(id: number): Promise<Case> {
     return prisma.case.delete({
@@ -143,5 +143,7 @@ export class CaseRepository {
 /**
  * Singleton instance of the CaseRepository class
  * @type {CaseRepository}
+ * @const
+ * @description Provides centralized access to the CaseRepository throughout the application
  */
 export const CaseRepositoryInstance = new CaseRepository();

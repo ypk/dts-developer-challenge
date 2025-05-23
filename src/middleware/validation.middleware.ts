@@ -80,7 +80,7 @@ export const caseValidation = {
    */
   create: [
     body('title').notEmpty().withMessage('Title is required'),
-    body('description').optional(),
+    body('description').optional().trim(),
     body('status')
       .optional()
       .isIn(['PENDING', 'IN_PROGRESS', 'COMPLETED'])
@@ -100,8 +100,8 @@ export const caseValidation = {
    */
   update: [
     param('id').isInt().withMessage('Invalid case ID'),
-    body('title').optional().notEmpty().withMessage('Title cannot be empty'),
-    body('description').optional(),
+    body('title').optional().trim().notEmpty().withMessage('Title cannot be empty'),
+    body('description').optional().trim(),
     body('status')
       .optional()
       .isIn(['PENDING', 'IN_PROGRESS', 'COMPLETED'])

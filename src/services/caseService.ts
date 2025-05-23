@@ -66,6 +66,7 @@ export class CaseService {
    * @param {Prisma.CaseUpdateInput} data - The case data to update
    * @returns {Promise<Case>} Promise resolving to the updated case
    * @throws {NotFoundError} If no case with the specified ID exists
+   * @throws {Error} If there's an error updating the case
    */
   public async updateCase(id: number, data: Prisma.CaseUpdateInput): Promise<Case> {
     await this.getCaseById(id);
@@ -79,6 +80,7 @@ export class CaseService {
    * @param {CaseStatus} status - The new status value
    * @returns {Promise<Case>} Promise resolving to the updated case
    * @throws {NotFoundError} If no case with the specified ID exists
+   * @throws {Error} If there's an error updating the case status
    */
   public async updateCaseStatus(id: number, status: CaseStatus): Promise<Case> {
     await this.getCaseById(id);

@@ -394,18 +394,21 @@ const speedLimiterInstance = new SpeedLimiter(
 
 /**
  * Express middleware for API rate limiting
- * @type {(req: Request, res: Response, next: NextFunction) => void}
+ * @function
+ * @description Limits requests to 100 per IP address within a 15-minute window
  */
 export const apiLimiter = createMiddleware(apiLimiterInstance);
 
 /**
  * Express middleware for authentication rate limiting
- * @type {(req: Request, res: Response, next: NextFunction) => void}
+ * @function
+ * @description Limits authentication requests to 10 per IP address within a 1-hour window
  */
 export const authLimiter = createMiddleware(authLimiterInstance);
 
 /**
  * Express middleware for speed-based rate limiting
- * @type {(req: Request, res: Response, next: NextFunction) => void}
+ * @function
+ * @description Adds incremental delays after 50 requests from an IP address within a 15-minute window
  */
 export const speedLimiter = createMiddleware(speedLimiterInstance);
