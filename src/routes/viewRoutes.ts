@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { CaseServiceInstance } from '../services/CaseService.js';
-import { NotFoundError } from '../middleware/error.middleware.js';
+import { CaseServiceInstance } from '../services/CaseService.ts';
+import { NotFoundError } from '../middleware/error.middleware.ts';
 import { caseValidation, validateForm } from '../middleware/validation.middleware.js';
 
 const router = Router();

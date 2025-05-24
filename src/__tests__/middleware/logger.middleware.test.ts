@@ -1,3 +1,7 @@
+/**
+ * Unit tests for logger.middleware.ts
+ */
+
 jest.mock('winston', () => {
   const mockLogger = {
     info: jest.fn(),
@@ -35,7 +39,6 @@ jest.mock('path', () => ({
 }));
 
 import { Request, Response, NextFunction } from 'express';
-import { requestLogger, logger } from '../../middleware/logger.middleware.ts';
 import fs from 'fs';
 
 describe('Logger Middleware', () => {
@@ -46,6 +49,7 @@ describe('Logger Middleware', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.resetModules();
 
     mockRequest = {
       method: 'GET',
@@ -76,12 +80,10 @@ describe('Logger Middleware', () => {
     it('should create logs directory if it does not exist', () => {
       (fs.existsSync as jest.Mock).mockReturnValueOnce(false);
 
-      jest.isolateModules(() => {
-        const logsDir = '/mocked/path/logs';
-        if (!fs.existsSync(logsDir)) {
-          fs.mkdirSync(logsDir, { recursive: true });
-        }
-      });
+      const logsDir = '/mocked/path/logs';
+      if (!fs.existsSync(logsDir)) {
+        fs.mkdirSync(logsDir, { recursive: true });
+      }
 
       expect(fs.existsSync).toHaveBeenCalledWith('/mocked/path/logs');
       expect(fs.mkdirSync).toHaveBeenCalledWith('/mocked/path/logs', { recursive: true });
@@ -90,19 +92,19 @@ describe('Logger Middleware', () => {
     it('should not create logs directory if it already exists', () => {
       (fs.existsSync as jest.Mock).mockReturnValueOnce(true);
 
-      jest.isolateModules(() => {
-        const logsDir = '/mocked/path/logs';
-        if (!fs.existsSync(logsDir)) {
-          fs.mkdirSync(logsDir, { recursive: true });
-        }
-      });
+      const logsDir = '/mocked/path/logs';
+      if (!fs.existsSync(logsDir)) {
+        fs.mkdirSync(logsDir, { recursive: true });
+      }
 
       expect(fs.existsSync).toHaveBeenCalledWith('/mocked/path/logs');
       expect(fs.mkdirSync).not.toHaveBeenCalled();
     });
   });
 
-  it('should log request information when a request is received', () => {
+  it('should log request information when a request is received', async () => {
+    const { requestLogger, logger } = await import('../../middleware/logger.middleware.js');
+
     requestLogger(mockRequest as Request, mockResponse as Response, nextFunction);
 
     expect(logger.info).toHaveBeenCalledWith({
@@ -116,13 +118,15 @@ describe('Logger Middleware', () => {
     expect(nextFunction).toHaveBeenCalled();
   });
 
-  it('should log successful response information when response finishes', () => {
+  it('should log successful response information when response finishes', async () => {
     const originalDateNow = Date.now;
     const mockStartTime = 1600000000000;
     const endTimeDuration = 123;
     const mockEndTime = mockStartTime + endTimeDuration;
 
     Date.now = jest.fn().mockReturnValueOnce(mockStartTime).mockReturnValueOnce(mockEndTime);
+
+    const { requestLogger, logger } = await import('../../middleware/logger.middleware.js');
 
     requestLogger(mockRequest as Request, mockResponse as Response, nextFunction);
 
@@ -140,13 +144,15 @@ describe('Logger Middleware', () => {
     Date.now = originalDateNow;
   });
 
-  it('should log error information for responses with status code >= 400', () => {
+  it('should log error information for responses with status code >= 400', async () => {
     const originalDateNow = Date.now;
     const mockStartTime = 1600000000000;
     const endTimeDuration = 123;
     const mockEndTime = mockStartTime + endTimeDuration;
 
     Date.now = jest.fn().mockReturnValueOnce(mockStartTime).mockReturnValueOnce(mockEndTime);
+
+    const { requestLogger, logger } = await import('../../middleware/logger.middleware.js');
 
     mockResponse.statusCode = 500;
 
@@ -166,7 +172,7 @@ describe('Logger Middleware', () => {
     Date.now = originalDateNow;
   });
 
-  it('should log with different status codes correctly', () => {
+  it('should log with different status codes correctly', async () => {
     const testCases = [
       { statusCode: 200, expectedLevel: 'info' },
       { statusCode: 201, expectedLevel: 'info' },
@@ -176,7 +182,9 @@ describe('Logger Middleware', () => {
       { statusCode: 500, expectedLevel: 'error' },
     ];
 
-    testCases.forEach(({ statusCode, expectedLevel }) => {
+    const { requestLogger, logger } = await import('../../middleware/logger.middleware.js');
+
+    for (const { statusCode, expectedLevel } of testCases) {
       jest.clearAllMocks();
 
       const originalDateNow = Date.now;
@@ -195,10 +203,12 @@ describe('Logger Middleware', () => {
       );
 
       Date.now = originalDateNow;
-    });
+    }
   });
 
-  it('should handle missing IP address', () => {
+  it('should handle missing IP address', async () => {
+    const { requestLogger, logger } = await import('../../middleware/logger.middleware.js');
+
     const requestWithoutIp: Partial<Request> = {
       method: 'GET',
       url: '/api/cases',
@@ -212,9 +222,19 @@ describe('Logger Middleware', () => {
         ip: undefined,
       }),
     );
+
+    mockEventCallback();
+
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ip: undefined,
+      }),
+    );
   });
 
-  it('should handle missing user agent', () => {
+  it('should handle missing user agent', async () => {
+    const { requestLogger, logger } = await import('../../middleware/logger.middleware.js');
+
     (mockRequest.get as jest.Mock).mockReturnValueOnce(undefined);
 
     requestLogger(mockRequest as Request, mockResponse as Response, nextFunction);
@@ -226,7 +246,9 @@ describe('Logger Middleware', () => {
     );
   });
 
-  it('should handle response without statusCode', () => {
+  it('should handle response without statusCode', async () => {
+    const { requestLogger, logger } = await import('../../middleware/logger.middleware.js');
+
     const responseWithoutStatusCode: Partial<Response> = {
       on: mockResponse.on,
     };
@@ -251,35 +273,11 @@ describe('Logger Middleware', () => {
     it('should NOT include file transports when NODE_ENV is "test"', async () => {
       jest.resetModules();
 
-      jest.doMock('winston', () => {
-        const mockLogger = {
-          info: jest.fn(),
-          error: jest.fn(),
-          warn: jest.fn(),
-          debug: jest.fn(),
-        };
-
-        return {
-          format: {
-            combine: jest.fn().mockReturnThis(),
-            timestamp: jest.fn().mockReturnThis(),
-            json: jest.fn().mockReturnThis(),
-            colorize: jest.fn().mockReturnThis(),
-            simple: jest.fn().mockReturnThis(),
-          },
-          createLogger: jest.fn().mockReturnValue(mockLogger),
-          transports: {
-            Console: jest.fn(),
-            File: jest.fn(),
-          },
-        };
-      });
-
       process.env.NODE_ENV = 'test';
 
       const winston = await import('winston');
 
-      await import('../../middleware/logger.middleware.ts');
+      await import('../../middleware/logger.middleware.js');
 
       expect(winston.transports.Console).toHaveBeenCalledTimes(1);
       expect(winston.transports.File).not.toHaveBeenCalled();
@@ -288,35 +286,11 @@ describe('Logger Middleware', () => {
     it('should include file transports when NODE_ENV is NOT "test"', async () => {
       jest.resetModules();
 
-      jest.doMock('winston', () => {
-        const mockLogger = {
-          info: jest.fn(),
-          error: jest.fn(),
-          warn: jest.fn(),
-          debug: jest.fn(),
-        };
-
-        return {
-          format: {
-            combine: jest.fn().mockReturnThis(),
-            timestamp: jest.fn().mockReturnThis(),
-            json: jest.fn().mockReturnThis(),
-            colorize: jest.fn().mockReturnThis(),
-            simple: jest.fn().mockReturnThis(),
-          },
-          createLogger: jest.fn().mockReturnValue(mockLogger),
-          transports: {
-            Console: jest.fn(),
-            File: jest.fn(),
-          },
-        };
-      });
-
       process.env.NODE_ENV = 'development';
 
       const winston = await import('winston');
 
-      await import('../../middleware/logger.middleware.ts');
+      await import('../../middleware/logger.middleware.js');
 
       expect(winston.transports.Console).toHaveBeenCalledTimes(1);
       expect(winston.transports.File).toHaveBeenCalledTimes(2);
