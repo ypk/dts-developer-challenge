@@ -4,9 +4,9 @@
  * @description Provides business logic for case management operations
  */
 
-import { Case, CaseStatus, Prisma } from './PrismaService.js';
+import { Case, CaseStatus, Prisma } from './PrismaService.ts';
 import { CaseRepositoryInstance, PaginatedResult } from '../repositories/CaseRepository.ts';
-import { NotFoundError } from '../middleware/error.middleware.js';
+import { NotFoundError } from '../middleware/error.middleware.ts';
 
 /**
  * Service class for handling case-related business logic
