@@ -68,7 +68,7 @@ describe('Validation Middleware', () => {
 
     beforeEach(async () => {
       jest.resetModules();
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
       validateFutureDate = module.validateFutureDate;
     });
 
@@ -86,11 +86,9 @@ describe('Validation Middleware', () => {
     });
 
     it('should return true for today', () => {
-      // Create today's date in local timezone to match the validation logic
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      // Format as YYYY-MM-DD to match what forms typically send
       const year = today.getFullYear();
       const month = String(today.getMonth() + 1).padStart(2, '0');
       const day = String(today.getDate()).padStart(2, '0');
@@ -104,7 +102,6 @@ describe('Validation Middleware', () => {
       pastDate.setDate(pastDate.getDate() - 1);
       pastDate.setHours(0, 0, 0, 0);
 
-      // Format as YYYY-MM-DD
       const year = pastDate.getFullYear();
       const month = String(pastDate.getMonth() + 1).padStart(2, '0');
       const day = String(pastDate.getDate()).padStart(2, '0');
@@ -114,13 +111,11 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle edge case times', () => {
-      // Test with a future date that should definitely work
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + 1);
       futureDate.setHours(23, 59, 59, 999);
       expect(validateFutureDate(futureDate.toISOString())).toBe(true);
 
-      // Test today but ensure it's formatted consistently
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
       const year = todayStart.getFullYear();
@@ -138,12 +133,10 @@ describe('Validation Middleware', () => {
 
     it('should handle various valid date formats', () => {
       const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 2); // Use +2 to be safe
+      futureDate.setDate(futureDate.getDate() + 2);
 
-      // Test ISO format
       expect(validateFutureDate(futureDate.toISOString())).toBe(true);
 
-      // Test YYYY-MM-DD format
       const year = futureDate.getFullYear();
       const month = String(futureDate.getMonth() + 1).padStart(2, '0');
       const day = String(futureDate.getDate()).padStart(2, '0');
@@ -152,9 +145,8 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle timezone edge cases', () => {
-      // Test with a clearly future date to avoid timezone issues
       const clearlyFutureDate = new Date();
-      clearlyFutureDate.setDate(clearlyFutureDate.getDate() + 7); // One week from now
+      clearlyFutureDate.setDate(clearlyFutureDate.getDate() + 7);
 
       const year = clearlyFutureDate.getFullYear();
       const month = String(clearlyFutureDate.getMonth() + 1).padStart(2, '0');
@@ -170,7 +162,7 @@ describe('Validation Middleware', () => {
 
     beforeEach(async () => {
       jest.resetModules();
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
       validateForm = module.validateForm;
     });
 
@@ -291,7 +283,7 @@ describe('Validation Middleware', () => {
 
     beforeEach(async () => {
       jest.resetModules();
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
       validate = module.validate;
     });
 
@@ -362,7 +354,7 @@ describe('Validation Middleware', () => {
       jest.resetModules();
       mockBody.mockImplementation(() => createValidationChain());
       mockParam.mockImplementation(() => createValidationChain());
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
       caseValidation = module.caseValidation;
     });
 
@@ -432,7 +424,7 @@ describe('Validation Middleware', () => {
       mockBody.mockReturnValue(mockChain);
       mockParam.mockReturnValue(mockChain);
 
-      await import('../../middleware/validation.middleware.js');
+      await import('../../middleware/validation.middleware.ts');
 
       expect(mockChain.notEmpty).toHaveBeenCalled();
       expect(mockChain.withMessage).toHaveBeenCalled();
@@ -448,7 +440,7 @@ describe('Validation Middleware', () => {
       mockBody.mockReturnValue(mockChain);
       mockParam.mockReturnValue(mockChain);
 
-      await import('../../middleware/validation.middleware.js');
+      await import('../../middleware/validation.middleware.ts');
 
       const withMessageCalls = mockChain.withMessage.mock.calls;
       const messages = withMessageCalls.map((call: any[]) => call[0]);
@@ -466,7 +458,7 @@ describe('Validation Middleware', () => {
       mockBody.mockReturnValue(mockChain);
       mockParam.mockReturnValue(mockChain);
 
-      await import('../../middleware/validation.middleware.js');
+      await import('../../middleware/validation.middleware.ts');
 
       const isInCalls = mockChain.isIn.mock.calls;
       const statusCall = isInCalls.find(
@@ -484,7 +476,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle exact path match for /cases', async () => {
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
       const validateForm = module.validateForm;
 
       const mockErrors = {
@@ -501,7 +493,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle case ID extraction from params', async () => {
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
       const validateForm = module.validateForm;
 
       const mockErrors = {
@@ -519,7 +511,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle missing case ID in params', async () => {
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
       const validateForm = module.validateForm;
 
       const mockErrors = {
@@ -537,7 +529,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle various path patterns correctly', async () => {
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
       const validateForm = module.validateForm;
 
       const mockErrors = {
@@ -574,7 +566,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle session without formData property', async () => {
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
       const validateForm = module.validateForm;
 
       const mockErrors = {
@@ -609,10 +601,9 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle exact boundary dates', async () => {
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
       const validateFutureDate = module.validateFutureDate;
 
-      // Test with clearly future date (safer approach)
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + 1);
       futureDate.setHours(0, 0, 0, 0);
@@ -624,9 +615,8 @@ describe('Validation Middleware', () => {
 
       expect(validateFutureDate(futureDateString)).toBe(true);
 
-      // Test with clearly past date
       const pastDate = new Date();
-      pastDate.setDate(pastDate.getDate() - 2); // Use -2 to be safe
+      pastDate.setDate(pastDate.getDate() - 2);
       pastDate.setHours(0, 0, 0, 0);
 
       const pastYear = pastDate.getFullYear();
@@ -644,7 +634,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should work with real validation flow for create case', async () => {
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
       const { validate } = module;
 
       const mockErrors = {
@@ -667,7 +657,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should work with real validation flow for update case with errors', async () => {
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
       const { validate } = module;
 
       const mockErrors = {
@@ -703,7 +693,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle malformed validation result objects', async () => {
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
       const validate = module.validate;
 
       mockValidationResult.mockReturnValue(null);
@@ -714,7 +704,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle undefined validation result', async () => {
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
       const validate = module.validate;
 
       mockValidationResult.mockReturnValue(undefined);
@@ -725,7 +715,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle validation result with no array method', async () => {
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
       const validate = module.validate;
 
       const mockErrors = {
@@ -745,7 +735,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should store form data in session when validation fails', async () => {
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
       const validateForm = module.validateForm;
 
       const mockErrors = {
@@ -769,7 +759,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should preserve existing session data when storing form data', async () => {
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
       const validateForm = module.validateForm;
 
       const mockErrors = {
@@ -795,7 +785,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle session formData deletion when no errors', async () => {
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
       const validateForm = module.validateForm;
 
       const mockErrors = {
@@ -824,7 +814,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should throw errors for corrupted session objects as expected', async () => {
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
       const validateForm = module.validateForm;
 
       const mockErrors = {
@@ -846,7 +836,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle valid session objects with various formData states', async () => {
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
       const validateForm = module.validateForm;
 
       const mockErrors = {
@@ -858,9 +848,7 @@ describe('Validation Middleware', () => {
       const validSessions = [
         { formData: null },
         { formData: undefined },
-        {
-          /* empty object */
-        },
+        {},
         { formData: 'not an object' },
         { formData: 123 },
         { formData: { title: 'test' } },
@@ -880,8 +868,8 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle malformed request objects gracefully where possible', async () => {
-      const module = await import('../../middleware/validation.middleware.js');
-      const { validateForm, validate } = module;
+      const module = await import('../../middleware/validation.middleware.ts');
+      const { validate } = module;
 
       const mockErrors = {
         isEmpty: jest.fn().mockReturnValue(true),
@@ -912,7 +900,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle rapid form validation calls without memory leaks', async () => {
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
       const { validateForm } = module;
 
       const mockErrors = {
@@ -932,7 +920,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle large validation error arrays efficiently', async () => {
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
       const { validate } = module;
 
       const largeErrorArray = Array.from({ length: 100 }, (_, index) => ({
@@ -967,7 +955,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle typical create case form submission', async () => {
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
       const { validateForm } = module;
 
       const mockErrors = {
@@ -987,7 +975,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle typical edit case form submission', async () => {
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
       const { validateForm } = module;
 
       const mockErrors = {
@@ -1008,7 +996,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle successful API validation', async () => {
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
       const { validate } = module;
 
       const mockErrors = {
@@ -1032,7 +1020,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle API validation with multiple errors', async () => {
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
       const { validate } = module;
 
       const mockErrors = {
@@ -1061,7 +1049,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle form validation with case ID from different paths', async () => {
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
       const { validateForm } = module;
 
       const mockErrors = {
@@ -1095,11 +1083,11 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle timezone considerations', async () => {
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
       const validateFutureDate = module.validateFutureDate;
 
       const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 2); // Use +2 to be safe
+      futureDate.setDate(futureDate.getDate() + 2);
 
       const utcDate = futureDate.toISOString();
       expect(validateFutureDate(utcDate)).toBe(true);
@@ -1109,10 +1097,9 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle validateFutureDate with millisecond precision', async () => {
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
       const validateFutureDate = module.validateFutureDate;
 
-      // Use a clearly future date to avoid timezone issues
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + 1);
       const futureDateString = futureDate.toISOString();
@@ -1121,20 +1108,18 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle various date string formats correctly', async () => {
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
       const validateFutureDate = module.validateFutureDate;
 
       const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 5); // Use +5 to be very safe
+      futureDate.setDate(futureDate.getDate() + 5);
 
-      // Test YYYY-MM-DD format (most common in forms)
       const year = futureDate.getFullYear();
       const month = String(futureDate.getMonth() + 1).padStart(2, '0');
       const day = String(futureDate.getDate()).padStart(2, '0');
       const formattedDate = `${year}-${month}-${day}`;
       expect(validateFutureDate(formattedDate)).toBe(true);
 
-      // Test ISO format
       expect(validateFutureDate(futureDate.toISOString())).toBe(true);
     });
   });
@@ -1142,16 +1127,14 @@ describe('Validation Middleware', () => {
   describe('final integration and completeness tests', () => {
     it('should achieve 100% code coverage through comprehensive testing', async () => {
       jest.resetModules();
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
       const { validateFutureDate, validate, validateForm, caseValidation } = module;
 
-      // Test all validateFutureDate branches
       expect(validateFutureDate('')).toBe(true);
       expect(validateFutureDate(null as any)).toBe(true);
       expect(validateFutureDate(undefined as any)).toBe(true);
       expect(validateFutureDate('invalid-date')).toBe(true);
 
-      // Test clearly future date
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + 7);
       const year = futureDate.getFullYear();
@@ -1160,7 +1143,6 @@ describe('Validation Middleware', () => {
       const futureDateString = `${year}-${month}-${day}`;
       expect(validateFutureDate(futureDateString)).toBe(true);
 
-      // Test clearly past date
       const pastDate = new Date();
       pastDate.setDate(pastDate.getDate() - 7);
       const pastYear = pastDate.getFullYear();
@@ -1169,7 +1151,6 @@ describe('Validation Middleware', () => {
       const pastDateString = `${pastYear}-${pastMonth}-${pastDay}`;
       expect(() => validateFutureDate(pastDateString)).toThrow('Due date cannot be in the past');
 
-      // Test all validate function branches
       const successErrors = {
         isEmpty: jest.fn().mockReturnValue(true),
         array: jest.fn().mockReturnValue([]),
@@ -1188,7 +1169,6 @@ describe('Validation Middleware', () => {
       validate(mockRequest as Request, mockResponse as Response, mockNext);
       expect(mockResponse.status).toHaveBeenCalledWith(400);
 
-      // Test all validateForm function branches
       jest.clearAllMocks();
       mockValidationResult.mockReturnValue(successErrors);
       (mockRequest.session as any) = { ...mockRequest.session, formData: { title: 'test' } };
@@ -1214,7 +1194,6 @@ describe('Validation Middleware', () => {
       validateForm(mockRequest as Request, mockResponse as Response, mockNext);
       expect(mockResponse.redirect).toHaveBeenCalledWith('back');
 
-      // Verify all validation chains exist and are properly configured
       expect(caseValidation.create).toBeDefined();
       expect(caseValidation.update).toBeDefined();
       expect(caseValidation.updateStatus).toBeDefined();
@@ -1256,7 +1235,7 @@ describe('Validation Middleware', () => {
   describe('module exports verification', () => {
     it('should export all required functions and objects', async () => {
       jest.resetModules();
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
 
       expect(module.validateFutureDate).toBeDefined();
       expect(module.validateForm).toBeDefined();
@@ -1277,7 +1256,7 @@ describe('Validation Middleware', () => {
 
     it('should have tested all exported functions comprehensively', async () => {
       jest.resetModules();
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
 
       const exports = Object.keys(module);
       const expectedExports = ['validateFutureDate', 'validateForm', 'validate', 'caseValidation'];
@@ -1322,7 +1301,7 @@ describe('Validation Middleware', () => {
 
     it('should verify all conditional branches are tested', async () => {
       jest.resetModules();
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
 
       expect(typeof module.validateFutureDate).toBe('function');
       expect(typeof module.validate).toBe('function');
@@ -1374,7 +1353,7 @@ describe('Validation Middleware', () => {
   describe('final comprehensive validation', () => {
     it('should validate complete test suite coverage', async () => {
       jest.resetModules();
-      const module = await import('../../middleware/validation.middleware.js');
+      const module = await import('../../middleware/validation.middleware.ts');
 
       const moduleExports = Object.keys(module);
       const testedFunctions = ['validateFutureDate', 'validateForm', 'validate', 'caseValidation'];

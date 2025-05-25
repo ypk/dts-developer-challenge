@@ -3,14 +3,14 @@
  * @module tests/middleware/pagination
  */
 
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 import {
   paginationMiddleware,
   DEFAULT_PAGE,
   DEFAULT_LIMIT,
   MAX_LIMIT,
   PaginationOptions,
-} from '../../middleware/pagination.middleware.js';
+} from '../../middleware/pagination.middleware.ts';
 
 declare module 'express' {
   interface Request {

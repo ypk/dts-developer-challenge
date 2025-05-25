@@ -10,12 +10,12 @@ import {
   isPrismaUniqueViolationError,
   APIErrorHandler,
   FrontEndErrorHandler,
-} from '../../middleware/error.middleware.js';
+} from '../../middleware/error.middleware.ts';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { Request, Response, NextFunction } from 'express';
-import { logger } from '../../middleware/logger.middleware.js';
+import { logger } from '../../middleware/logger.middleware.ts';
 
-jest.mock('../../middleware/logger.middleware.js', () => ({
+jest.mock('../../middleware/logger.middleware.ts', () => ({
   logger: {
     error: jest.fn(),
     warn: jest.fn(),

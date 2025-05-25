@@ -3,7 +3,7 @@
  * @module tests/middleware/rate-limit
  */
 
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 import {
   HttpStatus,
   TimeWindow,
@@ -15,10 +15,10 @@ import {
   apiLimiter,
   authLimiter,
   speedLimiter,
-} from '../../middleware/rate-limit.middleware.js';
-import { logger } from '../../middleware/logger.middleware.js';
+} from '../../middleware/rate-limit.middleware.ts';
+import { logger } from '../../middleware/logger.middleware.ts';
 
-jest.mock('../../middleware/logger.middleware.js', () => ({
+jest.mock('../../middleware/logger.middleware.ts', () => ({
   logger: {
     warn: jest.fn(),
     info: jest.fn(),
