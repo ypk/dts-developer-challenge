@@ -1,185 +1,126 @@
-/**
- * Unit tests for middleware.utils.ts
- */
-
-// Import types only
 import { Application } from 'express';
-import type { Request, Response, NextFunction } from 'express';
+import fs from 'fs';
+import path from 'path';
+import logSymbols from 'log-symbols';
+import { safelyApplyMiddleware, getSVG, formatStatus } from '../../utils/middleware.utils.ts';
 
-// Create function implementations that match the originals
-// but don't import the actual module
-const safelyApplyMiddleware = (app: Application, name: string, fn: () => void): void => {
-  try {
-    fn();
-    console.log('Success', ` ${name} middleware applied successfully`);
-  } catch (error) {
-    console.error(
-      'Error',
-      ` Error applying ${name} middleware:`,
-      error instanceof Error ? error.message : 'Unknown error',
-    );
-  }
-};
+jest.mock('fs');
+jest.mock('path');
+jest.mock('log-symbols', () => ({
+  success: '✓',
+  error: '✗',
+}));
 
-const getSVG = (filename: string): string => {
-  try {
-    // Simplified implementation for testing
-    if (filename === 'error.svg') throw new Error('Test error');
-    return `<svg>Mock ${filename}</svg>`;
-  } catch (error) {
-    console.error(`Error reading SVG file: ${filename}`, error);
-    return '';
-  }
-};
-
-const formatStatus = (text: string): string => {
-  if (!text) return '';
-
-  return text
-    .split('_')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ');
-};
+const mockFs = fs as jest.Mocked<typeof fs>;
+const mockPath = path as jest.Mocked<typeof path>;
 
 describe('middleware.utils', () => {
-  // Save original console methods
-  const originalConsoleLog = console.log;
-  const originalConsoleError = console.error;
+  let mockApp: Partial<Application>;
+  let consoleSpy: jest.SpyInstance;
+  let consoleErrorSpy: jest.SpyInstance;
 
   beforeEach(() => {
-    // Mock console methods
-    console.log = jest.fn();
-    console.error = jest.fn();
-
-    // Clear mocks between tests
     jest.clearAllMocks();
+    mockApp = { use: jest.fn() };
+    consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+    mockPath.join.mockImplementation((...args) => args.join('/'));
   });
 
-  afterAll(() => {
-    // Restore original console methods
-    console.log = originalConsoleLog;
-    console.error = originalConsoleError;
+  afterEach(() => {
+    consoleSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
   });
 
   describe('safelyApplyMiddleware', () => {
     it('should apply middleware successfully', () => {
-      const app = {} as Application;
-      const middlewareName = 'test';
-      const fn = jest.fn();
+      const middlewareFunction = jest.fn();
 
-      safelyApplyMiddleware(app, middlewareName, fn);
+      safelyApplyMiddleware(mockApp as Application, 'test', middlewareFunction);
 
-      expect(fn).toHaveBeenCalled();
-      expect(console.log).toHaveBeenCalledWith(
-        'Success',
-        ` ${middlewareName} middleware applied successfully`,
+      expect(middlewareFunction).toHaveBeenCalled();
+      expect(consoleSpy).toHaveBeenCalledWith(
+        logSymbols.success,
+        ' test middleware applied successfully',
       );
-      expect(console.error).not.toHaveBeenCalled();
     });
 
-    it('should handle error when applying middleware fails', () => {
-      const app = {} as Application;
-      const middlewareName = 'test';
-      const errorMessage = 'Middleware error';
-      const fn = jest.fn().mockImplementation(() => {
-        throw new Error(errorMessage);
+    it('should handle Error exceptions', () => {
+      const middlewareFunction = jest.fn(() => {
+        throw new Error('Test error');
       });
 
-      safelyApplyMiddleware(app, middlewareName, fn);
+      safelyApplyMiddleware(mockApp as Application, 'test', middlewareFunction);
 
-      expect(fn).toHaveBeenCalled();
-      expect(console.error).toHaveBeenCalledWith(
-        'Error',
-        ` Error applying ${middlewareName} middleware:`,
-        errorMessage,
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        logSymbols.error,
+        ' Error applying test middleware:',
+        'Test error',
       );
-      expect(console.log).not.toHaveBeenCalled();
     });
 
-    it('should handle non-Error objects when middleware fails', () => {
-      const app = {} as Application;
-      const middlewareName = 'test';
-      const fn = jest.fn().mockImplementation(() => {
-        throw 'String error'; // Not an Error object
+    it('should handle non-Error exceptions', () => {
+      const middlewareFunction = jest.fn(() => {
+        throw 'String error';
       });
 
-      safelyApplyMiddleware(app, middlewareName, fn);
+      safelyApplyMiddleware(mockApp as Application, 'test', middlewareFunction);
 
-      expect(fn).toHaveBeenCalled();
-      expect(console.error).toHaveBeenCalledWith(
-        'Error',
-        ` Error applying ${middlewareName} middleware:`,
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        logSymbols.error,
+        ' Error applying test middleware:',
         'Unknown error',
       );
-      expect(console.log).not.toHaveBeenCalled();
     });
   });
 
   describe('getSVG', () => {
-    it('should return SVG content when file exists', () => {
-      const filename = 'test.svg';
-      const result = getSVG(filename);
+    it('should read SVG file successfully', () => {
+      const svgContent = '<svg></svg>';
+      mockFs.readFileSync.mockReturnValue(svgContent);
 
-      expect(result).toBe(`<svg>Mock ${filename}</svg>`);
-      expect(console.error).not.toHaveBeenCalled();
+      const result = getSVG('test.svg');
+
+      expect(result).toBe(svgContent);
+      expect(mockPath.join).toHaveBeenCalledWith(process.cwd(), 'src/assets/images', 'test.svg');
+      expect(mockFs.readFileSync).toHaveBeenCalledWith(
+        `${process.cwd()}/src/assets/images/test.svg`,
+        'utf8',
+      );
     });
 
-    it('should return empty string when file reading fails', () => {
-      const filename = 'error.svg';
-      const result = getSVG(filename);
+    it('should handle file read errors', () => {
+      const error = new Error('File not found');
+      mockFs.readFileSync.mockImplementation(() => {
+        throw error;
+      });
+
+      const result = getSVG('missing.svg');
 
       expect(result).toBe('');
-      expect(console.error).toHaveBeenCalled();
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Error reading SVG file: missing.svg', error);
     });
   });
 
   describe('formatStatus', () => {
-    it('should format status with underscores correctly', () => {
-      const input = 'TEST_STATUS_EXAMPLE';
-      const expected = 'Test Status Example';
-
-      const result = formatStatus(input);
-
-      expect(result).toBe(expected);
+    it('should format status with underscores', () => {
+      expect(formatStatus('in_progress')).toBe('In Progress');
     });
 
-    it('should handle single word status', () => {
-      const input = 'ACTIVE';
-      const expected = 'Active';
-
-      const result = formatStatus(input);
-
-      expect(result).toBe(expected);
-    });
-
-    it('should handle lowercase input', () => {
-      const input = 'pending_approval';
-      const expected = 'Pending Approval';
-
-      const result = formatStatus(input);
-
-      expect(result).toBe(expected);
-    });
-
-    it('should handle mixed case input', () => {
-      const input = 'iN_PrOgReSs';
-      const expected = 'In Progress';
-
-      const result = formatStatus(input);
-
-      expect(result).toBe(expected);
-    });
-
-    it('should return empty string for empty input', () => {
+    it('should handle empty input', () => {
       expect(formatStatus('')).toBe('');
     });
 
-    it('should return empty string for null input', () => {
-      expect(formatStatus(null as unknown as string)).toBe('');
+    it('should handle null input', () => {
+      expect(formatStatus(null as any)).toBe('');
     });
 
-    it('should return empty string for undefined input', () => {
-      expect(formatStatus(undefined as unknown as string)).toBe('');
+    it('should handle single word', () => {
+      expect(formatStatus('pending')).toBe('Pending');
+    });
+
+    it('should handle mixed case', () => {
+      expect(formatStatus('COMPLETED_SUCCESSFULLY')).toBe('Completed Successfully');
     });
   });
 });

@@ -5,12 +5,8 @@
 
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { Application } from 'express';
 import logSymbols from 'log-symbols';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 /**
  * Helper function to safely apply middleware with error handling
@@ -41,7 +37,7 @@ export const safelyApplyMiddleware = (app: Application, name: string, fn: () => 
  * @returns {string} The contents of the SVG file, or an empty string if the file cannot be read
  */
 export const getSVG = (filename: string): string => {
-  const svgPath = path.join(__dirname, '../../src/assets/images', filename);
+  const svgPath = path.join(process.cwd(), 'src/assets/images', filename);
 
   try {
     return fs.readFileSync(svgPath, 'utf8');
