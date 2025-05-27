@@ -1,145 +1,251 @@
-import { sendSuccess, sendNoContent, sendError, sendBadRequest } from '../../utils/responseHandler';
-
-// Mock console.error to prevent actual logging during tests
-const originalConsoleError = console.error;
-beforeAll(() => {
-  console.error = jest.fn();
-});
-
-afterAll(() => {
-  console.error = originalConsoleError;
-});
+import { Response } from 'express';
+import {
+  sendSuccess,
+  sendNoContent,
+  sendError,
+  sendBadRequest,
+} from '../../utils/responseHandler.ts';
 
 describe('responseHandler', () => {
-  let res: any;
+  let mockResponse: Partial<Response>;
+  let consoleErrorSpy: jest.SpyInstance;
 
   beforeEach(() => {
-    // Create a mock Express response object
-    res = {
+    mockResponse = {
       status: jest.fn().mockReturnThis(),
       json: jest.fn().mockReturnThis(),
       send: jest.fn().mockReturnThis(),
     };
+
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    consoleErrorSpy.mockRestore();
   });
 
   describe('sendSuccess', () => {
-    it('should send a success response with default status code 200', () => {
-      const data = { message: 'Success', data: { id: 1, name: 'Test' } };
+    it('should send success response with default status code 200', () => {
+      const data = { id: 1, name: 'Test User' };
 
-      sendSuccess(res, data);
+      sendSuccess(mockResponse as Response, data);
 
-      expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith({
         success: true,
-        ...data,
+        id: 1,
+        name: 'Test User',
       });
     });
 
-    it('should send a success response with custom status code', () => {
-      const data = { message: 'Created', data: { id: 1, name: 'Test' } };
-      const statusCode = 201;
+    it('should send success response with custom status code', () => {
+      const data = { message: 'Created successfully' };
+      const customStatusCode = 201;
 
-      sendSuccess(res, data, statusCode);
+      sendSuccess(mockResponse as Response, data, customStatusCode);
 
-      expect(res.status).toHaveBeenCalledWith(statusCode);
-      expect(res.json).toHaveBeenCalledWith({
+      expect(mockResponse.status).toHaveBeenCalledWith(201);
+      expect(mockResponse.json).toHaveBeenCalledWith({
         success: true,
-        ...data,
+        message: 'Created successfully',
       });
     });
 
     it('should handle empty data object', () => {
-      sendSuccess(res, {});
+      const data = {};
 
-      expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({
+      sendSuccess(mockResponse as Response, data);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith({
         success: true,
+      });
+    });
+
+    it('should handle null data', () => {
+      const data = null;
+
+      sendSuccess(mockResponse as Response, data);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: true,
+      });
+    });
+
+    it('should spread nested object properties', () => {
+      const data = {
+        user: { id: 1, name: 'John' },
+        count: 5,
+        items: ['a', 'b', 'c'],
+      };
+
+      sendSuccess(mockResponse as Response, data);
+
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: true,
+        user: { id: 1, name: 'John' },
+        count: 5,
+        items: ['a', 'b', 'c'],
       });
     });
   });
 
   describe('sendNoContent', () => {
-    it('should send a no content response with status code 204', () => {
-      sendNoContent(res);
+    it('should send 204 status with no content', () => {
+      sendNoContent(mockResponse as Response);
 
-      expect(res.status).toHaveBeenCalledWith(204);
-      expect(res.send).toHaveBeenCalled();
+      expect(mockResponse.status).toHaveBeenCalledWith(204);
+      expect(mockResponse.send).toHaveBeenCalledWith();
     });
   });
 
   describe('sendError', () => {
-    it('should send an error response with default status code 500', () => {
+    it('should send error response with Error instance and default status code', () => {
       const message = 'Something went wrong';
-      const error = new Error('Test error');
+      const error = new Error('Database connection failed');
 
-      sendError(res, message, error);
+      sendError(mockResponse as Response, message, error);
 
-      expect(console.error).toHaveBeenCalledWith(`Error: ${message}`, error);
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({
+      expect(consoleErrorSpy).toHaveBeenCalledWith(`Error: ${message}`, error);
+      expect(mockResponse.status).toHaveBeenCalledWith(500);
+      expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
-        message,
-        error: error.message,
+        message: 'Something went wrong',
+        error: 'Database connection failed',
       });
     });
 
-    it('should send an error response with custom status code', () => {
-      const message = 'Not found';
-      const error = new Error('Resource not found');
-      const statusCode = 404;
+    it('should send error response with Error instance and custom status code', () => {
+      const message = 'Validation failed';
+      const error = new Error('Invalid input data');
+      const statusCode = 422;
 
-      sendError(res, message, error, statusCode);
+      sendError(mockResponse as Response, message, error, statusCode);
 
-      expect(console.error).toHaveBeenCalledWith(`Error: ${message}`, error);
-      expect(res.status).toHaveBeenCalledWith(statusCode);
-      expect(res.json).toHaveBeenCalledWith({
+      expect(consoleErrorSpy).toHaveBeenCalledWith(`Error: ${message}`, error);
+      expect(mockResponse.status).toHaveBeenCalledWith(422);
+      expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
-        message,
-        error: error.message,
+        message: 'Validation failed',
+        error: 'Invalid input data',
       });
     });
 
-    it('should handle non-Error objects', () => {
-      const message = 'Something went wrong';
-      const error = 'String error'; // Not an Error object
+    it('should handle non-Error instance and return "Unknown error"', () => {
+      const message = 'Unexpected failure';
+      const error = 'String error message';
 
-      sendError(res, message, error);
+      sendError(mockResponse as Response, message, error);
 
-      expect(console.error).toHaveBeenCalledWith(`Error: ${message}`, error);
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({
+      expect(consoleErrorSpy).toHaveBeenCalledWith(`Error: ${message}`, error);
+      expect(mockResponse.status).toHaveBeenCalledWith(500);
+      expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
-        message,
+        message: 'Unexpected failure',
+        error: 'Unknown error',
+      });
+    });
+
+    it('should handle null error', () => {
+      const message = 'Null error occurred';
+      const error = null;
+
+      sendError(mockResponse as Response, message, error);
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(`Error: ${message}`, error);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Null error occurred',
         error: 'Unknown error',
       });
     });
 
     it('should handle undefined error', () => {
-      const message = 'Something went wrong';
+      const message = 'Undefined error occurred';
+      const error = undefined;
 
-      sendError(res, message, undefined);
+      sendError(mockResponse as Response, message, error);
 
-      expect(console.error).toHaveBeenCalledWith(`Error: ${message}`, undefined);
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({
+      expect(consoleErrorSpy).toHaveBeenCalledWith(`Error: ${message}`, error);
+      expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
-        message,
+        message: 'Undefined error occurred',
+        error: 'Unknown error',
+      });
+    });
+
+    it('should handle object that is not an Error instance', () => {
+      const message = 'Custom object error';
+      const error = { code: 'CUSTOM_ERROR', details: 'Something failed' };
+
+      sendError(mockResponse as Response, message, error);
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(`Error: ${message}`, error);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Custom object error',
+        error: 'Unknown error',
+      });
+    });
+
+    it('should handle number as error', () => {
+      const message = 'Numeric error';
+      const error = 404;
+
+      sendError(mockResponse as Response, message, error);
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(`Error: ${message}`, error);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Numeric error',
         error: 'Unknown error',
       });
     });
   });
 
   describe('sendBadRequest', () => {
-    it('should send a bad request response with status code 400', () => {
-      const message = 'Invalid request';
+    it('should send 400 bad request response', () => {
+      const message = 'Invalid request data';
 
-      sendBadRequest(res, message);
+      sendBadRequest(mockResponse as Response, message);
 
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
-        message,
+        message: 'Invalid request data',
       });
+    });
+
+    it('should handle empty message', () => {
+      const message = '';
+
+      sendBadRequest(mockResponse as Response, message);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message: '',
+      });
+    });
+  });
+
+  describe('Response method chaining', () => {
+    it('should verify all functions return void and work with method chaining', () => {
+      const data = { test: true };
+      const error = new Error('Test error');
+
+      expect(() => {
+        sendSuccess(mockResponse as Response, data);
+        sendNoContent(mockResponse as Response);
+        sendError(mockResponse as Response, 'Test', error);
+        sendBadRequest(mockResponse as Response, 'Test');
+      }).not.toThrow();
+
+      expect(mockResponse.status).toHaveReturnedWith(mockResponse);
+      expect(mockResponse.json).toHaveReturnedWith(mockResponse);
+      expect(mockResponse.send).toHaveReturnedWith(mockResponse);
     });
   });
 });
