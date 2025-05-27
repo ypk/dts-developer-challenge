@@ -191,7 +191,7 @@ describe('Error Middleware', () => {
     });
 
     it('should use existing non-200 status code if present', () => {
-      mockResponse.statusCode = 418; // I'm a teapot
+      mockResponse.statusCode = 418;
       const error = new Error('Generic error');
 
       APIErrorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);

@@ -273,7 +273,7 @@ describe('Rate Limit Middleware', () => {
 
       speedLimiter(mockRequest as Request, mockResponse as Response, mockNext);
 
-      expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 300); // (53-50) * 100 = 300ms
+      expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 300);
 
       const entry = speedRequestStore.get(ip);
       expect(entry?.count).toBe(53);
@@ -304,7 +304,7 @@ describe('Rate Limit Middleware', () => {
 
     it('should reset counts when reset time is passed', () => {
       const ip = getClientIp(mockRequest as Request);
-      const pastTime = Date.now() - 1000; // 1 second in the past
+      const pastTime = Date.now() - 1000;
 
       speedRequestStore.set(ip, {
         count: 100,

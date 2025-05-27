@@ -316,7 +316,6 @@ describe('viewHelpers', () => {
     it('should handle getFormData with non-object session that is not undefined', () => {
       const fallbackData = { test: 'value' };
 
-      // These will cause errors when trying to access .formData, so we test objects instead
       expect(getFormData({ formData: false }, fallbackData)).toEqual(fallbackData);
       expect(getFormData({ formData: 0 }, fallbackData)).toEqual(fallbackData);
       expect(getFormData({ formData: '' }, fallbackData)).toEqual(fallbackData);
@@ -333,8 +332,6 @@ describe('viewHelpers', () => {
     });
 
     it('should handle messages with non-array error values gracefully', () => {
-      // These functions expect error to be an array, so non-arrays will cause errors
-      // We should test the actual behavior they were designed for
       const validMessages = {
         error: ['Valid error message'],
       };

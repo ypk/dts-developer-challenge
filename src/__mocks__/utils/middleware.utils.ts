@@ -3,6 +3,12 @@ import fs from 'fs';
 import path from 'path';
 import logSymbols from 'log-symbols';
 
+/**
+ * Safely applies middleware to an Express application with error handling and logging.
+ * @param {Application} app - The Express application instance
+ * @param {string} name - The name of the middleware for logging purposes
+ * @param {() => void} fn - The middleware function to be applied
+ */
 export const safelyApplyMiddleware = (app: Application, name: string, fn: () => void): void => {
   try {
     fn();
@@ -16,6 +22,11 @@ export const safelyApplyMiddleware = (app: Application, name: string, fn: () => 
   }
 };
 
+/**
+ * Retrieves the contents of an SVG file from a mock path.
+ * @param {string} filename - The name of the SVG file to read
+ * @returns {string} The contents of the SVG file or an empty string if an error occurs
+ */
 export const getSVG = (filename: string): string => {
   try {
     const mockPath = path.join('/mock/path', filename);
@@ -26,6 +37,11 @@ export const getSVG = (filename: string): string => {
   }
 };
 
+/**
+ * Formats a status string by converting it from snake_case to Title Case.
+ * @param {string} text - The input status string
+ * @returns {string} The formatted status string or an empty string if input is empty
+ */
 export const formatStatus = (text: string): string => {
   if (!text) return '';
 

@@ -102,7 +102,7 @@ describe('CaseService', () => {
       const result = await caseService.getAllCasesPaginated();
 
       expect(CaseRepositoryInstance.findAllPaginated).toHaveBeenCalledTimes(1);
-      expect(CaseRepositoryInstance.findAllPaginated).toHaveBeenCalledWith(0, 10); // (page - 1) * limit = (1 - 1) * 10 = 0
+      expect(CaseRepositoryInstance.findAllPaginated).toHaveBeenCalledWith(0, 10);
       expect(result).toEqual(mockPaginatedResult);
     });
 
@@ -112,7 +112,7 @@ describe('CaseService', () => {
       const result = await caseService.getAllCasesPaginated(3, 5);
 
       expect(CaseRepositoryInstance.findAllPaginated).toHaveBeenCalledTimes(1);
-      expect(CaseRepositoryInstance.findAllPaginated).toHaveBeenCalledWith(10, 5); // (3 - 1) * 5 = 10
+      expect(CaseRepositoryInstance.findAllPaginated).toHaveBeenCalledWith(10, 5);
       expect(result).toEqual(mockPaginatedResult);
     });
 
@@ -121,7 +121,7 @@ describe('CaseService', () => {
 
       const result = await caseService.getAllCasesPaginated(1, 20);
 
-      expect(CaseRepositoryInstance.findAllPaginated).toHaveBeenCalledWith(0, 20); // (1 - 1) * 20 = 0
+      expect(CaseRepositoryInstance.findAllPaginated).toHaveBeenCalledWith(0, 20);
       expect(result).toEqual(mockPaginatedResult);
     });
 
@@ -130,7 +130,7 @@ describe('CaseService', () => {
 
       const result = await caseService.getAllCasesPaginated(100, 25);
 
-      expect(CaseRepositoryInstance.findAllPaginated).toHaveBeenCalledWith(2475, 25); // (100 - 1) * 25 = 2475
+      expect(CaseRepositoryInstance.findAllPaginated).toHaveBeenCalledWith(2475, 25);
       expect(result).toEqual(mockPaginatedResult);
     });
 
@@ -141,7 +141,7 @@ describe('CaseService', () => {
       await expect(caseService.getAllCasesPaginated(2, 15)).rejects.toThrow(
         'Database pagination failed',
       );
-      expect(CaseRepositoryInstance.findAllPaginated).toHaveBeenCalledWith(15, 15); // (2 - 1) * 15 = 15
+      expect(CaseRepositoryInstance.findAllPaginated).toHaveBeenCalledWith(15, 15);
     });
   });
 

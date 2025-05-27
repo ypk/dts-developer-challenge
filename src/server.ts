@@ -1,7 +1,6 @@
 import express from 'express';
 import dotenv from 'dotenv';
-import { fileURLToPath } from 'url';
-import path, { dirname } from 'path';
+import path from 'path';
 import cors from 'cors';
 import logSymbols from 'log-symbols';
 import apiRoutes from './routes/api.routes.ts';
@@ -38,13 +37,11 @@ const generateSessionSecret = () => {
 const apiPath = '/api';
 const authPath = '/api/auth';
 const assetsPath = '/assets';
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
-const staticAssetsPath = path.join(__dirname, '../public/assets');
-const viewPath = path.join(__dirname, './views');
-const sassSrcPath = path.join(__dirname, './assets/sass');
-const sassDestPath = path.join(__dirname, '../public/assets/stylesheets');
+const staticAssetsPath = path.join(process.cwd(), 'public/assets');
+const viewPath = path.join(process.cwd(), 'src/views');
+const sassSrcPath = path.join(process.cwd(), 'src/assets/sass');
+const sassDestPath = path.join(process.cwd(), 'public/assets/stylesheets');
 
 const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development';
 

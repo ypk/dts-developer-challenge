@@ -1,9 +1,7 @@
-// Mock Express first, before any other imports
 jest.mock('express', () => ({
   static: jest.fn(),
 }));
 
-// Mock swagger dependencies before importing them
 jest.mock('swagger-jsdoc');
 jest.mock('swagger-ui-express', () => ({
   serve: jest.fn(),

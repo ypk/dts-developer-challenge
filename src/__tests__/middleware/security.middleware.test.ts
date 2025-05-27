@@ -569,7 +569,7 @@ describe('Security Middleware', () => {
       });
     });
 
-    it('should handle non-Error instances in catch block (line 171)', async () => {
+    it('should handle non-Error instances in catch block', async () => {
       jest.resetModules();
       jest.clearAllMocks();
 

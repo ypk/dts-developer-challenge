@@ -187,7 +187,7 @@ describe('View Routes', () => {
       }
     });
 
-    it('should handle invalid dates in case creation (line 43)', async () => {
+    it('should handle invalid dates in case creation', async () => {
       const handler = routeHandlers['POST /cases'];
       if (handler) {
         mockRequest.body = {
@@ -235,7 +235,7 @@ describe('View Routes', () => {
   });
 
   describe('POST /cases (Create case)', () => {
-    it('should successfully create case and redirect (lines 103-119)', async () => {
+    it('should successfully create case and redirect', async () => {
       const handler = routeHandlers['POST /cases'];
       if (handler) {
         mockRequest.body = {
@@ -333,7 +333,7 @@ describe('View Routes', () => {
   });
 
   describe('PUT /cases/:id error handling', () => {
-    it('should handle non-Error instances in catch block (line 221)', async () => {
+    it('should handle non-Error instances in catch block', async () => {
       const handler = routeHandlers['PUT /cases/:id'];
       if (handler) {
         mockRequest.params = { id: '1' };
@@ -351,7 +351,7 @@ describe('View Routes', () => {
   });
 
   describe('GET /cases/:id/delete error handling', () => {
-    it('should handle non-Error instances in catch block (line 252)', async () => {
+    it('should handle non-Error instances in catch block', async () => {
       const handler = routeHandlers['GET /cases/:id/delete'];
       if (handler) {
         mockRequest.params = { id: '1' };
