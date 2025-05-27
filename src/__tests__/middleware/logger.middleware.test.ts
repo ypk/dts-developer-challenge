@@ -103,7 +103,7 @@ describe('Logger Middleware', () => {
   });
 
   it('should log request information when a request is received', async () => {
-    const { requestLogger, logger } = await import('../../middleware/logger.middleware.js');
+    const { requestLogger, logger } = await import('../../middleware/logger.middleware.ts');
 
     requestLogger(mockRequest as Request, mockResponse as Response, nextFunction);
 
@@ -126,7 +126,7 @@ describe('Logger Middleware', () => {
 
     Date.now = jest.fn().mockReturnValueOnce(mockStartTime).mockReturnValueOnce(mockEndTime);
 
-    const { requestLogger, logger } = await import('../../middleware/logger.middleware.js');
+    const { requestLogger, logger } = await import('../../middleware/logger.middleware.ts');
 
     requestLogger(mockRequest as Request, mockResponse as Response, nextFunction);
 
@@ -152,7 +152,7 @@ describe('Logger Middleware', () => {
 
     Date.now = jest.fn().mockReturnValueOnce(mockStartTime).mockReturnValueOnce(mockEndTime);
 
-    const { requestLogger, logger } = await import('../../middleware/logger.middleware.js');
+    const { requestLogger, logger } = await import('../../middleware/logger.middleware.ts');
 
     mockResponse.statusCode = 500;
 
@@ -182,7 +182,7 @@ describe('Logger Middleware', () => {
       { statusCode: 500, expectedLevel: 'error' },
     ];
 
-    const { requestLogger, logger } = await import('../../middleware/logger.middleware.js');
+    const { requestLogger, logger } = await import('../../middleware/logger.middleware.ts');
 
     for (const { statusCode, expectedLevel } of testCases) {
       jest.clearAllMocks();
@@ -207,7 +207,7 @@ describe('Logger Middleware', () => {
   });
 
   it('should handle missing IP address', async () => {
-    const { requestLogger, logger } = await import('../../middleware/logger.middleware.js');
+    const { requestLogger, logger } = await import('../../middleware/logger.middleware.ts');
 
     const requestWithoutIp: Partial<Request> = {
       method: 'GET',
@@ -233,7 +233,7 @@ describe('Logger Middleware', () => {
   });
 
   it('should handle missing user agent', async () => {
-    const { requestLogger, logger } = await import('../../middleware/logger.middleware.js');
+    const { requestLogger, logger } = await import('../../middleware/logger.middleware.ts');
 
     (mockRequest.get as jest.Mock).mockReturnValueOnce(undefined);
 
@@ -247,7 +247,7 @@ describe('Logger Middleware', () => {
   });
 
   it('should handle response without statusCode', async () => {
-    const { requestLogger, logger } = await import('../../middleware/logger.middleware.js');
+    const { requestLogger, logger } = await import('../../middleware/logger.middleware.ts');
 
     const responseWithoutStatusCode: Partial<Response> = {
       on: mockResponse.on,
@@ -277,7 +277,7 @@ describe('Logger Middleware', () => {
 
       const winston = await import('winston');
 
-      await import('../../middleware/logger.middleware.js');
+      await import('../../middleware/logger.middleware.ts');
 
       expect(winston.transports.Console).toHaveBeenCalledTimes(1);
       expect(winston.transports.File).not.toHaveBeenCalled();
@@ -290,7 +290,7 @@ describe('Logger Middleware', () => {
 
       const winston = await import('winston');
 
-      await import('../../middleware/logger.middleware.js');
+      await import('../../middleware/logger.middleware.ts');
 
       expect(winston.transports.Console).toHaveBeenCalledTimes(1);
       expect(winston.transports.File).toHaveBeenCalledTimes(2);
