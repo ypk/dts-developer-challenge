@@ -394,6 +394,17 @@ describe('Security Middleware', () => {
   });
 
   describe('securityHeaders middleware', () => {
+    it('should verify logger mock is working', async () => {
+      jest.resetModules();
+      jest.clearAllMocks();
+
+      const { logger } = await import('../../middleware/logger.middleware.ts');
+
+      logger.error('test message', { test: 'data' });
+
+      expect(logger.error).toHaveBeenCalledWith('test message', { test: 'data' });
+    });
+
     it('should set all security headers correctly in test environment', async () => {
       process.env.NODE_ENV = 'test';
 
@@ -525,6 +536,221 @@ describe('Security Middleware', () => {
       }).not.toThrow();
 
       expect(mockNext).toHaveBeenCalled();
+    });
+
+    it('should handle Error instances in catch block', async () => {
+      jest.resetModules();
+      jest.clearAllMocks();
+
+      process.env.NODE_ENV = 'development';
+
+      const freshMockResponse = {
+        setHeader: jest.fn(() => {
+          throw new Error('Specific error message');
+        }),
+        removeHeader: jest.fn(),
+      };
+
+      const freshMockRequest = {};
+      const freshMockNext = jest.fn();
+
+      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { logger } = await import('../../middleware/logger.middleware.ts');
+
+      securityHeaders(
+        freshMockRequest as Request,
+        freshMockResponse as unknown as Response,
+        freshMockNext,
+      );
+
+      expect(freshMockNext).toHaveBeenCalled();
+      expect(logger.error).toHaveBeenCalledWith('Error applying security headers', {
+        error: 'Specific error message',
+      });
+    });
+
+    it('should handle non-Error instances in catch block (line 171)', async () => {
+      jest.resetModules();
+      jest.clearAllMocks();
+
+      process.env.NODE_ENV = 'development';
+
+      const freshMockResponse = {
+        setHeader: jest.fn(() => {
+          throw 'String error';
+        }),
+        removeHeader: jest.fn(),
+      };
+
+      const freshMockRequest = {};
+      const freshMockNext = jest.fn();
+
+      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { logger } = await import('../../middleware/logger.middleware.ts');
+
+      securityHeaders(
+        freshMockRequest as Request,
+        freshMockResponse as unknown as Response,
+        freshMockNext,
+      );
+
+      expect(freshMockNext).toHaveBeenCalled();
+      expect(logger.error).toHaveBeenCalledWith('Error applying security headers', {
+        error: 'Unknown error',
+      });
+    });
+
+    it('should handle different types of non-Error throws', async () => {
+      const testCases = [
+        { value: null, expected: 'Unknown error' },
+        { value: undefined, expected: 'Unknown error' },
+        { value: 42, expected: 'Unknown error' },
+        { value: { message: 'not an error' }, expected: 'Unknown error' },
+        { value: 'string error', expected: 'Unknown error' },
+        { value: new Error('real error'), expected: 'real error' },
+        { value: new Error(''), expected: '' },
+      ];
+
+      for (const testCase of testCases) {
+        jest.resetModules();
+        jest.clearAllMocks();
+
+        process.env.NODE_ENV = 'development';
+
+        const freshMockResponse = {
+          setHeader: jest.fn(() => {
+            throw testCase.value;
+          }),
+          removeHeader: jest.fn(),
+        };
+
+        const freshMockRequest = {};
+        const freshMockNext = jest.fn();
+
+        const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+        const { logger } = await import('../../middleware/logger.middleware.ts');
+
+        securityHeaders(
+          freshMockRequest as Request,
+          freshMockResponse as unknown as Response,
+          freshMockNext,
+        );
+
+        expect(freshMockNext).toHaveBeenCalled();
+        expect(logger.error).toHaveBeenCalledWith('Error applying security headers', {
+          error: testCase.expected,
+        });
+      }
+    });
+
+    it('should handle errors from removeHeader', async () => {
+      jest.resetModules();
+      jest.clearAllMocks();
+
+      process.env.NODE_ENV = 'production';
+
+      const freshMockResponse = {
+        setHeader: jest.fn(),
+        removeHeader: jest.fn(() => {
+          throw new Error('RemoveHeader failed');
+        }),
+      };
+
+      const freshMockRequest = {};
+      const freshMockNext = jest.fn();
+
+      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { logger } = await import('../../middleware/logger.middleware.ts');
+
+      securityHeaders(
+        freshMockRequest as Request,
+        freshMockResponse as unknown as Response,
+        freshMockNext,
+      );
+
+      expect(freshMockNext).toHaveBeenCalled();
+      expect(logger.error).toHaveBeenCalledWith('Error applying security headers', {
+        error: 'RemoveHeader failed',
+      });
+    });
+
+    it('should handle non-Error from removeHeader', async () => {
+      jest.resetModules();
+      jest.clearAllMocks();
+
+      process.env.NODE_ENV = 'production';
+
+      const freshMockResponse = {
+        setHeader: jest.fn(),
+        removeHeader: jest.fn(() => {
+          throw { code: 'REMOVE_FAILED' };
+        }),
+      };
+
+      const freshMockRequest = {};
+      const freshMockNext = jest.fn();
+
+      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { logger } = await import('../../middleware/logger.middleware.ts');
+
+      securityHeaders(
+        freshMockRequest as Request,
+        freshMockResponse as unknown as Response,
+        freshMockNext,
+      );
+
+      expect(freshMockNext).toHaveBeenCalled();
+      expect(logger.error).toHaveBeenCalledWith('Error applying security headers', {
+        error: 'Unknown error',
+      });
+    });
+
+    it('should test ternary operator branches explicitly', async () => {
+      jest.resetModules();
+      jest.clearAllMocks();
+
+      process.env.NODE_ENV = 'development';
+
+      const errorBranchResponse = {
+        setHeader: jest.fn(() => {
+          throw new Error('Error branch test');
+        }),
+        removeHeader: jest.fn(),
+      };
+
+      let module = await import('../../middleware/security.middleware.ts');
+      let loggerModule = await import('../../middleware/logger.middleware.ts');
+
+      module.securityHeaders({} as Request, errorBranchResponse as unknown as Response, jest.fn());
+
+      expect(loggerModule.logger.error).toHaveBeenCalledWith('Error applying security headers', {
+        error: 'Error branch test',
+      });
+
+      jest.resetModules();
+      jest.clearAllMocks();
+
+      process.env.NODE_ENV = 'development';
+
+      const nonErrorBranchResponse = {
+        setHeader: jest.fn(() => {
+          throw 'Non-error branch test';
+        }),
+        removeHeader: jest.fn(),
+      };
+
+      module = await import('../../middleware/security.middleware.ts');
+      loggerModule = await import('../../middleware/logger.middleware.ts');
+
+      module.securityHeaders(
+        {} as Request,
+        nonErrorBranchResponse as unknown as Response,
+        jest.fn(),
+      );
+
+      expect(loggerModule.logger.error).toHaveBeenCalledWith('Error applying security headers', {
+        error: 'Unknown error',
+      });
     });
   });
 

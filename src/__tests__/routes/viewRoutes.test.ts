@@ -12,10 +12,8 @@ const mockExpress = {
   Router: jest.fn(() => mockRouter),
 };
 
-// Mock Express before any imports
 jest.mock('express', () => mockExpress);
 
-// Mock other dependencies
 jest.mock('../../services/CaseService.ts', () => ({
   CaseServiceInstance: {
     getAllCasesPaginated: jest.fn(),
@@ -45,7 +43,6 @@ describe('View Routes', () => {
   let mockNext: jest.Mock;
   const routeHandlers: { [key: string]: Function } = {};
 
-  // Create a proper mock session
   const createMockSession = (data: any = {}) => ({
     id: 'test-session-id',
     cookie: {
@@ -63,10 +60,8 @@ describe('View Routes', () => {
   });
 
   beforeAll(async () => {
-    // Import the module after mocks are set up
     await import('../../routes/viewRoutes.ts');
 
-    // Extract all route handlers
     mockRouter.get.mock.calls.forEach((call) => {
       const [path, ...handlers] = call;
       routeHandlers[`GET ${path}`] = handlers[handlers.length - 1];
@@ -89,7 +84,6 @@ describe('View Routes', () => {
   });
 
   beforeEach(() => {
-    // Clear only service mocks, not router setup
     (CaseServiceInstance.getAllCasesPaginated as jest.Mock).mockClear();
     (CaseServiceInstance.getCaseById as jest.Mock).mockClear();
     (CaseServiceInstance.createCase as jest.Mock).mockClear();
@@ -127,6 +121,249 @@ describe('View Routes', () => {
     it('should export router', async () => {
       const routesModule = await import('../../routes/viewRoutes.ts');
       expect(routesModule.default).toBe(mockRouter);
+    });
+  });
+
+  describe('Error handling with handleErrorWithRedirect', () => {
+    it('should handle Error instances', async () => {
+      const handler = routeHandlers['GET /cases'];
+      if (handler) {
+        const error = new Error('Test error message');
+        error.stack = 'Test stack trace';
+        (CaseServiceInstance.getAllCasesPaginated as jest.Mock).mockRejectedValue(error);
+
+        await handler(mockRequest as Request, mockResponse as Response, mockNext);
+
+        expect(mockResponse.render).toHaveBeenCalledWith(
+          'pages/error',
+          expect.objectContaining({
+            errorMessage: 'Test error message',
+            errorStack: 'Test stack trace',
+          }),
+        );
+      }
+    });
+
+    it('should handle non-Error instances', async () => {
+      const handler = routeHandlers['GET /cases'];
+      if (handler) {
+        const nonError = 'String error';
+        (CaseServiceInstance.getAllCasesPaginated as jest.Mock).mockRejectedValue(nonError);
+
+        await handler(mockRequest as Request, mockResponse as Response, mockNext);
+
+        expect(mockResponse.render).toHaveBeenCalledWith(
+          'pages/error',
+          expect.objectContaining({
+            errorMessage: 'An error occurred while loading cases',
+            errorStack: '',
+          }),
+        );
+      }
+    });
+  });
+
+  describe('Date parsing (parseDate function)', () => {
+    it('should handle valid dates in case creation', async () => {
+      const handler = routeHandlers['POST /cases'];
+      if (handler) {
+        mockRequest.body = {
+          title: 'Test Case',
+          description: 'Test description',
+          status: 'PENDING',
+          dueDate: '2023-12-31',
+        };
+
+        const newCase = { id: 1, ...mockRequest.body };
+        (CaseServiceInstance.createCase as jest.Mock).mockResolvedValue(newCase);
+
+        await handler(mockRequest as Request, mockResponse as Response, mockNext);
+
+        expect(CaseServiceInstance.createCase).toHaveBeenCalledWith(
+          expect.objectContaining({
+            dueDate: new Date('2023-12-31'),
+          }),
+        );
+      }
+    });
+
+    it('should handle invalid dates in case creation (line 43)', async () => {
+      const handler = routeHandlers['POST /cases'];
+      if (handler) {
+        mockRequest.body = {
+          title: 'Test Case',
+          description: 'Test description',
+          status: 'PENDING',
+          dueDate: 'invalid-date-string',
+        };
+
+        const newCase = { id: 1, ...mockRequest.body };
+        (CaseServiceInstance.createCase as jest.Mock).mockResolvedValue(newCase);
+
+        await handler(mockRequest as Request, mockResponse as Response, mockNext);
+
+        expect(CaseServiceInstance.createCase).toHaveBeenCalledWith(
+          expect.objectContaining({
+            dueDate: null,
+          }),
+        );
+      }
+    });
+
+    it('should handle empty date string', async () => {
+      const handler = routeHandlers['POST /cases'];
+      if (handler) {
+        mockRequest.body = {
+          title: 'Test Case',
+          description: 'Test description',
+          status: 'PENDING',
+          dueDate: '',
+        };
+
+        const newCase = { id: 1, ...mockRequest.body };
+        (CaseServiceInstance.createCase as jest.Mock).mockResolvedValue(newCase);
+
+        await handler(mockRequest as Request, mockResponse as Response, mockNext);
+
+        expect(CaseServiceInstance.createCase).toHaveBeenCalledWith(
+          expect.objectContaining({
+            dueDate: null,
+          }),
+        );
+      }
+    });
+  });
+
+  describe('POST /cases (Create case)', () => {
+    it('should successfully create case and redirect (lines 103-119)', async () => {
+      const handler = routeHandlers['POST /cases'];
+      if (handler) {
+        mockRequest.body = {
+          title: 'New Test Case',
+          description: 'Test description',
+          status: 'PENDING',
+          dueDate: '2023-12-31',
+        };
+
+        const newCase = { id: 42, ...mockRequest.body };
+        (CaseServiceInstance.createCase as jest.Mock).mockResolvedValue(newCase);
+
+        await handler(mockRequest as Request, mockResponse as Response, mockNext);
+
+        expect(CaseServiceInstance.createCase).toHaveBeenCalledWith({
+          title: 'New Test Case',
+          description: 'Test description',
+          status: 'PENDING',
+          dueDate: new Date('2023-12-31'),
+        });
+        expect(mockRequest.flash).toHaveBeenCalledWith('success', 'Case created successfully');
+        expect(mockResponse.redirect).toHaveBeenCalledWith('/cases/42');
+      }
+    });
+
+    it('should handle case creation with undefined description', async () => {
+      const handler = routeHandlers['POST /cases'];
+      if (handler) {
+        mockRequest.body = {
+          title: 'New Test Case',
+          status: 'PENDING',
+        };
+
+        const newCase = { id: 42, ...mockRequest.body };
+        (CaseServiceInstance.createCase as jest.Mock).mockResolvedValue(newCase);
+
+        await handler(mockRequest as Request, mockResponse as Response, mockNext);
+
+        expect(CaseServiceInstance.createCase).toHaveBeenCalledWith({
+          title: 'New Test Case',
+          description: undefined,
+          status: 'PENDING',
+          dueDate: null,
+        });
+      }
+    });
+
+    it('should handle Error instances in catch block', async () => {
+      const handler = routeHandlers['POST /cases'];
+      if (handler) {
+        mockRequest.body = {
+          title: 'Test Case',
+          description: 'Test description',
+          status: 'PENDING',
+        };
+
+        const error = new Error('Database connection failed');
+        (CaseServiceInstance.createCase as jest.Mock).mockRejectedValue(error);
+
+        await handler(mockRequest as Request, mockResponse as Response, mockNext);
+
+        expect(mockRequest.flash).toHaveBeenCalledWith('error', 'Database connection failed');
+        expect(mockResponse.render).toHaveBeenCalledWith(
+          'pages/cases/new',
+          expect.objectContaining({
+            error: 'Database connection failed',
+          }),
+        );
+      }
+    });
+
+    it('should handle non-Error instances in catch block', async () => {
+      const handler = routeHandlers['POST /cases'];
+      if (handler) {
+        mockRequest.body = {
+          title: 'Test Case',
+          description: 'Test description',
+          status: 'PENDING',
+        };
+
+        const nonError = { code: 'CONSTRAINT_ERROR' };
+        (CaseServiceInstance.createCase as jest.Mock).mockRejectedValue(nonError);
+
+        await handler(mockRequest as Request, mockResponse as Response, mockNext);
+
+        expect(mockRequest.flash).toHaveBeenCalledWith('error', 'An error occurred');
+        expect(mockResponse.render).toHaveBeenCalledWith(
+          'pages/cases/new',
+          expect.objectContaining({
+            error: 'An error occurred',
+          }),
+        );
+      }
+    });
+  });
+
+  describe('PUT /cases/:id error handling', () => {
+    it('should handle non-Error instances in catch block (line 221)', async () => {
+      const handler = routeHandlers['PUT /cases/:id'];
+      if (handler) {
+        mockRequest.params = { id: '1' };
+        mockRequest.body = { title: 'Updated Case' };
+
+        const nonError = { code: 'DATABASE_CONSTRAINT' };
+        (CaseServiceInstance.updateCase as jest.Mock).mockRejectedValue(nonError);
+
+        await handler(mockRequest as Request, mockResponse as Response, mockNext);
+
+        expect(mockRequest.flash).toHaveBeenCalledWith('error', 'An error occurred');
+        expect(mockResponse.redirect).toHaveBeenCalledWith('/cases/1/edit');
+      }
+    });
+  });
+
+  describe('GET /cases/:id/delete error handling', () => {
+    it('should handle non-Error instances in catch block (line 252)', async () => {
+      const handler = routeHandlers['GET /cases/:id/delete'];
+      if (handler) {
+        mockRequest.params = { id: '1' };
+
+        const nonError = { message: 'Database unavailable' };
+        (CaseServiceInstance.getCaseById as jest.Mock).mockRejectedValue(nonError);
+
+        await handler(mockRequest as Request, mockResponse as Response, mockNext);
+
+        expect(mockRequest.flash).toHaveBeenCalledWith('error', 'An error occurred');
+        expect(mockResponse.redirect).toHaveBeenCalledWith('/cases');
+      }
     });
   });
 
@@ -225,43 +462,13 @@ describe('View Routes', () => {
     });
   });
 
-  // describe('PUT /cases/:id (Update case)', () => {
-  //   it('should handle missing title validation', async () => {
-  //     const handler = routeHandlers['PUT /cases/:id'];
-  //     if (handler) {
-  //       mockRequest.params = { id: '1' };
-  //       mockRequest.body = { title: '' }; // Empty title
-
-  //       await handler(mockRequest as Request, mockResponse as Response, mockNext);
-
-  //       expect(mockRequest.flash).toHaveBeenCalledWith('error', 'Title is required');
-  //       expect(mockResponse.redirect).toHaveBeenCalledWith('/cases/1/edit');
-  //     }
-  //   });
-
-  //   it('should handle NotFoundError during update', async () => {
-  //     const handler = routeHandlers['PUT /cases/:id'];
-  //     if (handler) {
-  //       mockRequest.params = { id: '999' };
-  //       mockRequest.body = { title: 'Valid Title' };
-
-  //       (CaseServiceInstance.updateCase as jest.Mock).mockRejectedValue(new NotFoundError('Case not found'));
-
-  //       await handler(mockRequest as Request, mockResponse as Response, mockNext);
-
-  //       expect(mockRequest.flash).toHaveBeenCalledWith('error', 'Case not found');
-  //       expect(mockResponse.redirect).toHaveBeenCalledWith('/cases');
-  //     }
-  //   });
-  // });
-
   describe('PUT /cases/:id (Update case)', () => {
     it('should successfully update case and redirect', async () => {
       const handler = routeHandlers['PUT /cases/:id'];
       if (handler) {
         mockRequest.params = { id: '1' };
         mockRequest.body = {
-          title: 'Updated Case Title', // Valid non-empty title
+          title: 'Updated Case Title',
           description: 'Updated description',
           status: 'IN_PROGRESS',
         };
@@ -288,7 +495,7 @@ describe('View Routes', () => {
       const handler = routeHandlers['PUT /cases/:id'];
       if (handler) {
         mockRequest.params = { id: '1' };
-        mockRequest.body = { title: '' }; // Empty title
+        mockRequest.body = { title: '' };
 
         await handler(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -400,7 +607,7 @@ describe('View Routes', () => {
     it('should render error page with default values', async () => {
       const handler = routeHandlers['GET /error'];
       if (handler) {
-        mockRequest.query = {}; // No query parameters
+        mockRequest.query = {};
 
         await handler(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -502,7 +709,6 @@ describe('View Routes', () => {
 
           await handler(mockRequest as Request, mockResponse as Response, mockNext);
 
-          // Check that either render OR redirect was called
           expect(
             ((mockResponse.render as jest.Mock)?.mock?.calls.length ?? 0) +
               ((mockResponse.redirect as jest.Mock)?.mock?.calls.length ?? 0),
@@ -543,13 +749,11 @@ describe('View Routes', () => {
 
         await handler(mockRequest as Request, mockResponse as Response, mockNext);
 
-        // Should handle the error somehow
         expect(
           ((mockResponse.render as jest.Mock | undefined)?.mock?.calls.length ?? 0) +
             ((mockResponse.redirect as jest.Mock | undefined)?.mock?.calls.length ?? 0),
         ).toBeGreaterThan(0);
 
-        // Reset mocks for next iteration
         (mockResponse.render as jest.Mock)?.mockClear();
         (mockResponse.redirect as jest.Mock)?.mockClear();
       }
