@@ -26,9 +26,10 @@
     "test:coverage": "jest --coverage",
     "prisma:generate": "prisma generate --schema=./prisma/schema.prisma",
     "prisma:migrate": "prisma migrate deploy",
+    "prisma:seed": "cross-env NODE_OPTIONS=\"--import tsx/esm\" node prisma/seed.ts",
     "prisma:dev:migrate": "npx prisma migrate dev --name init",
     "prisma:dev:reset": "npx prisma migrate reset",
-    "prisma:dev:seed": "cross-env NODE_OPTIONS=\"--import tsx/esm\" node prisma/seed.ts"
+    "prisma:dev:seed": "npm run prisma:seed"
   },
   "keywords": [],
   "author": "",

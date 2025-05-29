@@ -22,8 +22,6 @@ COPY . .
 
 # Run Prisma setup
 RUN npx prisma generate
-RUN npm run prisma:dev:migrate
-RUN npm run prisma:dev:seed
 
 # Run TypeScript compilation
 RUN npm run build
