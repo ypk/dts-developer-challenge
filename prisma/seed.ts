@@ -1,4 +1,7 @@
-import { prisma, CaseStatus } from '../src/lib/prisma.ts';
+import pkg from '@prisma/client';
+const { CaseStatus } = pkg;
+
+import { prisma } from "../src/services/PrismaService.ts";
 
 function getRelativeDate(days: number): Date {
     return new Date(Date.now() + days * 24 * 60 * 60 * 1000);

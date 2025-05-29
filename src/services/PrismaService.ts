@@ -3,8 +3,10 @@
  * @module PrismaService
  * @description Provides a singleton PrismaClient instance and DB-related types using a class-based approach
  */
+import pkg from '@prisma/client';
+import type { Case, Prisma } from '@prisma/client';
 
-import { Case, Prisma, PrismaClient, CaseStatus } from '@prisma/client';
+const { PrismaClient } = pkg;
 
 /**
  * Class that manages the Prisma database connection
@@ -25,7 +27,7 @@ export class PrismaService {
    * @private
    * @type {PrismaClient}
    */
-  private prismaClient: PrismaClient;
+  private prismaClient: InstanceType<typeof PrismaClient>;
 
   /**
    * Private constructor to prevent direct instantiation
@@ -51,7 +53,7 @@ export class PrismaService {
    * Gets the PrismaClient instance
    * @returns {PrismaClient} The PrismaClient instance
    */
-  public getClient(): PrismaClient {
+  public getClient(): InstanceType<typeof PrismaClient> {
     return this.prismaClient;
   }
 
@@ -87,10 +89,14 @@ const PrismaServiceInstance = PrismaService.getInstance();
 export const prisma = PrismaServiceInstance.getClient();
 
 /**
- * Re-export required types and enums
- * @exports CaseStatus - Enum representing possible case statuses
+ * Re-export CaseStatus enum with both runtime values and types
+ */
+export const CaseStatus = pkg.CaseStatus;
+
+/**
+ * Re-export required types and service instance
  * @exports Case - Type definition for the Case model
  * @exports Prisma - Namespace containing Prisma utilities and types
- * @exports prismaService - The PrismaService singleton instance
+ * @exports PrismaServiceInstance - The PrismaService singleton instance
  */
-export { CaseStatus, Case, Prisma, PrismaServiceInstance };
+export { Case, Prisma, PrismaServiceInstance };

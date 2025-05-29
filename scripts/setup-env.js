@@ -34,7 +34,7 @@ function isRunningInDocker() {
  */
 function setupEnvFromSource(sourceName, transformFn = null) {
     const sourceEnvPath = path.join(rootDir, `.env.${sourceName}`);
-    
+
     // Check if source exists
     if (!fs.existsSync(sourceEnvPath)) {
         console.error(
@@ -43,7 +43,7 @@ function setupEnvFromSource(sourceName, transformFn = null) {
         );
         process.exit(1);
     }
-    
+
     try {
         // Copy file
         fs.copyFileSync(sourceEnvPath, targetEnvPath);
@@ -51,7 +51,7 @@ function setupEnvFromSource(sourceName, transformFn = null) {
             logSymbols.success,
             ` Created .env file from .env.${sourceName} template`
         );
-        
+
         // Apply transformation if provided
         if (transformFn) {
             let content = fs.readFileSync(targetEnvPath, 'utf8');
@@ -81,14 +81,14 @@ function copyRecursive(source, target) {
     if (!fs.existsSync(target)) {
         fs.mkdirSync(target, { recursive: true });
     }
-    
+
     // Get all files and directories in source
     const entries = fs.readdirSync(source, { withFileTypes: true });
-    
+
     for (const entry of entries) {
         const sourcePath = path.join(source, entry.name);
         const targetPath = path.join(target, entry.name);
-        
+
         if (entry.isDirectory()) {
             // Recursively copy directory
             copyRecursive(sourcePath, targetPath);
@@ -106,32 +106,32 @@ function copyGovUkAssets() {
     // Copy images
     const sourceImagesDir = path.join(rootDir, 'node_modules/govuk-frontend/dist/govuk/assets/images');
     const targetImagesDir = path.join(rootDir, 'public/assets/images');
-    
+
     // Copy fonts
     const sourceFontsDir = path.join(rootDir, 'node_modules/govuk-frontend/dist/govuk/assets/fonts');
     const targetFontsDir = path.join(rootDir, 'public/assets/fonts');
-    
+
     // Copy manifest.json
     const sourceManifest = path.join(rootDir, 'node_modules/govuk-frontend/dist/govuk/assets/manifest.json');
     const targetManifest = path.join(rootDir, 'public/assets/manifest.json');
-    
+
     try {
         // Create target directories if they don't exist
         if (!fs.existsSync(targetImagesDir)) {
             fs.mkdirSync(targetImagesDir, { recursive: true });
         }
-        
+
         if (!fs.existsSync(targetFontsDir)) {
             fs.mkdirSync(targetFontsDir, { recursive: true });
         }
-        
+
         // Copy assets
         copyRecursive(sourceImagesDir, targetImagesDir);
         copyRecursive(sourceFontsDir, targetFontsDir);
-        
+
         // Copy manifest
         fs.copyFileSync(sourceManifest, targetManifest);
-        
+
         console.log(
             logSymbols.success,
             ` Copied GOV.UK Frontend assets to public/assets`
@@ -151,12 +151,12 @@ function copyGovUkJavaScript() {
     const sourceFile = path.join(rootDir, 'node_modules/govuk-frontend/dist/govuk/govuk-frontend.min.js');
     const targetDir = path.join(rootDir, 'public/assets/javascripts');
     const targetFile = path.join(targetDir, 'govuk-frontend.min.js');
-    
+
     // Create target directory if it doesn't exist
     if (!fs.existsSync(targetDir)) {
         fs.mkdirSync(targetDir, { recursive: true });
     }
-    
+
     try {
         // Copy file
         fs.copyFileSync(sourceFile, targetFile);
@@ -179,12 +179,12 @@ function copyGovUkCSS() {
     const sourceFile = path.join(rootDir, 'node_modules/govuk-frontend/dist/govuk/govuk-frontend.min.css');
     const targetDir = path.join(rootDir, 'public/assets/stylesheets');
     const targetFile = path.join(targetDir, 'govuk-frontend.min.css');
-    
+
     // Create target directory if it doesn't exist
     if (!fs.existsSync(targetDir)) {
         fs.mkdirSync(targetDir, { recursive: true });
     }
-    
+
     try {
         // Copy file
         fs.copyFileSync(sourceFile, targetFile);
@@ -216,6 +216,7 @@ if (isRunningInDocker()) {
     console.log(logSymbols.info, ' Not running in Docker, setting up development environment...');
     setupEnvFromSource('development', content => content.replace(/@db:/g, '@localhost:'));
 }
+
 
 // Copy GOV.UK Frontend assets
 console.log(logSymbols.info, ' Copying GOV.UK Frontend assets...');

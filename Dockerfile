@@ -1,5 +1,5 @@
 # Base stage for shared dependencies
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
 WORKDIR /app
 ENV NODE_ENV=production
 
@@ -7,6 +7,7 @@ ENV NODE_ENV=production
 FROM base AS development
 ENV NODE_ENV=development
 COPY package*.json ./
+COPY scripts/ ./scripts/
 RUN npm install
 COPY . .
 RUN npx prisma generate
@@ -14,10 +15,16 @@ RUN npx prisma generate
 # Build stage
 FROM base AS builder
 COPY package*.json ./
+COPY scripts/ ./scripts/
 # Install ALL dependencies (including devDependencies) for building
 RUN npm install --include=dev
 COPY . .
+
+# Run Prisma setup
 RUN npx prisma generate
+RUN npm run prisma:dev:migrate
+RUN npm run prisma:dev:seed
+
 # Run TypeScript compilation
 RUN npm run build
 
