@@ -16,8 +16,8 @@ jest.mock('../../services/PrismaService.ts', () => ({
   },
 }));
 
-import { prisma, CaseStatus } from '../../services/PrismaService.ts';
-import { CaseRepositoryInstance } from '../../repositories/CaseRepository.ts';
+import { prisma, CaseStatus } from '../../services/PrismaService.js';
+import { CaseRepositoryInstance } from '../../repositories/CaseRepository.js';
 
 describe('Case Repository', () => {
   beforeEach(() => {

@@ -3,9 +3,65 @@
  * @module validationMiddleware
  * @description Provides validation rules and middleware for request validation using express-validator
  */
-
 import { Request, Response, NextFunction } from 'express';
 import { body, param, validationResult } from 'express-validator';
+
+/**
+ * Validates that a given date is not in the past
+ * @param {string} value - The date string to validate
+ * @returns {boolean} True if the date is valid (not in the past), otherwise throws an error
+ * @throws {Error} If the date is in the past
+ * @description Checks if the provided date is greater than or equal to today's date
+ */
+export const validateFutureDate = (value: string): boolean => {
+  if (value) {
+    const dueDate = new Date(value);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (dueDate < today) {
+      throw new Error('Due date cannot be in the past');
+    }
+  }
+  return true;
+};
+
+/**
+ * Express middleware that validates form submissions and handles validation errors
+ * @function validateForm
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @param {NextFunction} next - Express next function
+ * @returns {void}
+ * @description Checks for validation errors, adds error messages to flash session,
+ * stores form data for repopulation, and redirects to appropriate form or continues request processing
+ */
+export const validateForm = (req: Request, res: Response, next: NextFunction): void => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const errorMessages = errors.array().map((error) => error.msg);
+
+    req.flash('error', errorMessages);
+
+    (req.session as any).formData = req.body;
+
+    const caseId = req.params.id;
+
+    if (req.path === '/cases') {
+      return res.redirect('/cases/new');
+    } else if (caseId) {
+      return res.redirect(`/cases/${caseId}/edit`);
+    } else {
+      return res.redirect('back');
+    }
+  }
+
+  if ((req.session as any).formData) {
+    delete (req.session as any).formData;
+  }
+
+  next();
+};
 
 /**
  * Collection of validation rules for case operations
@@ -23,7 +79,7 @@ export const caseValidation = {
    */
   create: [
     body('title').notEmpty().withMessage('Title is required'),
-    body('description').optional(),
+    body('description').optional().trim(),
     body('status')
       .optional()
       .isIn(['PENDING', 'IN_PROGRESS', 'COMPLETED'])
@@ -43,8 +99,8 @@ export const caseValidation = {
    */
   update: [
     param('id').isInt().withMessage('Invalid case ID'),
-    body('title').optional().notEmpty().withMessage('Title cannot be empty'),
-    body('description').optional(),
+    body('title').optional().trim().notEmpty().withMessage('Title cannot be empty'),
+    body('description').optional().trim(),
     body('status')
       .optional()
       .isIn(['PENDING', 'IN_PROGRESS', 'COMPLETED'])
@@ -75,6 +131,18 @@ export const caseValidation = {
    * @property {ValidationChain} id - Validates case ID as integer
    */
   delete: [param('id').isInt().withMessage('Invalid case ID')],
+  webForm: [
+    body('title').notEmpty().withMessage('Title is required'),
+    body('description').optional(),
+    body('status')
+      .optional()
+      .isIn(['PENDING', 'IN_PROGRESS', 'COMPLETED'])
+      .withMessage('Invalid status'),
+    body('dueDate')
+      .optional({ checkFalsy: true, nullable: true })
+      .isISO8601()
+      .withMessage('Invalid date format'),
+  ],
 };
 
 /**

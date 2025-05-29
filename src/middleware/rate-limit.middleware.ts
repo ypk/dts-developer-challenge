@@ -1,18 +1,22 @@
 /**
+ * ESM Import Note:
+ * Using .js extensions because this project uses ES Modules with NodeNext resolution.
+ * TypeScript compiles .ts → .js, so import paths must reference the output files.
+ */
+
+/**
  * Rate Limiting Middleware Module
  * @module rateLimitMiddleware
  * @description Provides rate limiting functionality to protect API endpoints from abuse
  */
-
 import { Request, Response, NextFunction } from 'express';
-import { logger } from '../middleware/logger.middleware.ts';
+import { logger } from '../middleware/logger.middleware.js';
 
 /**
  * HTTP status codes used for rate limiting responses
  * @enum {number}
  */
 export enum HttpStatus {
-  /** HTTP status code for too many requests */
   TOO_MANY_REQUESTS = 429,
 }
 
@@ -21,9 +25,7 @@ export enum HttpStatus {
  * @enum {number}
  */
 export enum TimeWindow {
-  /** 15 minute window (in milliseconds) */
   FIFTEEN_MINUTES = 15 * 60 * 1000,
-  /** 1 hour window (in milliseconds) */
   ONE_HOUR = 60 * 60 * 1000,
 }
 
@@ -32,11 +34,8 @@ export enum TimeWindow {
  * @enum {number}
  */
 export enum RateLimitType {
-  /** General API rate limiting */
   API = 0,
-  /** Authentication endpoint rate limiting */
   AUTH = 1,
-  /** Speed-based rate limiting (adds delays) */
   SPEED = 2,
 }
 
@@ -400,18 +399,21 @@ const speedLimiterInstance = new SpeedLimiter(
 
 /**
  * Express middleware for API rate limiting
- * @type {(req: Request, res: Response, next: NextFunction) => void}
+ * @function
+ * @description Limits requests to 100 per IP address within a 15-minute window
  */
 export const apiLimiter = createMiddleware(apiLimiterInstance);
 
 /**
  * Express middleware for authentication rate limiting
- * @type {(req: Request, res: Response, next: NextFunction) => void}
+ * @function
+ * @description Limits authentication requests to 10 per IP address within a 1-hour window
  */
 export const authLimiter = createMiddleware(authLimiterInstance);
 
 /**
  * Express middleware for speed-based rate limiting
- * @type {(req: Request, res: Response, next: NextFunction) => void}
+ * @function
+ * @description Adds incremental delays after 50 requests from an IP address within a 15-minute window
  */
 export const speedLimiter = createMiddleware(speedLimiterInstance);

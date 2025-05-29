@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
-import { CaseStatus } from '../../services/PrismaService.ts';
-import { CaseControllerInstance } from '../../controllers/CaseController.ts';
-import { CaseServiceInstance } from '../../services/CaseService.ts';
-import { NotFoundError } from '../../middleware/error.middleware.ts';
-import * as responseHandler from '../../utils/responseHandler.ts';
-import * as caseHelper from '../../utils/caseHelper.ts';
+import { CaseStatus } from '../../services/PrismaService.js';
+import { CaseControllerInstance } from '../../controllers/CaseController.js';
+import { CaseServiceInstance } from '../../services/CaseService.js';
+import { NotFoundError } from '../../middleware/error.middleware.js';
+import * as responseHandler from '../../utils/responseHandler.js';
+import * as caseHelper from '../../utils/caseHelper.js';
 
 jest.mock('../../services/CaseService.ts');
 jest.mock('../../utils/responseHandler.ts');

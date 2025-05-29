@@ -1,10 +1,15 @@
 /**
+ * ESM Import Note:
+ * Using .js extensions because this project uses ES Modules with NodeNext resolution.
+ * TypeScript compiles .ts → .js, so import paths must reference the output files.
+ */
+
+/**
  * Case Repository Module
  * @module CaseRepository
  * @description Provides data access functions for Case entities using Prisma
  */
-
-import { prisma, CaseStatus, Case, Prisma } from '../services/PrismaService.ts';
+import { prisma, CaseStatus, Case, Prisma } from '../services/PrismaService.js';
 
 /**
  * Interface for paginated query results

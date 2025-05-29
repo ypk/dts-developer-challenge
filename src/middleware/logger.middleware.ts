@@ -3,7 +3,6 @@
  * @module loggerMiddleware
  * @description Provides centralized logging capabilities and request logging middleware
  */
-
 import { Request, Response, NextFunction } from 'express';
 import winston from 'winston';
 import fs from 'fs';

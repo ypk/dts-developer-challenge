@@ -1,17 +1,22 @@
-import { Request, Response, NextFunction } from 'express';
+/**
+ * Unit tests for rate-limit.middleware.ts
+ * @module tests/middleware/rate-limit
+ */
+
+import { Request, Response } from 'express';
 import {
-  apiLimiter,
-  authLimiter,
-  speedLimiter,
-  getClientIp,
+  HttpStatus,
+  TimeWindow,
+  RateLimitType,
   apiRequestStore,
   authRequestStore,
   speedRequestStore,
-  RateLimitType,
-  TimeWindow,
-  HttpStatus,
-} from '../../middleware/rate-limit.middleware.ts';
-import { logger } from '../../middleware/logger.middleware.ts';
+  getClientIp,
+  apiLimiter,
+  authLimiter,
+  speedLimiter,
+} from '../../middleware/rate-limit.middleware.js';
+import { logger } from '../../middleware/logger.middleware.js';
 
 jest.mock('../../middleware/logger.middleware.ts', () => ({
   logger: {
@@ -24,14 +29,14 @@ jest.mock('../../middleware/logger.middleware.ts', () => ({
 describe('Rate Limit Middleware', () => {
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
-  let nextFunction: NextFunction;
+  let mockNext: jest.Mock;
 
   beforeEach(() => {
+    jest.clearAllMocks();
+
     apiRequestStore.clear();
     authRequestStore.clear();
     speedRequestStore.clear();
-
-    jest.clearAllMocks();
 
     mockRequest = {
       ip: '127.0.0.1',
@@ -45,45 +50,63 @@ describe('Rate Limit Middleware', () => {
       setHeader: jest.fn(),
     };
 
-    nextFunction = jest.fn();
+    mockNext = jest.fn();
+
+    jest.useRealTimers();
   });
 
-  describe('getClientIp', () => {
-    it('should return the IP address from the request', () => {
+  describe('Enums', () => {
+    it('should define correct HttpStatus values', () => {
+      expect(HttpStatus.TOO_MANY_REQUESTS).toBe(429);
+    });
+
+    it('should define correct TimeWindow values', () => {
+      expect(TimeWindow.FIFTEEN_MINUTES).toBe(15 * 60 * 1000);
+      expect(TimeWindow.ONE_HOUR).toBe(60 * 60 * 1000);
+    });
+
+    it('should define correct RateLimitType values', () => {
+      expect(RateLimitType.API).toBe(0);
+      expect(RateLimitType.AUTH).toBe(1);
+      expect(RateLimitType.SPEED).toBe(2);
+    });
+  });
+
+  describe('Helper Functions', () => {
+    it('getClientIp should return the request IP', () => {
       const ip = getClientIp(mockRequest as Request);
       expect(ip).toBe('127.0.0.1');
     });
 
-    it('should return "unknown" if IP is not available', () => {
-      const requestWithoutIp: Partial<Request> = {
-        method: 'GET',
-        url: '/api/test',
-      };
+    it('getClientIp should return "unknown" if IP is not available', () => {
+      const requestWithoutIp = { ...mockRequest, ip: undefined };
       const ip = getClientIp(requestWithoutIp as Request);
       expect(ip).toBe('unknown');
     });
   });
 
-  describe('apiLimiter', () => {
-    it('should allow requests under the limit', () => {
-      apiLimiter(mockRequest as Request, mockResponse as Response, nextFunction);
+  describe('API Rate Limiter', () => {
+    it('should allow requests within the rate limit', () => {
+      apiLimiter(mockRequest as Request, mockResponse as Response, mockNext);
 
-      expect(nextFunction).toHaveBeenCalled();
+      expect(mockNext).toHaveBeenCalled();
 
       expect(mockResponse.setHeader).toHaveBeenCalledWith('X-RateLimit-Limit', '100');
       expect(mockResponse.setHeader).toHaveBeenCalledWith('X-RateLimit-Remaining', '99');
       expect(mockResponse.setHeader).toHaveBeenCalledWith('X-RateLimit-Reset', expect.any(String));
     });
 
-    it('should block requests over the limit', () => {
-      const ip = mockRequest.ip as string;
+    it('should block requests over the rate limit', () => {
       const now = Date.now();
+      const ip = getClientIp(mockRequest as Request);
       apiRequestStore.set(ip, {
         count: 100,
         resetTime: now + TimeWindow.FIFTEEN_MINUTES,
       });
 
-      apiLimiter(mockRequest as Request, mockResponse as Response, nextFunction);
+      apiLimiter(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockNext).not.toHaveBeenCalled();
 
       expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.TOO_MANY_REQUESTS);
       expect(mockResponse.json).toHaveBeenCalledWith({
@@ -91,221 +114,276 @@ describe('Rate Limit Middleware', () => {
         message: 'Too many requests, please try again later.',
       });
 
-      expect(nextFunction).not.toHaveBeenCalled();
+      expect(mockResponse.setHeader).toHaveBeenCalledWith('X-RateLimit-Limit', '100');
+      expect(mockResponse.setHeader).toHaveBeenCalledWith('X-RateLimit-Remaining', '0');
+      expect(mockResponse.setHeader).toHaveBeenCalledWith('X-RateLimit-Reset', expect.any(String));
 
-      expect(logger.warn).toHaveBeenCalledWith({
-        message: 'Rate limit exceeded',
-        ip: mockRequest.ip,
-        method: mockRequest.method,
-        url: mockRequest.url,
+      expect(logger.warn).toHaveBeenCalled();
+    });
+
+    it('should increment the counter for each request', () => {
+      apiLimiter(mockRequest as Request, mockResponse as Response, mockNext);
+
+      const ip = getClientIp(mockRequest as Request);
+      let entry = apiRequestStore.get(ip);
+      expect(entry?.count).toBe(1);
+
+      apiLimiter(mockRequest as Request, mockResponse as Response, mockNext);
+
+      entry = apiRequestStore.get(ip);
+      expect(entry?.count).toBe(2);
+    });
+
+    it('should create a new entry if none exists', () => {
+      const ip = getClientIp(mockRequest as Request);
+      expect(apiRequestStore.has(ip)).toBe(false);
+
+      apiLimiter(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(apiRequestStore.has(ip)).toBe(true);
+    });
+
+    it('should create a new entry if the existing one is expired', () => {
+      const ip = getClientIp(mockRequest as Request);
+      const pastTime = Date.now() - 1000;
+
+      apiRequestStore.set(ip, {
+        count: 50,
+        resetTime: pastTime,
       });
+
+      apiLimiter(mockRequest as Request, mockResponse as Response, mockNext);
+
+      const entry = apiRequestStore.get(ip);
+      expect(entry?.count).toBe(1);
+      expect(entry?.resetTime).toBeGreaterThan(pastTime);
     });
 
     it('should clean up expired entries', () => {
-      const expiredIp = '192.168.1.1';
-      apiRequestStore.set(expiredIp, {
-        count: 50,
-        resetTime: Date.now() - 1000,
+      const now = Date.now();
+
+      apiRequestStore.set('expired1', {
+        count: 1,
+        resetTime: now - 1000,
       });
 
-      apiLimiter(mockRequest as Request, mockResponse as Response, nextFunction);
+      apiRequestStore.set('expired2', {
+        count: 1,
+        resetTime: now - 2000,
+      });
 
-      expect(apiRequestStore.has(expiredIp)).toBe(false);
+      apiRequestStore.set('valid', {
+        count: 1,
+        resetTime: now + 10000,
+      });
 
-      expect(nextFunction).toHaveBeenCalled();
-    });
+      apiLimiter(mockRequest as Request, mockResponse as Response, mockNext);
 
-    it('should increment the request count for an IP', () => {
-      apiLimiter(mockRequest as Request, mockResponse as Response, nextFunction);
+      expect(apiRequestStore.has('expired1')).toBe(false);
+      expect(apiRequestStore.has('expired2')).toBe(false);
 
-      const entry = apiRequestStore.get(mockRequest.ip as string);
-
-      expect(entry?.count).toBe(1);
-    });
-
-    it('should set correct remaining count for multiple requests', () => {
-      apiLimiter(mockRequest as Request, mockResponse as Response, nextFunction);
-
-      expect(mockResponse.setHeader).toHaveBeenCalledWith('X-RateLimit-Remaining', '99');
-
-      jest.clearAllMocks();
-
-      apiLimiter(mockRequest as Request, mockResponse as Response, nextFunction);
-
-      expect(mockResponse.setHeader).toHaveBeenCalledWith('X-RateLimit-Remaining', '98');
+      expect(apiRequestStore.has('valid')).toBe(true);
     });
   });
 
-  describe('authLimiter', () => {
-    it('should allow requests under the limit', () => {
-      authLimiter(mockRequest as Request, mockResponse as Response, nextFunction);
+  describe('Auth Rate Limiter', () => {
+    it('should allow requests within the rate limit', () => {
+      authLimiter(mockRequest as Request, mockResponse as Response, mockNext);
 
-      expect(nextFunction).toHaveBeenCalled();
+      expect(mockNext).toHaveBeenCalled();
 
       expect(mockResponse.setHeader).toHaveBeenCalledWith('X-RateLimit-Limit', '10');
       expect(mockResponse.setHeader).toHaveBeenCalledWith('X-RateLimit-Remaining', '9');
       expect(mockResponse.setHeader).toHaveBeenCalledWith('X-RateLimit-Reset', expect.any(String));
     });
 
-    it('should block requests over the limit', () => {
-      const ip = mockRequest.ip as string;
+    it('should block requests over the rate limit', () => {
       const now = Date.now();
+      const ip = getClientIp(mockRequest as Request);
       authRequestStore.set(ip, {
         count: 10,
         resetTime: now + TimeWindow.ONE_HOUR,
       });
 
-      authLimiter(mockRequest as Request, mockResponse as Response, nextFunction);
+      authLimiter(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockNext).not.toHaveBeenCalled();
 
       expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.TOO_MANY_REQUESTS);
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
         message: 'Too many login attempts, please try again later.',
       });
-
-      expect(nextFunction).not.toHaveBeenCalled();
-
-      expect(logger.warn).toHaveBeenCalledWith({
-        message: 'Auth rate limit exceeded',
-        ip: mockRequest.ip,
-        method: mockRequest.method,
-        url: mockRequest.url,
-      });
-    });
-
-    it('should clean up expired entries', () => {
-      const expiredIp = '192.168.1.1';
-      authRequestStore.set(expiredIp, {
-        count: 5,
-        resetTime: Date.now() - 1000,
-      });
-
-      authLimiter(mockRequest as Request, mockResponse as Response, nextFunction);
-
-      expect(authRequestStore.has(expiredIp)).toBe(false);
-
-      expect(nextFunction).toHaveBeenCalled();
     });
   });
 
-  describe('speedLimiter', () => {
-    it('should not delay requests under the threshold', () => {
-      speedLimiter(mockRequest as Request, mockResponse as Response, nextFunction);
+  describe('Speed Limiter', () => {
+    let setTimeoutSpy: jest.SpyInstance;
 
-      expect(nextFunction).toHaveBeenCalled();
-
-      expect(logger.warn).not.toHaveBeenCalled();
+    beforeEach(() => {
+      jest.useFakeTimers();
+      setTimeoutSpy = jest.spyOn(global, 'setTimeout');
     });
 
-    it('should delay requests over the threshold', () => {
-      jest.useFakeTimers();
+    afterEach(() => {
+      jest.useRealTimers();
+      setTimeoutSpy.mockRestore();
+    });
 
-      const ip = mockRequest.ip as string;
-      const now = Date.now();
+    it('should allow requests under the threshold without delay', () => {
+      speedLimiter(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(setTimeoutSpy).not.toHaveBeenCalled();
+    });
+
+    it('should start adding delays after threshold is reached', () => {
+      const ip = getClientIp(mockRequest as Request);
+
       speedRequestStore.set(ip, {
         count: 50,
-        resetTime: now + TimeWindow.FIFTEEN_MINUTES,
+        resetTime: Date.now() + TimeWindow.FIFTEEN_MINUTES,
       });
 
-      speedLimiter(mockRequest as Request, mockResponse as Response, nextFunction);
+      speedLimiter(mockRequest as Request, mockResponse as Response, mockNext);
 
-      expect(nextFunction).not.toHaveBeenCalled();
+      expect(setTimeoutSpy).toHaveBeenCalled();
+      expect(mockNext).not.toHaveBeenCalled();
 
-      expect(logger.warn).toHaveBeenCalledWith({
-        message: 'Speed limit reached - adding delays',
-        ip: mockRequest.ip,
-        method: mockRequest.method,
-        url: mockRequest.url,
-        hits: 51,
-        delayMs: 100,
-      });
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Speed limit reached - adding delays',
+          hits: 51,
+          delayMs: 100,
+        }),
+      );
 
-      jest.advanceTimersByTime(100);
+      jest.runAllTimers();
 
-      expect(nextFunction).toHaveBeenCalled();
-
-      jest.useRealTimers();
+      expect(mockNext).toHaveBeenCalled();
     });
 
-    it('should not log warnings for subsequent requests over threshold', () => {
-      jest.useFakeTimers();
+    it('should increase delay for each request over threshold', () => {
+      const ip = getClientIp(mockRequest as Request);
 
-      const ip = mockRequest.ip as string;
-      const now = Date.now();
       speedRequestStore.set(ip, {
         count: 52,
-        resetTime: now + TimeWindow.FIFTEEN_MINUTES,
+        resetTime: Date.now() + TimeWindow.FIFTEEN_MINUTES,
       });
 
-      speedLimiter(mockRequest as Request, mockResponse as Response, nextFunction);
+      speedLimiter(mockRequest as Request, mockResponse as Response, mockNext);
 
-      expect(logger.warn).not.toHaveBeenCalled();
+      expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 300);
 
-      jest.advanceTimersByTime(300);
-
-      expect(nextFunction).toHaveBeenCalled();
-
-      jest.useRealTimers();
+      const entry = speedRequestStore.get(ip);
+      expect(entry?.count).toBe(53);
     });
 
-    it('should increase delay as request count increases', () => {
-      jest.useFakeTimers();
+    it('should log warning only once when threshold is crossed', () => {
+      const ip = getClientIp(mockRequest as Request);
 
-      const ip = mockRequest.ip as string;
-      const now = Date.now();
       speedRequestStore.set(ip, {
-        count: 51,
-        resetTime: now + TimeWindow.FIFTEEN_MINUTES,
+        count: 50,
+        resetTime: Date.now() + TimeWindow.FIFTEEN_MINUTES,
       });
 
-      speedLimiter(mockRequest as Request, mockResponse as Response, nextFunction);
+      speedLimiter(mockRequest as Request, mockResponse as Response, mockNext);
+      expect(logger.warn).toHaveBeenCalledTimes(1);
 
-      jest.advanceTimersByTime(200);
+      jest.clearAllMocks();
+      mockNext.mockClear();
 
-      expect(nextFunction).toHaveBeenCalled();
+      speedRequestStore.set(ip, {
+        count: 51,
+        resetTime: Date.now() + TimeWindow.FIFTEEN_MINUTES,
+      });
+
+      speedLimiter(mockRequest as Request, mockResponse as Response, mockNext);
+      expect(logger.warn).not.toHaveBeenCalled();
+    });
+
+    it('should reset counts when reset time is passed', () => {
+      const ip = getClientIp(mockRequest as Request);
+      const pastTime = Date.now() - 1000;
+
+      speedRequestStore.set(ip, {
+        count: 100,
+        resetTime: pastTime,
+      });
+
+      speedLimiter(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(setTimeoutSpy).not.toHaveBeenCalled();
+      expect(mockNext).toHaveBeenCalled();
+
+      const entry = speedRequestStore.get(ip);
+      expect(entry?.count).toBe(1);
+    });
+  });
+
+  describe('Rate Limiter Behavior', () => {
+    it('should handle requests from different IPs separately', () => {
+      const mockRequest1 = { ...mockRequest, ip: '192.168.1.1' };
+      apiLimiter(mockRequest1 as Request, mockResponse as Response, mockNext);
+
+      const mockRequest2 = { ...mockRequest, ip: '192.168.1.2' };
+      apiLimiter(mockRequest2 as Request, mockResponse as Response, mockNext);
+
+      expect(apiRequestStore.get('192.168.1.1')?.count).toBe(1);
+      expect(apiRequestStore.get('192.168.1.2')?.count).toBe(1);
+    });
+    it('should keep separate counts for different limiters', () => {
+      const ip = '127.0.0.1';
+      const mockRequestWithIp = { ...mockRequest, ip };
+
+      apiLimiter(mockRequestWithIp as Request, mockResponse as Response, mockNext);
+      authLimiter(mockRequestWithIp as Request, mockResponse as Response, mockNext);
+      speedLimiter(mockRequestWithIp as Request, mockResponse as Response, mockNext);
+
+      expect(apiRequestStore.get(ip)?.count).toBe(1);
+      expect(authRequestStore.get(ip)?.count).toBe(1);
+      expect(speedRequestStore.get(ip)?.count).toBe(1);
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('should handle requests with multiple calls to the same limiter', () => {
+      apiLimiter(mockRequest as Request, mockResponse as Response, mockNext);
+      apiLimiter(mockRequest as Request, mockResponse as Response, mockNext);
+      apiLimiter(mockRequest as Request, mockResponse as Response, mockNext);
+
+      const ip = getClientIp(mockRequest as Request);
+      expect(apiRequestStore.get(ip)?.count).toBe(3);
+    });
+
+    it('should use correct error messages for each limiter', () => {
+      const ip = getClientIp(mockRequest as Request);
+
+      apiRequestStore.set(ip, {
+        count: 100,
+        resetTime: Date.now() + TimeWindow.FIFTEEN_MINUTES,
+      });
+
+      apiLimiter(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Too many requests, please try again later.',
+      });
 
       jest.clearAllMocks();
 
-      speedLimiter(mockRequest as Request, mockResponse as Response, nextFunction);
-
-      expect(nextFunction).not.toHaveBeenCalled();
-
-      jest.advanceTimersByTime(300);
-
-      expect(nextFunction).toHaveBeenCalled();
-
-      jest.useRealTimers();
-    });
-
-    it('should clean up expired entries', () => {
-      const expiredIp = '192.168.1.1';
-      speedRequestStore.set(expiredIp, {
-        count: 60,
-        resetTime: Date.now() - 1000,
+      authRequestStore.set(ip, {
+        count: 10,
+        resetTime: Date.now() + TimeWindow.ONE_HOUR,
       });
 
-      speedLimiter(mockRequest as Request, mockResponse as Response, nextFunction);
+      authLimiter(mockRequest as Request, mockResponse as Response, mockNext);
 
-      expect(speedRequestStore.has(expiredIp)).toBe(false);
-
-      expect(nextFunction).toHaveBeenCalled();
-    });
-  });
-
-  describe('Enum values', () => {
-    it('should have correct RateLimitType values', () => {
-      expect(RateLimitType.API).toBe(0);
-      expect(RateLimitType.AUTH).toBe(1);
-      expect(RateLimitType.SPEED).toBe(2);
-    });
-
-    it('should have correct TimeWindow values', () => {
-      expect(TimeWindow.FIFTEEN_MINUTES).toBe(15 * 60 * 1000);
-      expect(TimeWindow.ONE_HOUR).toBe(60 * 60 * 1000);
-    });
-
-    it('should have correct HttpStatus values', () => {
-      expect(HttpStatus.TOO_MANY_REQUESTS).toBe(429);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Too many login attempts, please try again later.',
+      });
     });
   });
 });

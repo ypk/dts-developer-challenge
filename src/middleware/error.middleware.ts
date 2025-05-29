@@ -1,10 +1,16 @@
 /**
+ * ESM Import Note:
+ * Using .js extensions because this project uses ES Modules with NodeNext resolution.
+ * TypeScript compiles .ts → .js, so import paths must reference the output files.
+ */
+
+/**
  * Error Handling Middleware Module
  * @module errorMiddleware
  * @description Provides custom error classes and central error handling middleware for the application
  */
-
 import { Request, Response, NextFunction } from 'express';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { logger } from './logger.middleware.js';
 
 /**
@@ -56,8 +62,28 @@ class DatabaseError extends Error {
 }
 
 /**
+ * Determines if a Prisma error is a not found error (P2025)
+ * @function isPrismaNotFoundError
+ * @param {unknown} error - The error to check
+ * @returns {boolean} True if the error is a not found error
+ */
+function isPrismaNotFoundError(error: unknown): boolean {
+  return error instanceof PrismaClientKnownRequestError && error.code === 'P2025';
+}
+
+/**
+ * Determines if a Prisma error is a unique constraint violation (P2002)
+ * @function isPrismaUniqueViolationError
+ * @param {unknown} error - The error to check
+ * @returns {boolean} True if the error is a unique constraint violation
+ */
+function isPrismaUniqueViolationError(error: unknown): boolean {
+  return error instanceof PrismaClientKnownRequestError && error.code === 'P2002';
+}
+
+/**
  * Central error handling middleware
- * @function errorHandler
+ * @function APIErrorHandler
  * @param {Error} err - The error object
  * @param {Request} req - Express request object
  * @param {Response} res - Express response object
@@ -70,7 +96,7 @@ class DatabaseError extends Error {
  * - Returns standardized error responses
  * - In production, hides implementation details
  */
-const errorHandler = (err: Error, req: Request, res: Response, next: NextFunction): void => {
+const APIErrorHandler = (err: Error, req: Request, res: Response, next: NextFunction): void => {
   logger.error({
     message: 'Error caught by error handler',
     error: err.message,
@@ -96,4 +122,42 @@ const errorHandler = (err: Error, req: Request, res: Response, next: NextFunctio
   });
 };
 
-export { NotFoundError, ValidationError, DatabaseError, errorHandler };
+/**
+ * Front-end error handling middleware for rendering error pages
+ * @function FrontEndErrorHandler
+ * @param {Error} err - The error object
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @param {NextFunction} next - Express next function
+ * @returns {void}
+ * @description
+ * Handles errors for non-API routes by:
+ * - Passing API route errors to the next error handler
+ * - Rendering an error page with optional error details
+ * - Conditionally displaying error stack in development environment
+ */
+const FrontEndErrorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
+  if (req.path.startsWith('/api')) {
+    return next(err);
+  }
+
+  const errorMessage = err.message || 'An unexpected error occurred';
+  const errorStack = process.env.NODE_ENV === 'development' ? err.stack : '';
+
+  res.status(err.status || 500).render('pages/error', {
+    title: 'Error',
+    pageHeading: 'An error occurred',
+    errorMessage,
+    errorStack,
+  });
+};
+
+export {
+  NotFoundError,
+  ValidationError,
+  DatabaseError,
+  isPrismaNotFoundError,
+  isPrismaUniqueViolationError,
+  APIErrorHandler,
+  FrontEndErrorHandler,
+};

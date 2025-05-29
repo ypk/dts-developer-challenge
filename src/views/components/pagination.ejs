@@ -1,0 +1,36 @@
+<% if (pagination && pagination.totalPages > 1) { %>
+    <nav class="govuk-pagination" role="navigation" aria-label="Pagination">
+        <% if (pagination.page > 1) { %>
+            <div class="govuk-pagination__prev">
+                <a class="govuk-link govuk-pagination__link"
+                    href="/cases?page=<%= pagination.page - 1 %>&limit=<%= pagination.limit %>" rel="prev">
+                    <%- getSVG('govuk-icon-pagination-prev.svg') %>
+                    <span class="govuk-pagination__link-title">Previous</span>
+                </a>
+            </div>
+        <% } %>
+
+        <ul class="govuk-pagination__list">
+            <% for(let i=1; i <= pagination.totalPages; i++) { %>
+                <li
+                    class="govuk-pagination__item <%= pagination.page === i ? 'govuk-pagination__item--current' : '' %>">
+                    <a class="govuk-link govuk-pagination__link"
+                        href="/cases?page=<%= i %>&limit=<%= pagination.limit %>" aria-label="Page <%= i %>"
+                        <%= pagination.page === i ? 'aria-current="page"' : '' %>>
+                        <%= i %>
+                    </a>
+                </li>
+            <% } %>
+        </ul>
+
+        <% if (pagination.page < pagination.totalPages) { %>
+            <div class="govuk-pagination__next">
+                <a class="govuk-link govuk-pagination__link"
+                    href="/cases?page=<%= pagination.page + 1 %>&limit=<%= pagination.limit %>" rel="next">
+                    <span class="govuk-pagination__link-title">Next</span>
+                    <%- getSVG('govuk-icon-pagination-next.svg') %>
+                </a>
+            </div>
+        <% } %>
+    </nav>
+<% } %>

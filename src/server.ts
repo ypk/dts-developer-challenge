@@ -1,16 +1,29 @@
+/**
+ * ESM Import Note:
+ * Using .js extensions because this project uses ES Modules with NodeNext resolution.
+ * TypeScript compiles .ts → .js, so import paths must reference the output files.
+ */
 import express from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
 import cors from 'cors';
 import logSymbols from 'log-symbols';
-import routes from './routes/index.ts';
+import apiRoutes from './routes/api.routes.js';
+import frontendRoutes from './routes/frontend.routes.js';
+import ejsLayouts from 'express-ejs-layouts';
 import compression from 'compression';
-import { setupSwagger } from './utils/swagger.ts';
-import { errorHandler } from './middleware/error.middleware.ts';
-import { requestLogger } from './middleware/logger.middleware.ts';
-import { securityHeaders, logSecurityConfig } from './middleware/security.middleware.ts';
-import { apiLimiter, authLimiter } from './middleware/rate-limit.middleware.ts';
-import { safelyApplyMiddleware } from './utils/middleware.utils.ts';
+import { setupSwagger } from './utils/swagger.js';
+import { APIErrorHandler, FrontEndErrorHandler } from './middleware/error.middleware.js';
+import { requestLogger } from './middleware/logger.middleware.js';
+import { securityHeaders, logSecurityConfig } from './middleware/security.middleware.js';
+import { apiLimiter, authLimiter } from './middleware/rate-limit.middleware.js';
+import { getSVG, formatStatus, safelyApplyMiddleware } from './utils/middleware.utils.js';
+import crypto from 'crypto';
+import dartSass from 'express-dart-sass';
+import session from 'express-session';
+import flash from 'connect-flash';
+import methodOverride from 'method-override';
+import * as viewHelpers from './utils/viewHelpers.js';
 
 /**
  * @swagger
@@ -21,22 +34,61 @@ import { safelyApplyMiddleware } from './utils/middleware.utils.ts';
  *   contact:
  *     name: HMCTS
  */
+const apiPath = '/api';
+const authPath = '/api/auth';
+const assetsPath = '/assets';
+
+const staticAssetsPath = path.join(process.cwd(), 'public/assets');
+const viewPath = path.join(process.cwd(), 'src/views');
+const sassSrcPath = path.join(process.cwd(), 'src/assets/sass');
+const sassDestPath = path.join(process.cwd(), 'public/assets/stylesheets');
 
 const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development';
 
+/**
+ * Generates a cryptographically secure random session secret.
+ *
+ * @returns {string} A 64-byte hexadecimal string suitable for use as a session secret.
+ */
+const generateSessionSecret = () => {
+  return crypto.randomBytes(64).toString('hex');
+};
+
 dotenv.config({ path: path.resolve(process.cwd(), envFile) });
+
 console.log(
-  `Loading environment from ${envFile} (NODE_ENV: ${process.env.NODE_ENV || 'development'})`,
+  logSymbols.info,
+  ` Loading environment from ${envFile} (NODE_ENV: ${process.env.NODE_ENV || 'development'})`,
 );
+
 logSecurityConfig();
 
 const app = express();
 const port = process.env.PORT || 3000;
 
+if (!process.env.SESSION_SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    console.error(
+      logSymbols.error,
+      'ERROR: SESSION_SECRET environment variable is required in production',
+    );
+    process.exit(1);
+  } else {
+    console.warn(
+      logSymbols.warning,
+      'WARNING: Using randomly generated session secret. Sessions will be invalidated on server restart.',
+    );
+  }
+}
+
+const sessionSecret = process.env.SESSION_SECRET || generateSessionSecret();
+
 safelyApplyMiddleware(app, 'JSON parser', () => app.use(express.json()));
+
 safelyApplyMiddleware(app, 'URL encoded parser', () =>
   app.use(express.urlencoded({ extended: true })),
 );
+
 safelyApplyMiddleware(app, 'CORS', () => app.use(cors()));
 
 safelyApplyMiddleware(app, 'Security headers', () => app.use(securityHeaders));
@@ -45,12 +97,95 @@ safelyApplyMiddleware(app, 'Compression', () => app.use(compression()));
 
 safelyApplyMiddleware(app, 'Request logger', () => app.use(requestLogger));
 
-const apiPath = '/api';
-const authPath = '/api/auth';
 safelyApplyMiddleware(app, 'API rate limiter', () => app.use(apiPath, apiLimiter));
+
 safelyApplyMiddleware(app, 'Auth rate limiter', () => app.use(authPath, authLimiter));
 
-safelyApplyMiddleware(app, 'API routes', () => app.use('/api', routes));
+safelyApplyMiddleware(app, 'View Engine Setup', () => {
+  app.set('views', viewPath);
+  app.set('view engine', 'ejs');
+});
+
+safelyApplyMiddleware(app, 'Static Files', () =>
+  app.use('/assets', express.static(staticAssetsPath)),
+);
+
+safelyApplyMiddleware(app, 'SVG Helper', () =>
+  app.use((req, res, next) => {
+    res.locals.getSVG = (filename: string) => getSVG(filename);
+    next();
+  }),
+);
+
+safelyApplyMiddleware(app, 'Method Override', () =>
+  app.use(
+    methodOverride((req, _res) => {
+      if (req.body && typeof req.body === 'object' && '_method' in req.body) {
+        const method = req.body._method;
+        delete req.body._method;
+        return method;
+      }
+    }),
+  ),
+);
+
+safelyApplyMiddleware(app, 'Session', () =>
+  app.use(
+    session({
+      secret: sessionSecret,
+      resave: false,
+      saveUninitialized: false,
+    }),
+  ),
+);
+
+safelyApplyMiddleware(app, 'Flash Messages', () => app.use(flash()));
+
+safelyApplyMiddleware(app, 'SASS Middleware', () =>
+  app.use(
+    dartSass({
+      src: sassSrcPath,
+      dest: sassDestPath,
+      outputStyle: 'compressed',
+      prefix: `${assetsPath}/stylesheets`,
+    }),
+  ),
+);
+
+safelyApplyMiddleware(app, 'EJS Layouts', () => {
+  app.use(ejsLayouts);
+  app.set('layout', 'layouts/main');
+  app.set('layout extractScripts', true);
+  app.set('layout extractStyles', true);
+});
+
+safelyApplyMiddleware(app, 'Session & Template Locals', () =>
+  app.use((req, res, next) => {
+    res.locals.messages = {
+      success: req.flash('success'),
+      error: req.flash('error'),
+    };
+
+    res.locals.paths = {
+      assets: assetsPath,
+    };
+
+    res.locals.session = req.session;
+    res.locals.currentPath = req.path;
+    res.locals.formatStatus = formatStatus;
+    res.locals.viewHelpers = viewHelpers;
+
+    next();
+  }),
+);
+
+safelyApplyMiddleware(app, 'Frontend Routes', () => app.use('/', frontendRoutes));
+
+safelyApplyMiddleware(app, 'API routes', () => app.use('/api', apiRoutes));
+
+safelyApplyMiddleware(app, 'FrontEnd Error handler', () => app.use(FrontEndErrorHandler));
+
+safelyApplyMiddleware(app, 'API Error handler', () => app.use(APIErrorHandler));
 
 app.get('/health', (req, res) => {
   const healthStatus: {
@@ -73,12 +208,10 @@ if (typeof setupSwagger === 'function') {
   safelyApplyMiddleware(app, 'Swagger documentation', () => setupSwagger(app));
 }
 
-safelyApplyMiddleware(app, 'Error handler', () => app.use(errorHandler));
-
 if (process.env.NODE_ENV !== 'test') {
   try {
     app.listen(port, () => {
-      console.log(logSymbols.success, `Server is running on port ${port}`);
+      console.log(logSymbols.success, ` Server is running on port ${port}`);
       console.log(
         logSymbols.info,
         ` API Documentation available at http://localhost:${port}/api-docs`,
