@@ -1,10 +1,15 @@
 /**
+ * ESM Import Note:
+ * Using .js extensions because this project uses ES Modules with NodeNext resolution.
+ * TypeScript compiles .ts → .js, so import paths must reference the output files.
+ */
+
+/**
  * Case Data Transfer Objects (DTOs)
  * @module CaseDTO
  * @description Defines the data structures used for case-related API operations
  */
-
-import { CaseStatus } from '../services/PrismaService.ts';
+import { CaseStatus } from '../services/PrismaService.js';
 
 /**
  * Data transfer object for creating a new case

@@ -4,7 +4,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { logger } from '../../middleware/logger.middleware.ts';
+import { logger } from '../../middleware/logger.middleware.js';
 
 jest.mock('../../middleware/logger.middleware.ts', () => ({
   logger: {
@@ -47,7 +47,7 @@ describe('Security Middleware', () => {
       });
 
       it('should return test configuration with secure defaults', async () => {
-        const { securityConfig } = await import('../../middleware/security.middleware.ts');
+        const { securityConfig } = await import('../../middleware/security.middleware.js');
 
         expect(securityConfig).toEqual({
           contentTypeOptions: 'nosniff',
@@ -66,7 +66,7 @@ describe('Security Middleware', () => {
         process.env.SECURITY_HSTS_MAX_AGE = '31536000';
         process.env.SECURITY_HSTS_INCLUDE_SUBDOMAINS = 'true';
 
-        const { securityConfig } = await import('../../middleware/security.middleware.ts');
+        const { securityConfig } = await import('../../middleware/security.middleware.js');
 
         expect(securityConfig).toEqual({
           contentTypeOptions: 'nosniff',
@@ -92,7 +92,7 @@ describe('Security Middleware', () => {
       });
 
       it('should return production defaults when no env vars are set', async () => {
-        const { securityConfig } = await import('../../middleware/security.middleware.ts');
+        const { securityConfig } = await import('../../middleware/security.middleware.js');
 
         expect(securityConfig).toEqual({
           contentTypeOptions: 'nosniff',
@@ -116,7 +116,7 @@ describe('Security Middleware', () => {
         process.env.SECURITY_REFERRER_POLICY = 'strict-origin';
         process.env.SECURITY_REMOVE_POWERED_BY = 'false';
 
-        const { securityConfig } = await import('../../middleware/security.middleware.ts');
+        const { securityConfig } = await import('../../middleware/security.middleware.js');
 
         expect(securityConfig).toEqual({
           contentTypeOptions: 'custom-nosniff',
@@ -133,7 +133,7 @@ describe('Security Middleware', () => {
       it('should handle invalid HSTS max age by using default', async () => {
         process.env.SECURITY_HSTS_MAX_AGE = 'invalid-number';
 
-        const { securityConfig } = await import('../../middleware/security.middleware.ts');
+        const { securityConfig } = await import('../../middleware/security.middleware.js');
 
         expect(securityConfig.hstsMaxAge).toBe(31536000);
       });
@@ -141,7 +141,7 @@ describe('Security Middleware', () => {
       it('should handle NaN HSTS max age', async () => {
         process.env.SECURITY_HSTS_MAX_AGE = 'NaN';
 
-        const { securityConfig } = await import('../../middleware/security.middleware.ts');
+        const { securityConfig } = await import('../../middleware/security.middleware.js');
 
         expect(securityConfig.hstsMaxAge).toBe(31536000);
       });
@@ -149,7 +149,7 @@ describe('Security Middleware', () => {
       it('should handle empty HSTS max age', async () => {
         process.env.SECURITY_HSTS_MAX_AGE = '';
 
-        const { securityConfig } = await import('../../middleware/security.middleware.ts');
+        const { securityConfig } = await import('../../middleware/security.middleware.js');
 
         expect(securityConfig.hstsMaxAge).toBe(31536000);
       });
@@ -157,7 +157,7 @@ describe('Security Middleware', () => {
       it('should handle valid HSTS max age string', async () => {
         process.env.SECURITY_HSTS_MAX_AGE = '86400';
 
-        const { securityConfig } = await import('../../middleware/security.middleware.ts');
+        const { securityConfig } = await import('../../middleware/security.middleware.js');
 
         expect(securityConfig.hstsMaxAge).toBe(86400);
       });
@@ -167,7 +167,7 @@ describe('Security Middleware', () => {
         process.env.SECURITY_HSTS_PRELOAD = 'false';
         process.env.SECURITY_REMOVE_POWERED_BY = 'false';
 
-        const { securityConfig } = await import('../../middleware/security.middleware.ts');
+        const { securityConfig } = await import('../../middleware/security.middleware.js');
 
         expect(securityConfig.hstsIncludeSubdomains).toBe(false);
         expect(securityConfig.hstsPreload).toBe(false);
@@ -179,7 +179,7 @@ describe('Security Middleware', () => {
         process.env.SECURITY_HSTS_PRELOAD = 'true';
         process.env.SECURITY_REMOVE_POWERED_BY = 'true';
 
-        const { securityConfig } = await import('../../middleware/security.middleware.ts');
+        const { securityConfig } = await import('../../middleware/security.middleware.js');
 
         expect(securityConfig.hstsIncludeSubdomains).toBe(true);
         expect(securityConfig.hstsPreload).toBe(true);
@@ -191,7 +191,7 @@ describe('Security Middleware', () => {
         process.env.SECURITY_HSTS_PRELOAD = 'yes';
         process.env.SECURITY_REMOVE_POWERED_BY = '1';
 
-        const { securityConfig } = await import('../../middleware/security.middleware.ts');
+        const { securityConfig } = await import('../../middleware/security.middleware.js');
 
         expect(securityConfig.hstsIncludeSubdomains).toBe(true);
         expect(securityConfig.hstsPreload).toBe(true);
@@ -210,7 +210,7 @@ describe('Security Middleware', () => {
       });
 
       it('should return development defaults when no env vars are set', async () => {
-        const { securityConfig } = await import('../../middleware/security.middleware.ts');
+        const { securityConfig } = await import('../../middleware/security.middleware.js');
 
         expect(securityConfig).toEqual({
           contentTypeOptions: 'nosniff',
@@ -234,7 +234,7 @@ describe('Security Middleware', () => {
         process.env.SECURITY_REFERRER_POLICY = 'no-referrer';
         process.env.SECURITY_REMOVE_POWERED_BY = 'false';
 
-        const { securityConfig } = await import('../../middleware/security.middleware.ts');
+        const { securityConfig } = await import('../../middleware/security.middleware.js');
 
         expect(securityConfig).toEqual({
           contentTypeOptions: 'custom-nosniff',
@@ -251,7 +251,7 @@ describe('Security Middleware', () => {
       it('should handle invalid HSTS max age by using development default', async () => {
         process.env.SECURITY_HSTS_MAX_AGE = 'not-a-number';
 
-        const { securityConfig } = await import('../../middleware/security.middleware.ts');
+        const { securityConfig } = await import('../../middleware/security.middleware.js');
 
         expect(securityConfig.hstsMaxAge).toBe(0);
       });
@@ -261,7 +261,7 @@ describe('Security Middleware', () => {
         process.env.SECURITY_HSTS_PRELOAD = 'true';
         process.env.SECURITY_REMOVE_POWERED_BY = 'true';
 
-        const { securityConfig } = await import('../../middleware/security.middleware.ts');
+        const { securityConfig } = await import('../../middleware/security.middleware.js');
 
         expect(securityConfig.hstsIncludeSubdomains).toBe(true);
         expect(securityConfig.hstsPreload).toBe(true);
@@ -273,7 +273,7 @@ describe('Security Middleware', () => {
         process.env.SECURITY_HSTS_PRELOAD = 'false';
         process.env.SECURITY_REMOVE_POWERED_BY = 'false';
 
-        const { securityConfig } = await import('../../middleware/security.middleware.ts');
+        const { securityConfig } = await import('../../middleware/security.middleware.js');
 
         expect(securityConfig.hstsIncludeSubdomains).toBe(false);
         expect(securityConfig.hstsPreload).toBe(false);
@@ -285,7 +285,7 @@ describe('Security Middleware', () => {
       it('should use development-like defaults for unknown environments', async () => {
         process.env.NODE_ENV = 'staging';
 
-        const { securityConfig } = await import('../../middleware/security.middleware.ts');
+        const { securityConfig } = await import('../../middleware/security.middleware.js');
 
         expect(securityConfig).toEqual({
           contentTypeOptions: 'nosniff',
@@ -302,7 +302,7 @@ describe('Security Middleware', () => {
       it('should handle undefined NODE_ENV', async () => {
         delete process.env.NODE_ENV;
 
-        const { securityConfig } = await import('../../middleware/security.middleware.ts');
+        const { securityConfig } = await import('../../middleware/security.middleware.js');
 
         expect(securityConfig).toEqual({
           contentTypeOptions: 'nosniff',
@@ -324,7 +324,7 @@ describe('Security Middleware', () => {
       process.env.SECURITY_HSTS_INCLUDE_SUBDOMAINS = 'false';
       process.env.SECURITY_HSTS_PRELOAD = 'false';
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
       securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -336,7 +336,7 @@ describe('Security Middleware', () => {
       process.env.SECURITY_HSTS_INCLUDE_SUBDOMAINS = 'true';
       process.env.SECURITY_HSTS_PRELOAD = 'false';
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
       securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -351,7 +351,7 @@ describe('Security Middleware', () => {
       process.env.SECURITY_HSTS_INCLUDE_SUBDOMAINS = 'false';
       process.env.SECURITY_HSTS_PRELOAD = 'true';
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
       securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -366,7 +366,7 @@ describe('Security Middleware', () => {
       process.env.SECURITY_HSTS_INCLUDE_SUBDOMAINS = 'true';
       process.env.SECURITY_HSTS_PRELOAD = 'true';
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
       securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -382,7 +382,7 @@ describe('Security Middleware', () => {
       process.env.SECURITY_HSTS_INCLUDE_SUBDOMAINS = 'true';
       process.env.SECURITY_HSTS_PRELOAD = 'true';
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
       securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -398,7 +398,7 @@ describe('Security Middleware', () => {
       jest.resetModules();
       jest.clearAllMocks();
 
-      const { logger } = await import('../../middleware/logger.middleware.ts');
+      const { logger } = await import('../../middleware/logger.middleware.js');
 
       logger.error('test message', { test: 'data' });
 
@@ -408,7 +408,7 @@ describe('Security Middleware', () => {
     it('should set all security headers correctly in test environment', async () => {
       process.env.NODE_ENV = 'test';
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
       securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -427,7 +427,7 @@ describe('Security Middleware', () => {
     it('should set all security headers correctly in development environment', async () => {
       process.env.NODE_ENV = 'development';
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
       securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -446,7 +446,7 @@ describe('Security Middleware', () => {
     it('should set all security headers correctly in production environment', async () => {
       process.env.NODE_ENV = 'production';
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
       securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -468,7 +468,7 @@ describe('Security Middleware', () => {
     it('should remove X-Powered-By header when configured', async () => {
       process.env.NODE_ENV = 'production';
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
       securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -479,7 +479,7 @@ describe('Security Middleware', () => {
       process.env.NODE_ENV = 'development';
       process.env.SECURITY_REMOVE_POWERED_BY = 'false';
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
       securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -493,7 +493,7 @@ describe('Security Middleware', () => {
       process.env.SECURITY_XSS_PROTECTION = '0';
       process.env.SECURITY_REFERRER_POLICY = 'strict-origin';
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
       securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -509,7 +509,7 @@ describe('Security Middleware', () => {
     it('should call setHeader and removeHeader in correct order', async () => {
       process.env.NODE_ENV = 'production';
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
       securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -529,7 +529,7 @@ describe('Security Middleware', () => {
         throw new Error('Header setting failed');
       });
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
       expect(() => {
         securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
@@ -554,8 +554,8 @@ describe('Security Middleware', () => {
       const freshMockRequest = {};
       const freshMockNext = jest.fn();
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
-      const { logger } = await import('../../middleware/logger.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
+      const { logger } = await import('../../middleware/logger.middleware.js');
 
       securityHeaders(
         freshMockRequest as Request,
@@ -585,8 +585,8 @@ describe('Security Middleware', () => {
       const freshMockRequest = {};
       const freshMockNext = jest.fn();
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
-      const { logger } = await import('../../middleware/logger.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
+      const { logger } = await import('../../middleware/logger.middleware.js');
 
       securityHeaders(
         freshMockRequest as Request,
@@ -627,8 +627,8 @@ describe('Security Middleware', () => {
         const freshMockRequest = {};
         const freshMockNext = jest.fn();
 
-        const { securityHeaders } = await import('../../middleware/security.middleware.ts');
-        const { logger } = await import('../../middleware/logger.middleware.ts');
+        const { securityHeaders } = await import('../../middleware/security.middleware.js');
+        const { logger } = await import('../../middleware/logger.middleware.js');
 
         securityHeaders(
           freshMockRequest as Request,
@@ -659,8 +659,8 @@ describe('Security Middleware', () => {
       const freshMockRequest = {};
       const freshMockNext = jest.fn();
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
-      const { logger } = await import('../../middleware/logger.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
+      const { logger } = await import('../../middleware/logger.middleware.js');
 
       securityHeaders(
         freshMockRequest as Request,
@@ -690,8 +690,8 @@ describe('Security Middleware', () => {
       const freshMockRequest = {};
       const freshMockNext = jest.fn();
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
-      const { logger } = await import('../../middleware/logger.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
+      const { logger } = await import('../../middleware/logger.middleware.js');
 
       securityHeaders(
         freshMockRequest as Request,
@@ -718,8 +718,8 @@ describe('Security Middleware', () => {
         removeHeader: jest.fn(),
       };
 
-      let module = await import('../../middleware/security.middleware.ts');
-      let loggerModule = await import('../../middleware/logger.middleware.ts');
+      let module = await import('../../middleware/security.middleware.js');
+      let loggerModule = await import('../../middleware/logger.middleware.js');
 
       module.securityHeaders({} as Request, errorBranchResponse as unknown as Response, jest.fn());
 
@@ -739,8 +739,8 @@ describe('Security Middleware', () => {
         removeHeader: jest.fn(),
       };
 
-      module = await import('../../middleware/security.middleware.ts');
-      loggerModule = await import('../../middleware/logger.middleware.ts');
+      module = await import('../../middleware/security.middleware.js');
+      loggerModule = await import('../../middleware/logger.middleware.js');
 
       module.securityHeaders(
         {} as Request,
@@ -758,7 +758,7 @@ describe('Security Middleware', () => {
     it('should not log anything in test environment', async () => {
       process.env.NODE_ENV = 'test';
 
-      const { logSecurityConfig } = await import('../../middleware/security.middleware.ts');
+      const { logSecurityConfig } = await import('../../middleware/security.middleware.js');
 
       logSecurityConfig();
 
@@ -768,7 +768,7 @@ describe('Security Middleware', () => {
     it('should log production security info when in production', async () => {
       process.env.NODE_ENV = 'production';
 
-      const { logSecurityConfig } = await import('../../middleware/security.middleware.ts');
+      const { logSecurityConfig } = await import('../../middleware/security.middleware.js');
 
       expect(() => logSecurityConfig()).not.toThrow();
 
@@ -785,7 +785,7 @@ describe('Security Middleware', () => {
     it('should log detailed configuration in development', async () => {
       process.env.NODE_ENV = 'development';
 
-      const { logSecurityConfig } = await import('../../middleware/security.middleware.ts');
+      const { logSecurityConfig } = await import('../../middleware/security.middleware.js');
 
       expect(() => logSecurityConfig()).not.toThrow();
 
@@ -799,7 +799,7 @@ describe('Security Middleware', () => {
     it('should log detailed configuration in other environments', async () => {
       process.env.NODE_ENV = 'staging';
 
-      const { logSecurityConfig } = await import('../../middleware/security.middleware.ts');
+      const { logSecurityConfig } = await import('../../middleware/security.middleware.js');
 
       expect(() => logSecurityConfig()).not.toThrow();
     });
@@ -809,7 +809,7 @@ describe('Security Middleware', () => {
     it('should export the current security configuration', async () => {
       process.env.NODE_ENV = 'test';
 
-      const { securityConfig } = await import('../../middleware/security.middleware.ts');
+      const { securityConfig } = await import('../../middleware/security.middleware.js');
 
       expect(securityConfig).toBeDefined();
       expect(typeof securityConfig).toBe('object');
@@ -828,7 +828,7 @@ describe('Security Middleware', () => {
       process.env.SECURITY_FRAME_OPTIONS = 'SAMEORIGIN';
       process.env.SECURITY_HSTS_MAX_AGE = '86400';
 
-      const { securityConfig } = await import('../../middleware/security.middleware.ts');
+      const { securityConfig } = await import('../../middleware/security.middleware.js');
 
       expect(securityConfig.frameOptions).toBe('SAMEORIGIN');
       expect(securityConfig.hstsMaxAge).toBe(86400);
@@ -843,7 +843,7 @@ describe('Security Middleware', () => {
       process.env.SECURITY_HSTS_PRELOAD = 'sometimes';
       process.env.SECURITY_REMOVE_POWERED_BY = 'perhaps';
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
       expect(() => {
         securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
@@ -856,7 +856,7 @@ describe('Security Middleware', () => {
       process.env.NODE_ENV = 'development';
       process.env.SECURITY_HSTS_MAX_AGE = '99999999999999999';
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
       securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -871,7 +871,7 @@ describe('Security Middleware', () => {
       process.env.NODE_ENV = 'development';
       process.env.SECURITY_HSTS_MAX_AGE = '-1000';
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
       securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -885,7 +885,7 @@ describe('Security Middleware', () => {
       process.env.NODE_ENV = 'development';
       process.env.SECURITY_HSTS_MAX_AGE = '86400.5';
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
       securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -905,7 +905,7 @@ describe('Security Middleware', () => {
         }
       });
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
       securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -932,7 +932,7 @@ describe('Security Middleware', () => {
         }
       });
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
       securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -959,7 +959,7 @@ describe('Security Middleware', () => {
       process.env.SECURITY_REFERRER_POLICY = 'strict-origin';
       process.env.SECURITY_REMOVE_POWERED_BY = 'false';
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
       securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -979,17 +979,17 @@ describe('Security Middleware', () => {
   describe('environment transitions', () => {
     it('should handle switching between environments during runtime', async () => {
       process.env.NODE_ENV = 'test';
-      let module = await import('../../middleware/security.middleware.ts');
+      let module = await import('../../middleware/security.middleware.js');
       expect(module.securityConfig.frameOptions).toBe('SAMEORIGIN');
 
       jest.resetModules();
       process.env.NODE_ENV = 'production';
-      module = await import('../../middleware/security.middleware.ts');
+      module = await import('../../middleware/security.middleware.js');
       expect(module.securityConfig.frameOptions).toBe('DENY');
 
       jest.resetModules();
       process.env.NODE_ENV = 'development';
-      module = await import('../../middleware/security.middleware.ts');
+      module = await import('../../middleware/security.middleware.js');
       expect(module.securityConfig.frameOptions).toBe('SAMEORIGIN');
     });
 
@@ -997,13 +997,13 @@ describe('Security Middleware', () => {
       process.env.NODE_ENV = 'development';
       process.env.SECURITY_FRAME_OPTIONS = 'DENY';
 
-      let module = await import('../../middleware/security.middleware.ts');
+      let module = await import('../../middleware/security.middleware.js');
       expect(module.securityConfig.frameOptions).toBe('DENY');
 
       jest.resetModules();
       process.env.SECURITY_FRAME_OPTIONS = 'SAMEORIGIN';
 
-      module = await import('../../middleware/security.middleware.ts');
+      module = await import('../../middleware/security.middleware.js');
       expect(module.securityConfig.frameOptions).toBe('SAMEORIGIN');
     });
   });
@@ -1012,7 +1012,7 @@ describe('Security Middleware', () => {
     it('should set exactly 5 headers and call removeHeader once', async () => {
       process.env.NODE_ENV = 'production';
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
       securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -1023,7 +1023,7 @@ describe('Security Middleware', () => {
     it('should verify all expected headers are set with correct names', async () => {
       process.env.NODE_ENV = 'development';
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
       securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -1042,7 +1042,7 @@ describe('Security Middleware', () => {
     it('should verify header values are strings', async () => {
       process.env.NODE_ENV = 'production';
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
       securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -1072,7 +1072,7 @@ describe('Security Middleware', () => {
             process.env.SECURITY_HSTS_PRELOAD = preload;
             process.env.SECURITY_REMOVE_POWERED_BY = removePoweredBy;
 
-            const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+            const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
             expect(() => {
               securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
@@ -1090,7 +1090,7 @@ describe('Security Middleware', () => {
       process.env.SECURITY_HSTS_PRELOAD = 'true';
       process.env.SECURITY_REMOVE_POWERED_BY = 'fAlSe';
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
       securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -1109,7 +1109,7 @@ describe('Security Middleware', () => {
       process.env.SECURITY_XSS_PROTECTION = '';
       process.env.SECURITY_REFERRER_POLICY = '';
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
       securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -1127,7 +1127,7 @@ describe('Security Middleware', () => {
     it('should handle rapid successive calls efficiently', async () => {
       process.env.NODE_ENV = 'production';
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
       const startTime = Date.now();
 
@@ -1152,7 +1152,7 @@ describe('Security Middleware', () => {
     it('should not accumulate memory over multiple calls', async () => {
       process.env.NODE_ENV = 'development';
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
       for (let i = 0; i < 50; i++) {
         const localNext = jest.fn();
@@ -1172,7 +1172,7 @@ describe('Security Middleware', () => {
 
   describe('function exports and module structure', () => {
     it('should export all required functions and objects', async () => {
-      const module = await import('../../middleware/security.middleware.ts');
+      const module = await import('../../middleware/security.middleware.js');
 
       expect(module.securityHeaders).toBeDefined();
       expect(module.securityConfig).toBeDefined();
@@ -1184,19 +1184,19 @@ describe('Security Middleware', () => {
     });
 
     it('should have securityHeaders function with correct arity', async () => {
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
       expect(securityHeaders.length).toBe(3);
     });
 
     it('should have logSecurityConfig function with correct arity', async () => {
-      const { logSecurityConfig } = await import('../../middleware/security.middleware.ts');
+      const { logSecurityConfig } = await import('../../middleware/security.middleware.js');
 
       expect(logSecurityConfig.length).toBe(0);
     });
 
     it('should export securityConfig as a plain object', async () => {
-      const { securityConfig } = await import('../../middleware/security.middleware.ts');
+      const { securityConfig } = await import('../../middleware/security.middleware.js');
 
       expect(securityConfig.constructor).toBe(Object);
       expect(Array.isArray(securityConfig)).toBe(false);
@@ -1215,7 +1215,7 @@ describe('Security Middleware', () => {
 
         process.env.NODE_ENV = env;
 
-        const module = await import('../../middleware/security.middleware.ts');
+        const module = await import('../../middleware/security.middleware.js');
 
         module.securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
         expect(mockNext).toHaveBeenCalled();
@@ -1230,7 +1230,7 @@ describe('Security Middleware', () => {
       jest.clearAllMocks();
       delete process.env.NODE_ENV;
 
-      const undefinedEnvModule = await import('../../middleware/security.middleware.ts');
+      const undefinedEnvModule = await import('../../middleware/security.middleware.js');
       undefinedEnvModule.securityHeaders(
         mockRequest as Request,
         mockResponse as Response,
@@ -1259,7 +1259,7 @@ describe('Security Middleware', () => {
         process.env.SECURITY_HSTS_INCLUDE_SUBDOMAINS = config.includeSubDomains.toString();
         process.env.SECURITY_HSTS_PRELOAD = config.preload.toString();
 
-        const hstsModule = await import('../../middleware/security.middleware.ts');
+        const hstsModule = await import('../../middleware/security.middleware.js');
         hstsModule.securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
 
         expect(mockResponse.setHeader).toHaveBeenCalledWith(
@@ -1276,7 +1276,7 @@ describe('Security Middleware', () => {
         throw new Error('Simulated error');
       });
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
       expect(() => {
         securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
@@ -1304,7 +1304,7 @@ describe('Security Middleware', () => {
 
         process.env.SECURITY_HSTS_INCLUDE_SUBDOMAINS = testCase.value;
 
-        const { securityConfig } = await import('../../middleware/security.middleware.ts');
+        const { securityConfig } = await import('../../middleware/security.middleware.js');
 
         expect(securityConfig.hstsIncludeSubdomains).toBe(testCase.expected);
       }
@@ -1326,7 +1326,7 @@ describe('Security Middleware', () => {
         process.env.NODE_ENV = 'development';
         process.env.SECURITY_HSTS_MAX_AGE = testCase.value;
 
-        const { securityConfig } = await import('../../middleware/security.middleware.ts');
+        const { securityConfig } = await import('../../middleware/security.middleware.js');
 
         if (isNaN(testCase.expected)) {
           expect(securityConfig.hstsMaxAge).toBe(0);
@@ -1341,7 +1341,7 @@ describe('Security Middleware', () => {
     it('should verify all exported functions and objects work correctly', async () => {
       process.env.NODE_ENV = 'test';
 
-      const module = await import('../../middleware/security.middleware.ts');
+      const module = await import('../../middleware/security.middleware.js');
 
       expect(typeof module.securityHeaders).toBe('function');
       expect(typeof module.logSecurityConfig).toBe('function');
@@ -1376,7 +1376,7 @@ describe('Security Middleware', () => {
     it('should verify middleware execution order and completeness', async () => {
       process.env.NODE_ENV = 'production';
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
       const callOrder: string[] = [];
 
@@ -1409,22 +1409,22 @@ describe('Security Middleware', () => {
     it('should achieve complete branch coverage', async () => {
       jest.resetModules();
       process.env.NODE_ENV = 'test';
-      let module = await import('../../middleware/security.middleware.ts');
+      let module = await import('../../middleware/security.middleware.js');
       expect(module.securityConfig.frameOptions).toBe('SAMEORIGIN');
 
       jest.resetModules();
       process.env.NODE_ENV = 'production';
-      module = await import('../../middleware/security.middleware.ts');
+      module = await import('../../middleware/security.middleware.js');
       expect(module.securityConfig.frameOptions).toBe('DENY');
 
       jest.resetModules();
       process.env.NODE_ENV = 'development';
-      module = await import('../../middleware/security.middleware.ts');
+      module = await import('../../middleware/security.middleware.js');
       expect(module.securityConfig.frameOptions).toBe('SAMEORIGIN');
 
       jest.resetModules();
       process.env.NODE_ENV = 'staging';
-      module = await import('../../middleware/security.middleware.ts');
+      module = await import('../../middleware/security.middleware.js');
       expect(module.securityConfig.frameOptions).toBe('SAMEORIGIN');
 
       jest.resetModules();
@@ -1432,7 +1432,7 @@ describe('Security Middleware', () => {
       process.env.SECURITY_HSTS_INCLUDE_SUBDOMAINS = 'false';
       process.env.SECURITY_HSTS_PRELOAD = 'false';
       process.env.SECURITY_REMOVE_POWERED_BY = 'false';
-      module = await import('../../middleware/security.middleware.ts');
+      module = await import('../../middleware/security.middleware.js');
       expect(module.securityConfig.hstsIncludeSubdomains).toBe(false);
       expect(module.securityConfig.hstsPreload).toBe(false);
       expect(module.securityConfig.removePoweredBy).toBe(false);
@@ -1442,7 +1442,7 @@ describe('Security Middleware', () => {
       process.env.NODE_ENV = 'development';
       process.env.SECURITY_HSTS_INCLUDE_SUBDOMAINS = 'true';
       process.env.SECURITY_HSTS_PRELOAD = 'true';
-      module = await import('../../middleware/security.middleware.ts');
+      module = await import('../../middleware/security.middleware.js');
       module.securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
 
       const hstsCall = (mockResponse.setHeader as jest.Mock).mock.calls.find(
@@ -1454,28 +1454,28 @@ describe('Security Middleware', () => {
       jest.clearAllMocks();
       process.env.NODE_ENV = 'development';
       process.env.SECURITY_REMOVE_POWERED_BY = 'false';
-      module = await import('../../middleware/security.middleware.ts');
+      module = await import('../../middleware/security.middleware.js');
       module.securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
       expect(mockResponse.removeHeader).not.toHaveBeenCalled();
 
       jest.resetModules();
       jest.clearAllMocks();
       process.env.NODE_ENV = 'test';
-      module = await import('../../middleware/security.middleware.ts');
+      module = await import('../../middleware/security.middleware.js');
       module.logSecurityConfig();
       expect(typeof module.logSecurityConfig).toBe('function');
 
       jest.resetModules();
       jest.clearAllMocks();
       process.env.NODE_ENV = 'production';
-      module = await import('../../middleware/security.middleware.ts');
+      module = await import('../../middleware/security.middleware.js');
       module.logSecurityConfig();
       expect(typeof module.logSecurityConfig).toBe('function');
 
       jest.resetModules();
       jest.clearAllMocks();
       process.env.NODE_ENV = 'development';
-      module = await import('../../middleware/security.middleware.ts');
+      module = await import('../../middleware/security.middleware.js');
       module.logSecurityConfig();
       expect(typeof module.logSecurityConfig).toBe('function');
     });
@@ -1510,7 +1510,7 @@ describe('Security Middleware', () => {
 
         Object.assign(process.env, config.env);
 
-        const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+        const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
         expect(() => {
           securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
@@ -1530,7 +1530,7 @@ describe('Security Middleware', () => {
       process.env.SECURITY_HSTS_INCLUDE_SUBDOMAINS = 'false';
       process.env.SECURITY_REMOVE_POWERED_BY = 'false';
 
-      const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+      const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
       securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -1560,7 +1560,7 @@ describe('Security Middleware', () => {
         process.env.NODE_ENV = 'production';
         process.env.SECURITY_HSTS_MAX_AGE = testCase.maxAge;
 
-        const { securityHeaders } = await import('../../middleware/security.middleware.ts');
+        const { securityHeaders } = await import('../../middleware/security.middleware.js');
 
         expect(() => {
           securityHeaders(mockRequest as Request, mockResponse as Response, mockNext);
@@ -1597,7 +1597,7 @@ describe('Security Middleware', () => {
         jest.resetModules();
         Object.assign(process.env, test.config);
 
-        const { securityConfig } = await import('../../middleware/security.middleware.ts');
+        const { securityConfig } = await import('../../middleware/security.middleware.js');
 
         if (test.expectedFrameOptions) {
           expect(securityConfig.frameOptions).toBe(test.expectedFrameOptions);
@@ -1626,7 +1626,7 @@ describe('Security Middleware', () => {
 
       Object.assign(process.env, problematicConfig);
 
-      const module = await import('../../middleware/security.middleware.ts');
+      const module = await import('../../middleware/security.middleware.js');
 
       expect(module.securityConfig.frameOptions).toBe('SAMEORIGIN');
       expect(module.securityConfig.hstsMaxAge).toBe(3600);

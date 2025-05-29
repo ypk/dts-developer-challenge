@@ -53,7 +53,7 @@ describe('Case Routes', () => {
       MAX_LIMIT: 100,
     }));
 
-    routesModule = await import('../../routes/caseRoutes.ts');
+    routesModule = await import('../../routes/caseRoutes.js');
   });
 
   afterEach(() => {

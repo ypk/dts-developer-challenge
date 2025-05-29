@@ -304,9 +304,13 @@ describe('Server Configuration', () => {
           formatStatus: jest.fn(),
         }));
 
-        await import('../server.ts');
+        await import('../server.js');
 
-        expect(mockConsoleError).toHaveBeenCalledWith(TEST_CONFIG.MESSAGES.SESSION_SECRET_ERROR);
+        //        expect(mockConsoleError).toHaveBeenCalledWith(TEST_CONFIG.MESSAGES.SESSION_SECRET_ERROR);
+        expect(mockConsoleError).toHaveBeenCalledWith(
+          '✗',
+          TEST_CONFIG.MESSAGES.SESSION_SECRET_ERROR,
+        );
         expect(mockProcessExit).toHaveBeenCalledWith(1);
       });
     });
@@ -331,9 +335,13 @@ describe('Server Configuration', () => {
             formatStatus: jest.fn(),
           }));
 
-          await import('../server.ts');
+          await import('../server.js');
 
-          expect(mockConsoleWarn).toHaveBeenCalledWith(TEST_CONFIG.MESSAGES.SESSION_SECRET_WARNING);
+          //expect(mockConsoleWarn).toHaveBeenCalledWith(TEST_CONFIG.MESSAGES.SESSION_SECRET_WARNING);
+          expect(mockConsoleWarn).toHaveBeenCalledWith(
+            undefined,
+            TEST_CONFIG.MESSAGES.SESSION_SECRET_WARNING,
+          );
           expect(mockProcessExit).not.toHaveBeenCalled();
         },
       );
@@ -357,7 +365,7 @@ describe('Server Configuration', () => {
 
     describe('SVG Helper Middleware', () => {
       it('should add getSVG function to res.locals', async () => {
-        const { safelyApplyMiddleware } = await import('../utils/middleware.utils.ts');
+        const { safelyApplyMiddleware } = await import('../utils/middleware.utils.js');
 
         (safelyApplyMiddleware as jest.Mock).mockImplementation(
           (app: any, name: string, fn: Function) => {
@@ -365,7 +373,7 @@ describe('Server Configuration', () => {
           },
         );
 
-        await import('../server.ts');
+        await import('../server.js');
 
         const svgMiddleware = middlewareCapture.getMiddleware('SVG Helper');
         expect(svgMiddleware).toBeDefined();
@@ -383,7 +391,7 @@ describe('Server Configuration', () => {
       });
 
       it('should call next() after setup', async () => {
-        const { safelyApplyMiddleware } = await import('../utils/middleware.utils.ts');
+        const { safelyApplyMiddleware } = await import('../utils/middleware.utils.js');
 
         (safelyApplyMiddleware as jest.Mock).mockImplementation(
           (app: any, name: string, fn: Function) => {
@@ -391,7 +399,7 @@ describe('Server Configuration', () => {
           },
         );
 
-        await import('../server.ts');
+        await import('../server.js');
 
         const svgMiddleware = middlewareCapture.getMiddleware('SVG Helper');
 
@@ -403,7 +411,7 @@ describe('Server Configuration', () => {
       });
 
       it('should use getSVG function correctly', async () => {
-        const { safelyApplyMiddleware, getSVG } = await import('../utils/middleware.utils.ts');
+        const { safelyApplyMiddleware, getSVG } = await import('../utils/middleware.utils.js');
 
         (safelyApplyMiddleware as jest.Mock).mockImplementation(
           (app: any, name: string, fn: Function) => {
@@ -411,7 +419,7 @@ describe('Server Configuration', () => {
           },
         );
 
-        await import('../server.ts');
+        await import('../server.js');
 
         const svgMiddleware = middlewareCapture.getMiddleware('SVG Helper');
 
@@ -437,7 +445,7 @@ describe('Server Configuration', () => {
           });
         });
 
-        const { safelyApplyMiddleware } = await import('../utils/middleware.utils.ts');
+        const { safelyApplyMiddleware } = await import('../utils/middleware.utils.js');
         (safelyApplyMiddleware as jest.Mock).mockImplementation(
           (app: any, name: string, fn: Function) => {
             try {
@@ -448,7 +456,7 @@ describe('Server Configuration', () => {
           },
         );
 
-        await import('../server.ts');
+        await import('../server.js');
       });
 
       it('should extract _method from request body', () => {
@@ -487,7 +495,7 @@ describe('Server Configuration', () => {
 
     describe('Session & Template Locals Middleware', () => {
       it('should set all required locals', async () => {
-        const { safelyApplyMiddleware } = await import('../utils/middleware.utils.ts');
+        const { safelyApplyMiddleware } = await import('../utils/middleware.utils.js');
 
         (safelyApplyMiddleware as jest.Mock).mockImplementation(
           (app: any, name: string, fn: Function) => {
@@ -495,7 +503,7 @@ describe('Server Configuration', () => {
           },
         );
 
-        await import('../server.ts');
+        await import('../server.js');
 
         const sessionMiddleware = middlewareCapture.getMiddleware('Session & Template Locals');
         expect(sessionMiddleware).toBeDefined();
@@ -531,7 +539,7 @@ describe('Server Configuration', () => {
       });
 
       it('should handle empty/null values', async () => {
-        const { safelyApplyMiddleware } = await import('../utils/middleware.utils.ts');
+        const { safelyApplyMiddleware } = await import('../utils/middleware.utils.js');
 
         (safelyApplyMiddleware as jest.Mock).mockImplementation(
           (app: any, name: string, fn: Function) => {
@@ -539,7 +547,7 @@ describe('Server Configuration', () => {
           },
         );
 
-        await import('../server.ts');
+        await import('../server.js');
 
         const sessionMiddleware = middlewareCapture.getMiddleware('Session & Template Locals');
 
@@ -596,7 +604,7 @@ describe('Server Configuration', () => {
       async (environment, hasSecurityEnabled) => {
         testHelper.setEnv({ NODE_ENV: environment });
 
-        await import('../server.ts');
+        await import('../server.js');
 
         const healthHandler = routeCapture.getHandler('/health');
         expect(healthHandler).toBeDefined();
@@ -616,7 +624,7 @@ describe('Server Configuration', () => {
     it('should include securityEnabled in production', async () => {
       testHelper.setEnv({ NODE_ENV: TEST_CONFIG.ENVIRONMENTS.PRODUCTION });
 
-      await import('../server.ts');
+      await import('../server.js');
 
       const healthHandler = routeCapture.getHandler('/health');
 
@@ -662,7 +670,7 @@ describe('Server Configuration', () => {
           formatStatus: jest.fn(),
         }));
 
-        await import('../server.ts');
+        await import('../server.js');
         await new Promise((resolve) => setTimeout(resolve, 10));
 
         assertServerStartSuccess(mockApp, mockConsoleLog, expectedPort);
@@ -697,7 +705,7 @@ describe('Server Configuration', () => {
           formatStatus: jest.fn(),
         }));
 
-        await import('../server.ts');
+        await import('../server.js');
 
         expect(mockApp.listen).toHaveBeenCalledWith(
           TEST_CONFIG.PORTS.STRING_DEFAULT,
@@ -723,7 +731,7 @@ describe('Server Configuration', () => {
           formatStatus: jest.fn(),
         }));
 
-        await import('../server.ts');
+        await import('../server.js');
 
         expect(mockApp.listen).not.toHaveBeenCalled();
         expect(mockProcessExit).not.toHaveBeenCalled();

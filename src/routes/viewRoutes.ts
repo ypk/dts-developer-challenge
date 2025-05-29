@@ -1,6 +1,17 @@
+/**
+ * ESM Import Note:
+ * Using .js extensions because this project uses ES Modules with NodeNext resolution.
+ * TypeScript compiles .ts → .js, so import paths must reference the output files.
+ */
+
+/**
+ * View Routes Module
+ * @module viewRoutes
+ * @description Defines routes for rendering views
+ */
 import { Router, Request, Response } from 'express';
-import { CaseServiceInstance } from '../services/CaseService.ts';
-import { NotFoundError } from '../middleware/error.middleware.ts';
+import { CaseServiceInstance } from '../services/CaseService.js';
+import { NotFoundError } from '../middleware/error.middleware.js';
 import { caseValidation, validateForm } from '../middleware/validation.middleware.js';
 
 const router = Router();

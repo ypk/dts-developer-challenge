@@ -3,14 +3,14 @@ import {
   validateAndParseId,
   handleNotFoundError,
   handlePrismaError,
-} from '../../utils/caseHelper.ts';
-import { sendError, sendBadRequest } from '../../utils/responseHandler.ts';
+} from '../../utils/caseHelper.js';
+import { sendError, sendBadRequest } from '../../utils/responseHandler.js';
 import {
   NotFoundError,
   DatabaseError,
   isPrismaNotFoundError,
   isPrismaUniqueViolationError,
-} from '../../middleware/error.middleware.ts';
+} from '../../middleware/error.middleware.js';
 
 jest.mock('../../utils/responseHandler.ts', () => ({
   sendError: jest.fn(),

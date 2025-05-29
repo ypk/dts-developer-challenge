@@ -28,7 +28,7 @@ import {
   CaseStatus,
   Case,
   Prisma,
-} from '../../services/PrismaService.ts';
+} from '../../services/PrismaService.js';
 
 describe('PrismaService', () => {
   beforeEach(() => {

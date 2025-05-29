@@ -34,8 +34,8 @@ jest.mock('../../middleware/error.middleware.ts', () => ({
   },
 }));
 
-import { CaseServiceInstance } from '../../services/CaseService.ts';
-import { NotFoundError } from '../../middleware/error.middleware.ts';
+import { CaseServiceInstance } from '../../services/CaseService.js';
+import { NotFoundError } from '../../middleware/error.middleware.js';
 
 describe('View Routes', () => {
   let mockRequest: Partial<Request>;
@@ -60,7 +60,7 @@ describe('View Routes', () => {
   });
 
   beforeAll(async () => {
-    await import('../../routes/viewRoutes.ts');
+    await import('../../routes/viewRoutes.js');
 
     mockRouter.get.mock.calls.forEach((call) => {
       const [path, ...handlers] = call;
@@ -119,7 +119,7 @@ describe('View Routes', () => {
     });
 
     it('should export router', async () => {
-      const routesModule = await import('../../routes/viewRoutes.ts');
+      const routesModule = await import('../../routes/viewRoutes.js');
       expect(routesModule.default).toBe(mockRouter);
     });
   });

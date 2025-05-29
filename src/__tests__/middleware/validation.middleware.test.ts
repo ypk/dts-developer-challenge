@@ -68,7 +68,7 @@ describe('Validation Middleware', () => {
 
     beforeEach(async () => {
       jest.resetModules();
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
       validateFutureDate = module.validateFutureDate;
     });
 
@@ -162,7 +162,7 @@ describe('Validation Middleware', () => {
 
     beforeEach(async () => {
       jest.resetModules();
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
       validateForm = module.validateForm;
     });
 
@@ -283,7 +283,7 @@ describe('Validation Middleware', () => {
 
     beforeEach(async () => {
       jest.resetModules();
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
       validate = module.validate;
     });
 
@@ -354,7 +354,7 @@ describe('Validation Middleware', () => {
       jest.resetModules();
       mockBody.mockImplementation(() => createValidationChain());
       mockParam.mockImplementation(() => createValidationChain());
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
       caseValidation = module.caseValidation;
     });
 
@@ -424,7 +424,7 @@ describe('Validation Middleware', () => {
       mockBody.mockReturnValue(mockChain);
       mockParam.mockReturnValue(mockChain);
 
-      await import('../../middleware/validation.middleware.ts');
+      await import('../../middleware/validation.middleware.js');
 
       expect(mockChain.notEmpty).toHaveBeenCalled();
       expect(mockChain.withMessage).toHaveBeenCalled();
@@ -440,7 +440,7 @@ describe('Validation Middleware', () => {
       mockBody.mockReturnValue(mockChain);
       mockParam.mockReturnValue(mockChain);
 
-      await import('../../middleware/validation.middleware.ts');
+      await import('../../middleware/validation.middleware.js');
 
       const withMessageCalls = mockChain.withMessage.mock.calls;
       const messages = withMessageCalls.map((call: any[]) => call[0]);
@@ -458,7 +458,7 @@ describe('Validation Middleware', () => {
       mockBody.mockReturnValue(mockChain);
       mockParam.mockReturnValue(mockChain);
 
-      await import('../../middleware/validation.middleware.ts');
+      await import('../../middleware/validation.middleware.js');
 
       const isInCalls = mockChain.isIn.mock.calls;
       const statusCall = isInCalls.find(
@@ -476,7 +476,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle exact path match for /cases', async () => {
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
       const validateForm = module.validateForm;
 
       const mockErrors = {
@@ -493,7 +493,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle case ID extraction from params', async () => {
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
       const validateForm = module.validateForm;
 
       const mockErrors = {
@@ -511,7 +511,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle missing case ID in params', async () => {
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
       const validateForm = module.validateForm;
 
       const mockErrors = {
@@ -529,7 +529,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle various path patterns correctly', async () => {
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
       const validateForm = module.validateForm;
 
       const mockErrors = {
@@ -566,7 +566,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle session without formData property', async () => {
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
       const validateForm = module.validateForm;
 
       const mockErrors = {
@@ -601,7 +601,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle exact boundary dates', async () => {
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
       const validateFutureDate = module.validateFutureDate;
 
       const futureDate = new Date();
@@ -634,7 +634,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should work with real validation flow for create case', async () => {
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
       const { validate } = module;
 
       const mockErrors = {
@@ -657,7 +657,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should work with real validation flow for update case with errors', async () => {
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
       const { validate } = module;
 
       const mockErrors = {
@@ -693,7 +693,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle malformed validation result objects', async () => {
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
       const validate = module.validate;
 
       mockValidationResult.mockReturnValue(null);
@@ -704,7 +704,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle undefined validation result', async () => {
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
       const validate = module.validate;
 
       mockValidationResult.mockReturnValue(undefined);
@@ -715,7 +715,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle validation result with no array method', async () => {
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
       const validate = module.validate;
 
       const mockErrors = {
@@ -735,7 +735,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should store form data in session when validation fails', async () => {
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
       const validateForm = module.validateForm;
 
       const mockErrors = {
@@ -759,7 +759,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should preserve existing session data when storing form data', async () => {
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
       const validateForm = module.validateForm;
 
       const mockErrors = {
@@ -785,7 +785,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle session formData deletion when no errors', async () => {
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
       const validateForm = module.validateForm;
 
       const mockErrors = {
@@ -814,7 +814,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should throw errors for corrupted session objects as expected', async () => {
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
       const validateForm = module.validateForm;
 
       const mockErrors = {
@@ -836,7 +836,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle valid session objects with various formData states', async () => {
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
       const validateForm = module.validateForm;
 
       const mockErrors = {
@@ -868,7 +868,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle malformed request objects gracefully where possible', async () => {
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
       const { validate } = module;
 
       const mockErrors = {
@@ -900,7 +900,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle rapid form validation calls without memory leaks', async () => {
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
       const { validateForm } = module;
 
       const mockErrors = {
@@ -920,7 +920,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle large validation error arrays efficiently', async () => {
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
       const { validate } = module;
 
       const largeErrorArray = Array.from({ length: 100 }, (_, index) => ({
@@ -955,7 +955,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle typical create case form submission', async () => {
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
       const { validateForm } = module;
 
       const mockErrors = {
@@ -975,7 +975,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle typical edit case form submission', async () => {
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
       const { validateForm } = module;
 
       const mockErrors = {
@@ -996,7 +996,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle successful API validation', async () => {
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
       const { validate } = module;
 
       const mockErrors = {
@@ -1020,7 +1020,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle API validation with multiple errors', async () => {
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
       const { validate } = module;
 
       const mockErrors = {
@@ -1049,7 +1049,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle form validation with case ID from different paths', async () => {
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
       const { validateForm } = module;
 
       const mockErrors = {
@@ -1083,7 +1083,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle timezone considerations', async () => {
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
       const validateFutureDate = module.validateFutureDate;
 
       const futureDate = new Date();
@@ -1097,7 +1097,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle validateFutureDate with millisecond precision', async () => {
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
       const validateFutureDate = module.validateFutureDate;
 
       const futureDate = new Date();
@@ -1108,7 +1108,7 @@ describe('Validation Middleware', () => {
     });
 
     it('should handle various date string formats correctly', async () => {
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
       const validateFutureDate = module.validateFutureDate;
 
       const futureDate = new Date();
@@ -1127,7 +1127,7 @@ describe('Validation Middleware', () => {
   describe('final integration and completeness tests', () => {
     it('should achieve 100% code coverage through comprehensive testing', async () => {
       jest.resetModules();
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
       const { validateFutureDate, validate, validateForm, caseValidation } = module;
 
       expect(validateFutureDate('')).toBe(true);
@@ -1235,7 +1235,7 @@ describe('Validation Middleware', () => {
   describe('module exports verification', () => {
     it('should export all required functions and objects', async () => {
       jest.resetModules();
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
 
       expect(module.validateFutureDate).toBeDefined();
       expect(module.validateForm).toBeDefined();
@@ -1256,7 +1256,7 @@ describe('Validation Middleware', () => {
 
     it('should have tested all exported functions comprehensively', async () => {
       jest.resetModules();
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
 
       const exports = Object.keys(module);
       const expectedExports = ['validateFutureDate', 'validateForm', 'validate', 'caseValidation'];
@@ -1301,7 +1301,7 @@ describe('Validation Middleware', () => {
 
     it('should verify all conditional branches are tested', async () => {
       jest.resetModules();
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
 
       expect(typeof module.validateFutureDate).toBe('function');
       expect(typeof module.validate).toBe('function');
@@ -1353,7 +1353,7 @@ describe('Validation Middleware', () => {
   describe('final comprehensive validation', () => {
     it('should validate complete test suite coverage', async () => {
       jest.resetModules();
-      const module = await import('../../middleware/validation.middleware.ts');
+      const module = await import('../../middleware/validation.middleware.js');
 
       const moduleExports = Object.keys(module);
       const testedFunctions = ['validateFutureDate', 'validateForm', 'validate', 'caseValidation'];

@@ -1,12 +1,17 @@
 /**
+ * ESM Import Note:
+ * Using .js extensions because this project uses ES Modules with NodeNext resolution.
+ * TypeScript compiles .ts → .js, so import paths must reference the output files.
+ */
+
+/**
  * Security Headers Middleware Module
  * @module securityMiddleware
  * @description Provides HTTP security headers to protect against common web vulnerabilities
  * using configuration from environment variables
  */
-
 import { Request, Response, NextFunction } from 'express';
-import { logger } from './logger.middleware.ts';
+import { logger } from './logger.middleware.js';
 
 /**
  * Interface for security header configuration

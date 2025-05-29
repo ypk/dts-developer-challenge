@@ -3,7 +3,6 @@
  * @module validationMiddleware
  * @description Provides validation rules and middleware for request validation using express-validator
  */
-
 import { Request, Response, NextFunction } from 'express';
 import { body, param, validationResult } from 'express-validator';
 

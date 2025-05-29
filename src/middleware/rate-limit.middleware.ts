@@ -1,11 +1,16 @@
 /**
+ * ESM Import Note:
+ * Using .js extensions because this project uses ES Modules with NodeNext resolution.
+ * TypeScript compiles .ts → .js, so import paths must reference the output files.
+ */
+
+/**
  * Rate Limiting Middleware Module
  * @module rateLimitMiddleware
  * @description Provides rate limiting functionality to protect API endpoints from abuse
  */
-
 import { Request, Response, NextFunction } from 'express';
-import { logger } from '../middleware/logger.middleware.ts';
+import { logger } from '../middleware/logger.middleware.js';
 
 /**
  * HTTP status codes used for rate limiting responses

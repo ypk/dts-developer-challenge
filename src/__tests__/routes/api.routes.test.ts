@@ -22,7 +22,7 @@ describe('API Routes Module', () => {
     jest.clearAllMocks();
     jest.resetModules();
     expressRouter = require('express').Router as jest.Mock;
-    routesModule = await import('../../routes/api.routes.ts');
+    routesModule = await import('../../routes/api.routes.js');
   });
 
   afterEach(() => {

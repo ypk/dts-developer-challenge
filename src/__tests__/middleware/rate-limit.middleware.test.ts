@@ -15,8 +15,8 @@ import {
   apiLimiter,
   authLimiter,
   speedLimiter,
-} from '../../middleware/rate-limit.middleware.ts';
-import { logger } from '../../middleware/logger.middleware.ts';
+} from '../../middleware/rate-limit.middleware.js';
+import { logger } from '../../middleware/logger.middleware.js';
 
 jest.mock('../../middleware/logger.middleware.ts', () => ({
   logger: {

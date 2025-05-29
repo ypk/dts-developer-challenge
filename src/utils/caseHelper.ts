@@ -1,16 +1,21 @@
 /**
+ * ESM Import Note:
+ * Using .js extensions because this project uses ES Modules with NodeNext resolution.
+ * TypeScript compiles .ts → .js, so import paths must reference the output files.
+ */
+
+/**
  * Utility functions for case-related operations
  * @module utils/caseHelper
  */
-
 import { Request, Response } from 'express';
-import { sendError, sendBadRequest } from '../utils/responseHandler.ts';
+import { sendError, sendBadRequest } from '../utils/responseHandler.js';
 import {
   NotFoundError,
   DatabaseError,
   isPrismaNotFoundError,
   isPrismaUniqueViolationError,
-} from '../middleware/error.middleware.ts';
+} from '../middleware/error.middleware.js';
 
 /**
  * Validates and parses a case ID from request parameters

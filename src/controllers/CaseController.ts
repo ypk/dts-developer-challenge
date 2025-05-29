@@ -1,14 +1,19 @@
 /**
+ * ESM Import Note:
+ * Using .js extensions because this project uses ES Modules with NodeNext resolution.
+ * TypeScript compiles .ts → .js, so import paths must reference the output files.
+ */
+
+/**
  * Case Controller Module
  * @module CaseController
  * @description Provides HTTP request handlers for case-related operations
  */
-
 import { Request, Response } from 'express';
-import { CaseStatus } from '../services/PrismaService.ts';
-import { CaseServiceInstance } from '../services/CaseService.ts';
-import { sendSuccess, sendError, sendBadRequest, sendNoContent } from '../utils/responseHandler.ts';
-import { validateAndParseId, handleNotFoundError } from '../utils/caseHelper.ts';
+import { CaseStatus } from '../services/PrismaService.js';
+import { CaseServiceInstance } from '../services/CaseService.js';
+import { sendSuccess, sendError, sendBadRequest, sendNoContent } from '../utils/responseHandler.js';
+import { validateAndParseId, handleNotFoundError } from '../utils/caseHelper.js';
 
 /**
  * Controller responsible for handling case-related HTTP requests

@@ -2,7 +2,7 @@ import { Application } from 'express';
 import fs from 'fs';
 import path from 'path';
 import logSymbols from 'log-symbols';
-import { safelyApplyMiddleware, getSVG, formatStatus } from '../../utils/middleware.utils.ts';
+import { safelyApplyMiddleware, getSVG, formatStatus } from '../../utils/middleware.utils.js';
 
 jest.mock('fs');
 jest.mock('path');

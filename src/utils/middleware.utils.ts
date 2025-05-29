@@ -2,7 +2,6 @@
  * Utility functions for middleware application and management
  * @module utils/middleware.utils
  */
-
 import fs from 'fs';
 import path from 'path';
 import { Application } from 'express';

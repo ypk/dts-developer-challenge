@@ -1,7 +1,7 @@
-import { CaseService, CaseServiceInstance } from '../../services/CaseService.ts';
-import { CaseRepositoryInstance } from '../../repositories/CaseRepository.ts';
-import { NotFoundError } from '../../middleware/error.middleware.ts';
-import { CaseStatus, Prisma } from '../../services/PrismaService.ts';
+import { CaseService, CaseServiceInstance } from '../../services/CaseService.js';
+import { CaseRepositoryInstance } from '../../repositories/CaseRepository.js';
+import { NotFoundError } from '../../middleware/error.middleware.js';
+import { CaseStatus, Prisma } from '../../services/PrismaService.js';
 
 jest.mock('../../repositories/CaseRepository.ts', () => ({
   CaseRepositoryInstance: {

@@ -1,4 +1,4 @@
-import { getFormData, hasError, getErrorMessage } from '../../utils/viewHelpers.ts';
+import { getFormData, hasError, getErrorMessage } from '../../utils/viewHelpers.js';
 
 describe('viewHelpers', () => {
   describe('getFormData', () => {

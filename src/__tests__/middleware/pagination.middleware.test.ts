@@ -10,7 +10,7 @@ import {
   DEFAULT_LIMIT,
   MAX_LIMIT,
   PaginationOptions,
-} from '../../middleware/pagination.middleware.ts';
+} from '../../middleware/pagination.middleware.js';
 
 declare module 'express' {
   interface Request {

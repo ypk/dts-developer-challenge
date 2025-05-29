@@ -1,9 +1,14 @@
 /**
+ * ESM Import Note:
+ * Using .js extensions because this project uses ES Modules with NodeNext resolution.
+ * TypeScript compiles .ts → .js, so import paths must reference the output files.
+ */
+
+/**
  * Error Handling Middleware Module
  * @module errorMiddleware
  * @description Provides custom error classes and central error handling middleware for the application
  */
-
 import { Request, Response, NextFunction } from 'express';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { logger } from './logger.middleware.js';
@@ -78,7 +83,7 @@ function isPrismaUniqueViolationError(error: unknown): boolean {
 
 /**
  * Central error handling middleware
- * @function errorHandler
+ * @function APIErrorHandler
  * @param {Error} err - The error object
  * @param {Request} req - Express request object
  * @param {Response} res - Express response object

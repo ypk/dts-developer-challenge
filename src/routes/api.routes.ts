@@ -1,11 +1,16 @@
 /**
+ * ESM Import Note:
+ * Using .js extensions because this project uses ES Modules with NodeNext resolution.
+ * TypeScript compiles .ts → .js, so import paths must reference the output files.
+ */
+
+/**
  * API Routes Module
  * @module routes
  * @description Main router that consolidates all API route modules
  */
-
 import { Router } from 'express';
-import caseRoutes from './caseRoutes.ts';
+import caseRoutes from './caseRoutes.js';
 
 /**
  * @swagger

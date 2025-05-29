@@ -1,9 +1,14 @@
 /**
+ * ESM Import Note:
+ * Using .js extensions because this project uses ES Modules with NodeNext resolution.
+ * TypeScript compiles .ts → .js, so import paths must reference the output files.
+ */
+
+/**
  * Case Routes Module
  * @module caseRoutes
  * @description Defines API routes for case management operations
  */
-
 import { Router } from 'express';
 import { CaseControllerInstance } from '../controllers/CaseController.js';
 import { caseValidation, validate } from '../middleware/validation.middleware.js';

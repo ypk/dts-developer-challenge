@@ -4,7 +4,7 @@ import {
   sendNoContent,
   sendError,
   sendBadRequest,
-} from '../../utils/responseHandler.ts';
+} from '../../utils/responseHandler.js';
 
 describe('responseHandler', () => {
   let mockResponse: Partial<Response>;

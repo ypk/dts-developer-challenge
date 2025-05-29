@@ -18,7 +18,7 @@ describe('Frontend Routes Module', () => {
     jest.clearAllMocks();
     jest.resetModules();
     expressRouter = require('express').Router as jest.Mock;
-    routesModule = await import('../../routes/frontend.routes.ts');
+    routesModule = await import('../../routes/frontend.routes.js');
   });
 
   afterEach(() => {

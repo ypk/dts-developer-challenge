@@ -11,7 +11,7 @@ jest.mock('swagger-ui-express', () => ({
 import { Express, Request, Response } from 'express';
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
-import { getSwaggerOptions, setupSwagger } from '../../utils/swagger.ts';
+import { getSwaggerOptions, setupSwagger } from '../../utils/swagger.js';
 
 const mockSwaggerJsdoc = swaggerJsdoc as jest.MockedFunction<typeof swaggerJsdoc>;
 const mockSwaggerUi = swaggerUi as jest.Mocked<typeof swaggerUi>;

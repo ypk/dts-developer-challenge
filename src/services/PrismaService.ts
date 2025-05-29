@@ -4,7 +4,7 @@
  * @description Provides a singleton PrismaClient instance and DB-related types using a class-based approach
  */
 import pkg from '@prisma/client';
-import type { Case, Prisma } from '@prisma/client';
+import { Prisma, type Case } from '@prisma/client';
 
 const { PrismaClient } = pkg;
 
@@ -91,7 +91,7 @@ export const prisma = PrismaServiceInstance.getClient();
 /**
  * Re-export CaseStatus enum with both runtime values and types
  */
-export const CaseStatus = pkg.CaseStatus;
+export { CaseStatus } from '@prisma/client';
 
 /**
  * Re-export required types and service instance

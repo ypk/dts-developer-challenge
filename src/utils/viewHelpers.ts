@@ -1,8 +1,4 @@
 /**
- * View helper utilities for EJS templates
- */
-
-/**
  * Gets form data from session if available or falls back to provided data
  * @param {Object} session - Express session object
  * @param {Object} fallbackData - Data to use if no session data exists

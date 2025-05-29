@@ -1,12 +1,17 @@
 /**
+ * ESM Import Note:
+ * Using .js extensions because this project uses ES Modules with NodeNext resolution.
+ * TypeScript compiles .ts → .js, so import paths must reference the output files.
+ */
+
+/**
  * Case Service Module
  * @module CaseService
  * @description Provides business logic for case management operations
  */
-
-import { Case, CaseStatus, Prisma } from './PrismaService.ts';
-import { CaseRepositoryInstance, PaginatedResult } from '../repositories/CaseRepository.ts';
-import { NotFoundError } from '../middleware/error.middleware.ts';
+import { Case, CaseStatus, Prisma } from './PrismaService.js';
+import { CaseRepositoryInstance, PaginatedResult } from '../repositories/CaseRepository.js';
+import { NotFoundError } from '../middleware/error.middleware.js';
 
 /**
  * Service class for handling case-related business logic

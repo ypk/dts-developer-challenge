@@ -1,28 +1,29 @@
+/**
+ * ESM Import Note:
+ * Using .js extensions because this project uses ES Modules with NodeNext resolution.
+ * TypeScript compiles .ts → .js, so import paths must reference the output files.
+ */
 import express from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
 import cors from 'cors';
 import logSymbols from 'log-symbols';
-import apiRoutes from './routes/api.routes.ts';
+import apiRoutes from './routes/api.routes.js';
 import frontendRoutes from './routes/frontend.routes.js';
 import ejsLayouts from 'express-ejs-layouts';
 import compression from 'compression';
-import { setupSwagger } from './utils/swagger.ts';
-import { APIErrorHandler, FrontEndErrorHandler } from './middleware/error.middleware.ts';
-import { requestLogger } from './middleware/logger.middleware.ts';
-import { securityHeaders, logSecurityConfig } from './middleware/security.middleware.ts';
-import { apiLimiter, authLimiter } from './middleware/rate-limit.middleware.ts';
-import { getSVG, formatStatus, safelyApplyMiddleware } from './utils/middleware.utils.ts';
+import { setupSwagger } from './utils/swagger.js';
+import { APIErrorHandler, FrontEndErrorHandler } from './middleware/error.middleware.js';
+import { requestLogger } from './middleware/logger.middleware.js';
+import { securityHeaders, logSecurityConfig } from './middleware/security.middleware.js';
+import { apiLimiter, authLimiter } from './middleware/rate-limit.middleware.js';
+import { getSVG, formatStatus, safelyApplyMiddleware } from './utils/middleware.utils.js';
 import crypto from 'crypto';
 import dartSass from 'express-dart-sass';
 import session from 'express-session';
 import flash from 'connect-flash';
 import methodOverride from 'method-override';
-import * as viewHelpers from './utils/viewHelpers.ts';
-
-const generateSessionSecret = () => {
-  return crypto.randomBytes(64).toString('hex');
-};
+import * as viewHelpers from './utils/viewHelpers.js';
 
 /**
  * @swagger
@@ -33,7 +34,6 @@ const generateSessionSecret = () => {
  *   contact:
  *     name: HMCTS
  */
-
 const apiPath = '/api';
 const authPath = '/api/auth';
 const assetsPath = '/assets';
@@ -45,10 +45,20 @@ const sassDestPath = path.join(process.cwd(), 'public/assets/stylesheets');
 
 const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development';
 
+/**
+ * Generates a cryptographically secure random session secret.
+ *
+ * @returns {string} A 64-byte hexadecimal string suitable for use as a session secret.
+ */
+const generateSessionSecret = () => {
+  return crypto.randomBytes(64).toString('hex');
+};
+
 dotenv.config({ path: path.resolve(process.cwd(), envFile) });
 
 console.log(
-  `Loading environment from ${envFile} (NODE_ENV: ${process.env.NODE_ENV || 'development'})`,
+  logSymbols.info,
+  ` Loading environment from ${envFile} (NODE_ENV: ${process.env.NODE_ENV || 'development'})`,
 );
 
 logSecurityConfig();
@@ -58,10 +68,14 @@ const port = process.env.PORT || 3000;
 
 if (!process.env.SESSION_SECRET) {
   if (process.env.NODE_ENV === 'production') {
-    console.error('ERROR: SESSION_SECRET environment variable is required in production');
+    console.error(
+      logSymbols.error,
+      'ERROR: SESSION_SECRET environment variable is required in production',
+    );
     process.exit(1);
   } else {
     console.warn(
+      logSymbols.warning,
       'WARNING: Using randomly generated session secret. Sessions will be invalidated on server restart.',
     );
   }
