@@ -6,6 +6,8 @@ services:
       target: development
     env_file:
       - .env.development
+    ports:
+      - "${PORT}:${PORT}"
     volumes:
       - ./:/app
       - /app/node_modules
