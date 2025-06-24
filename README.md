@@ -364,9 +364,9 @@ import { helper } from './utils/helper.js';
 ```
 Error: Environment variable not found: DATABASE_URL
 ```
-**Solution**: Ensure you're using the correct environment file
+**Solution**: Ensure you're using the correct environment
 ```bash
-# Check which environment file is being used
+# Check which environment command is being used
 npm run docker:dev:build      # Uses .env.development
 npm run docker:prod:build     # Uses .env.production
 ```
@@ -376,12 +376,22 @@ npm run docker:prod:build     # Uses .env.production
 Error: listen EADDRINUSE :::3000
 ```
 **Solution**: Stop existing processes or use different ports
+
 ```bash
 # Stop all Docker containers
 npm run docker:down
+```
 
+**Linux/macOS:**
+```bash
 # Check what's using the port
 lsof -i :3000
+```
+
+**Windows (Command Prompt):**
+```bash
+# Check what's using the port
+netstat -ano | findstr :3000
 ```
 
 #### Docker Build Failures
