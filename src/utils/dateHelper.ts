@@ -8,6 +8,59 @@ export enum DATE {
 }
 
 /**
+ * Extracts due date fields (day, month, year) from the request body.
+ * @param req - Express request object
+ * @returns An object with day, month, and year properties
+ */
+function getDueDateFields(req: any) {
+  return {
+    day: req.body['dueDate-day'],
+    month: req.body['dueDate-month'],
+    year: req.body['dueDate-year'],
+  };
+}
+
+/**
+ * Returns an array of missing due date fields.
+ * @param fields - Object with day, month, year properties
+ * @returns Array of field names that are missing (empty or falsy)
+ */
+function getMissingFields(fields: { day: string; month: string; year: string }) {
+  return Object.entries(fields)
+    .filter(([_, value]) => !value)
+    .map(([key]) => key);
+}
+
+/**
+ * Returns an array of invalid due date fields (present but not valid).
+ * @param fields - Object with day, month, year properties
+ * @returns Array of field names that are present but invalid
+ */
+function getInvalidFields(fields: { day: string; month: string; year: string }) {
+  const invalid: string[] = [];
+  if (fields.day && (!/^[0-9]+$/.test(fields.day) || +fields.day < 1 || +fields.day > 31))
+    invalid.push('day');
+  if (fields.month && (!/^[0-9]+$/.test(fields.month) || +fields.month < 1 || +fields.month > 12))
+    invalid.push('month');
+  if (fields.year && (!/^[0-9]+$/.test(fields.year) || fields.year.length !== 4))
+    invalid.push('year');
+  return invalid;
+}
+
+/**
+ * Builds an error message for missing and/or invalid due date fields.
+ * @param missing - Array of missing field names
+ * @param invalid - Array of invalid field names
+ * @returns Error message string or null if no error
+ */
+function buildDueDateError(missing: string[], invalid: string[]) {
+  if (missing.length === 3) return 'The due date must include day, month, year';
+  const all = Array.from(new Set([...missing, ...invalid]));
+  if (all.length > 0) return `The due date must include ${all.join(', ')}`;
+  return null;
+}
+
+/**
  * Formats a date and extracts a specific part (year, month, or day).
  * @param {string | Date} date - The date to format (can be a string or Date object).
  * @param {DATE} part - The part of the date to extract (YEAR, MONTH, DAY).
@@ -76,4 +129,20 @@ export const extractDateComponents = (
   }
 
   return { year: '', month: '', day: '' };
+};
+
+/**
+ * Custom validator for due date fields (day, month, year) in web forms.
+ * Throws if all fields are missing or if any field is invalid.
+ * @param _ - Unused value (for express-validator compatibility)
+ * @param context - Context object containing req with body
+ * @returns {boolean} True if valid, otherwise throws an error
+ */
+export const dueDateCustomValidator = (_: any, { req }: { req: any }) => {
+  const fields = getDueDateFields(req);
+  const missing = getMissingFields(fields);
+  const invalid = getInvalidFields(fields);
+  const errorMsg = buildDueDateError(missing, invalid);
+  if (errorMsg) throw new Error(errorMsg);
+  return true;
 };

@@ -5,6 +5,7 @@
  */
 import { Request, Response, NextFunction } from 'express';
 import { body, param, validationResult } from 'express-validator';
+import { dueDateCustomValidator } from '../utils/dateHelper.js';
 
 /**
  * Validates that a given date is not in the past
@@ -138,43 +139,7 @@ export const caseValidation = {
       .optional()
       .isIn(['PENDING', 'IN_PROGRESS', 'COMPLETED'])
       .withMessage('Invalid status'),
-    body('dueDate').custom((_, { req }) => {
-      const day = req.body['dueDate-day'];
-      const month = req.body['dueDate-month'];
-      const year = req.body['dueDate-year'];
-
-      const isNumeric = (val: string) => /^[0-9]+$/.test(val);
-
-      if (day || month || year) {
-        const errors = [];
-
-        if (day && (!isNumeric(day) || parseInt(day, 10) < 1 || parseInt(day, 10) > 31)) {
-          errors.push('day');
-        }
-        if (month && (!isNumeric(month) || parseInt(month, 10) < 1 || parseInt(month, 10) > 12)) {
-          errors.push('month');
-        }
-        if (year && (!isNumeric(year) || year.length !== 4)) {
-          errors.push('year');
-        }
-
-        if (!day) {
-          errors.push('day');
-        }
-        if (!month) {
-          errors.push('month');
-        }
-        if (!year) {
-          errors.push('year');
-        }
-
-        if (errors.length > 0) {
-          throw new Error(`The due date must include ${errors.join(', ')}`);
-        }
-      }
-
-      return true;
-    }),
+    body('dueDate').custom(dueDateCustomValidator),
   ],
 };
 
