@@ -1,6 +1,6 @@
 <div class="govuk-grid-row">
     <div class="govuk-grid-column-two-thirds">
-        <% 
+        <%
             const formData = viewHelpers.getFormData(session, {});
             const hasError = (field) => viewHelpers.hasError(messages, field);
             const getErrorMessage = (field) => viewHelpers.getErrorMessage(messages, field);
@@ -34,15 +34,44 @@
                     aria-describedby="description-hint"><%= formData && formData.description ? formData.description : '' %></textarea>
             </div>
 
-            <div class="govuk-form-group">
+            <div class="govuk-form-group <%= hasError('dueDate') ? 'govuk-form-group--error' : '' %>">
                 <label class="govuk-label" for="dueDate">
                     Due Date
                 </label>
                 <span id="dueDate-hint" class="govuk-hint">
                     Optional field. Format: YYYY-MM-DD
                 </span>
-                <input class="govuk-input" id="dueDate" name="dueDate" type="date"
-                    value="<%= formData && formData.dueDate ? formData.dueDate : '' %>" aria-describedby="dueDate-hint">
+                <% if (hasError('dueDate')) { %>
+                    <span id="dueDate-error" class="govuk-error-message">
+                        <span class="govuk-visually-hidden">Error:</span> <%= getErrorMessage('dueDate') %>
+                    </span>
+                <% } %>
+                <div class="govuk-date-input" id="dueDate" aria-describedby="dueDate-hint">
+                    <div class="govuk-date-input__item">
+                        <div class="govuk-form-group">
+                            <label class="govuk-label govuk-date-input__label" for="dueDate-day">
+                                Day
+                            </label>
+                            <input class="govuk-input govuk-date-input__input govuk-input--width-2" id="dueDate-day" name="dueDate-day" type="text" pattern="[0-9]*" inputmode="numeric" value="<%= formData && formData['dueDate-day'] ? formData['dueDate-day'] : '' %>">
+                        </div>
+                    </div>
+                    <div class="govuk-date-input__item">
+                        <div class="govuk-form-group">
+                            <label class="govuk-label govuk-date-input__label" for="dueDate-month">
+                                Month
+                            </label>
+                            <input class="govuk-input govuk-date-input__input govuk-input--width-2" id="dueDate-month" name="dueDate-month" type="text" pattern="[0-9]*" inputmode="numeric" value="<%= formData && formData['dueDate-month'] ? formData['dueDate-month'] : '' %>">
+                        </div>
+                    </div>
+                    <div class="govuk-date-input__item">
+                        <div class="govuk-form-group">
+                            <label class="govuk-label govuk-date-input__label" for="dueDate-year">
+                                Year
+                            </label>
+                            <input class="govuk-input govuk-date-input__input govuk-input--width-4" id="dueDate-year" name="dueDate-year" type="text" pattern="[0-9]*" inputmode="numeric" value="<%= formData && formData['dueDate-year'] ? formData['dueDate-year'] : '' %>">
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="govuk-button-group">

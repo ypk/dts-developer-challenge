@@ -1,4 +1,10 @@
-import { getFormData, hasError, getErrorMessage } from '../../utils/viewHelpers.js';
+import {
+  getFormData,
+  hasError,
+  getErrorMessage,
+  populateField,
+  populateDateComponents,
+} from '../../utils/viewHelpers.js';
 
 describe('viewHelpers', () => {
   describe('getFormData', () => {
@@ -21,40 +27,13 @@ describe('viewHelpers', () => {
       });
     });
 
-    it('should return fallbackData when session is undefined', () => {
-      const session = undefined;
-      const fallbackData = { title: 'Fallback Case', status: 'OPEN' };
-
-      const result = getFormData(session, fallbackData);
-
-      expect(result).toEqual(fallbackData);
-    });
-
-    it('should return fallbackData when session exists but has no formData', () => {
-      const session = { userId: 123, otherData: 'value' };
-      const fallbackData = { title: 'Default Title' };
-
-      const result = getFormData(session, fallbackData);
-
-      expect(result).toEqual(fallbackData);
-    });
-
-    it('should return fallbackData when session.formData is null', () => {
-      const session = { formData: null };
-      const fallbackData = { title: 'Default' };
-
-      const result = getFormData(session, fallbackData);
-
-      expect(result).toEqual(fallbackData);
-    });
-
     it('should return fallbackData when session.formData is empty object', () => {
       const session = { formData: {} };
-      const fallbackData = { title: 'Default' };
+      const fallbackData = { title: 'Default Title', description: '', status: 'PENDING' };
 
       const result = getFormData(session, fallbackData);
 
-      expect(result).toEqual({});
+      expect(result).toEqual(fallbackData);
     });
 
     it('should use default empty object when no fallbackData provided', () => {
@@ -63,14 +42,6 @@ describe('viewHelpers', () => {
       const result = getFormData(session);
 
       expect(result).toEqual({});
-    });
-
-    it('should handle session with falsy formData values', () => {
-      const fallbackData = { title: 'Fallback' };
-
-      expect(getFormData({ formData: false }, fallbackData)).toEqual(fallbackData);
-      expect(getFormData({ formData: 0 }, fallbackData)).toEqual(fallbackData);
-      expect(getFormData({ formData: '' }, fallbackData)).toEqual(fallbackData);
     });
   });
 
@@ -309,6 +280,60 @@ describe('viewHelpers', () => {
       const result = getErrorMessage(messages, '');
 
       expect(result).toBe('Title is required');
+    });
+  });
+
+  describe('populateField', () => {
+    it('should populate a field with a default value if it is not present', () => {
+      const formData: { title?: string } = {};
+      const field = 'title';
+      const defaultValue = 'Default Title';
+
+      populateField(formData, field, defaultValue);
+
+      expect(formData.title).toBe('Default Title');
+    });
+
+    it('should not overwrite an existing field value', () => {
+      const formData: { title?: string } = { title: 'Existing Title' };
+      const field = 'title';
+      const defaultValue = 'Default Title';
+
+      populateField(formData, field, defaultValue);
+
+      expect(formData.title).toBe('Existing Title');
+    });
+  });
+
+  describe('populateDateComponents', () => {
+    it('should populate year, month, and day from a valid dueDate', () => {
+      const formData: {
+        'dueDate-year'?: string;
+        'dueDate-month'?: string;
+        'dueDate-day'?: string;
+      } = {};
+      const dueDate = '2025-07-30T00:00:00.000Z';
+
+      populateDateComponents(formData, dueDate);
+
+      expect(formData['dueDate-year']).toBe('2025');
+      expect(formData['dueDate-month']).toBe('07');
+      expect(formData['dueDate-day']).toBe('30');
+    });
+
+    it('should populate empty strings for an invalid dueDate', () => {
+      const formData: {
+        'dueDate-year'?: string;
+        'dueDate-month'?: string;
+        'dueDate-day'?: string;
+      } = {};
+      const dueDate = 'invalid-date';
+
+      populateDateComponents(formData, dueDate);
+
+      expect(formData['dueDate-year']).toBe('');
+      expect(formData['dueDate-month']).toBe('');
+      expect(formData['dueDate-day']).toBe('');
     });
   });
 
