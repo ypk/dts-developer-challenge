@@ -155,6 +155,26 @@ describe('Validation Middleware', () => {
 
       expect(validateFutureDate(futureDateString)).toBe(true);
     });
+
+    it('should return true for a valid future date', () => {
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 1);
+      const futureDateString = futureDate.toISOString().split('T')[0];
+
+      expect(validateFutureDate(futureDateString)).toBe(true);
+    });
+
+    it('should throw an error for a past date', () => {
+      const pastDate = new Date();
+      pastDate.setDate(pastDate.getDate() - 1);
+      const pastDateString = pastDate.toISOString().split('T')[0];
+
+      expect(() => validateFutureDate(pastDateString)).toThrow('Due date cannot be in the past');
+    });
+
+    it('should handle invalid date strings gracefully', () => {
+      expect(validateFutureDate('invalid-date')).toBe(true);
+    });
   });
 
   describe('validateForm', () => {
@@ -275,6 +295,22 @@ describe('Validation Middleware', () => {
         'Invalid status',
         'Invalid date format',
       ]);
+    });
+
+    it('should redirect to the correct path when validation errors exist', () => {
+      const mockErrors = {
+        isEmpty: jest.fn().mockReturnValue(false),
+        array: jest.fn().mockReturnValue([{ msg: 'Title is required' }]),
+      };
+      mockValidationResult.mockReturnValue(mockErrors);
+
+      Object.defineProperty(mockRequest, 'path', { value: '/cases', writable: true });
+      mockRequest.body = { title: '' };
+
+      validateForm(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockRequest.flash).toHaveBeenCalledWith('error', ['Title is required']);
+      expect(mockResponse.redirect).toHaveBeenCalledWith('/cases/new');
     });
   });
 
