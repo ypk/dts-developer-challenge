@@ -1,8 +1,3 @@
-jest.mock('express-validator', () => ({
-  ...jest.requireActual('express-validator'),
-  validationResult: jest.fn(),
-}));
-
 import {
   validateFutureDate,
   validateForm,
@@ -12,6 +7,11 @@ import {
 import { dueDateCustomValidator } from '../../utils/dateHelper.js';
 import { mockRequest, mockResponse, mockNext } from '../../__mocks__/express.js';
 import { validationResult } from 'express-validator';
+
+jest.mock('express-validator', () => ({
+  ...jest.requireActual('express-validator'),
+  validationResult: jest.fn(),
+}));
 
 describe('validateFutureDate', () => {
   it('returns true if value is falsy', () => {
@@ -237,10 +237,8 @@ describe('caseValidation', () => {
       return { body };
     }
 
-    it('throws if all fields are missing', () => {
-      expect(() => dueDateCustomValidator(undefined, { req: makeReq({}) })).toThrow(
-        'The due date must include day, month, year',
-      );
+    it('does not throw if all fields are missing (optional field)', () => {
+      expect(() => dueDateCustomValidator(undefined, { req: makeReq({}) })).not.toThrow();
     });
     it('throws if day is missing', () => {
       expect(() =>
@@ -327,5 +325,12 @@ describe('caseValidation', () => {
         }),
       ).toBe(true);
     });
+  });
+});
+
+describe('buildDueDateError', () => {
+  it('returns null if there are no missing or invalid fields', () => {
+    const result = require('../../utils/dateHelper.js').buildDueDateError([], []);
+    expect(result).toBeNull();
   });
 });

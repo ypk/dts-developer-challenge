@@ -12,7 +12,7 @@ export enum DATE {
  * @param req - Express request object
  * @returns An object with day, month, and year properties
  */
-function getDueDateFields(req: any) {
+export function getDueDateFields(req: any) {
   return {
     day: req.body['dueDate-day'],
     month: req.body['dueDate-month'],
@@ -25,7 +25,7 @@ function getDueDateFields(req: any) {
  * @param fields - Object with day, month, year properties
  * @returns Array of field names that are missing (empty or falsy)
  */
-function getMissingFields(fields: { day: string; month: string; year: string }) {
+export function getMissingFields(fields: { day: string; month: string; year: string }) {
   return Object.entries(fields)
     .filter(([_, value]) => !value)
     .map(([key]) => key);
@@ -36,7 +36,7 @@ function getMissingFields(fields: { day: string; month: string; year: string }) 
  * @param fields - Object with day, month, year properties
  * @returns Array of field names that are present but invalid
  */
-function getInvalidFields(fields: { day: string; month: string; year: string }) {
+export function getInvalidFields(fields: { day: string; month: string; year: string }) {
   const invalid: string[] = [];
   if (fields.day && (!/^[0-9]+$/.test(fields.day) || +fields.day < 1 || +fields.day > 31))
     invalid.push('day');
@@ -53,7 +53,7 @@ function getInvalidFields(fields: { day: string; month: string; year: string }) 
  * @param invalid - Array of invalid field names
  * @returns Error message string or null if no error
  */
-function buildDueDateError(missing: string[], invalid: string[]) {
+export function buildDueDateError(missing: string[], invalid: string[]) {
   if (missing.length === 3) return 'The due date must include day, month, year';
   const all = Array.from(new Set([...missing, ...invalid]));
   if (all.length > 0) return `The due date must include ${all.join(', ')}`;
@@ -140,6 +140,11 @@ export const extractDateComponents = (
  */
 export const dueDateCustomValidator = (_: any, { req }: { req: any }) => {
   const fields = getDueDateFields(req);
+  const { day, month, year } = fields;
+  // If all fields are empty, treat as optional and valid
+  if (!day && !month && !year) {
+    return true;
+  }
   const missing = getMissingFields(fields);
   const invalid = getInvalidFields(fields);
   const errorMsg = buildDueDateError(missing, invalid);
