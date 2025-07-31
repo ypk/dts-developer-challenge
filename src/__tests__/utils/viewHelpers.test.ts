@@ -4,6 +4,9 @@ import {
   getErrorMessage,
   populateField,
   populateDateComponents,
+  hasDueDateError,
+  getDueDateErrorMessage,
+  getVisibleErrors,
 } from '../../utils/viewHelpers.js';
 
 describe('viewHelpers', () => {
@@ -384,6 +387,96 @@ describe('viewHelpers', () => {
       expect(hasError(messages, 'title')).toBe(true);
       expect(hasError(messages, 'field')).toBe(true);
       expect(getErrorMessage(messages, 'title')).toBe(' title is required ');
+    });
+  });
+
+  describe('hasDueDateError', () => {
+    const baseMessages = { error: ['The due date must include day, month, year'] };
+    it('returns false if no messages or no error', () => {
+      expect(hasDueDateError(undefined)).toBe(false);
+      expect(hasDueDateError({})).toBe(false);
+      expect(hasDueDateError({ error: undefined })).toBe(false);
+    });
+    it('returns false if all due date fields are empty', () => {
+      expect(
+        hasDueDateError(baseMessages, {
+          'dueDate-day': '',
+          'dueDate-month': '',
+          'dueDate-year': '',
+        }),
+      ).toBe(false);
+    });
+    it('returns true if due date error and at least one field is filled', () => {
+      expect(
+        hasDueDateError(baseMessages, {
+          'dueDate-day': '10',
+          'dueDate-month': '',
+          'dueDate-year': '',
+        }),
+      ).toBe(true);
+      expect(hasDueDateError({ error: ['dueDate-day is invalid'] }, { 'dueDate-day': '10' })).toBe(
+        true,
+      );
+    });
+    it('returns true for generic due date error message', () => {
+      expect(hasDueDateError({ error: ['The due date is invalid'] }, { 'dueDate-day': '1' })).toBe(
+        true,
+      );
+    });
+  });
+
+  describe('getDueDateErrorMessage', () => {
+    const messages = {
+      error: [
+        'dueDate-day is invalid',
+        'dueDate-month is invalid',
+        'The due date must include day, month, year',
+      ],
+    };
+    it('returns empty string if no messages or no error', () => {
+      expect(getDueDateErrorMessage(undefined)).toBe('');
+      expect(getDueDateErrorMessage({})).toBe('');
+      expect(getDueDateErrorMessage({ error: undefined })).toBe('');
+    });
+    it('returns empty string if all due date fields are empty', () => {
+      expect(
+        getDueDateErrorMessage(messages, {
+          'dueDate-day': '',
+          'dueDate-month': '',
+          'dueDate-year': '',
+        }),
+      ).toBe('');
+    });
+    it('returns field-specific error if present and at least one field is filled', () => {
+      expect(getDueDateErrorMessage(messages, { 'dueDate-day': '10' })).toBe(
+        'dueDate-day is invalid',
+      );
+    });
+    it('returns generic due date error if no field-specific error', () => {
+      const generic = { error: ['The due date is invalid'] };
+      expect(getDueDateErrorMessage(generic, { 'dueDate-day': '1' })).toBe(
+        'The due date is invalid',
+      );
+    });
+  });
+
+  describe('getVisibleErrors', () => {
+    it('filters out due date errors if all due date fields are empty', () => {
+      const errors = ['The due date must include day, month, year', 'Title is required'];
+      const session = { formData: { 'dueDate-day': '', 'dueDate-month': '', 'dueDate-year': '' } };
+      expect(getVisibleErrors(errors, session)).toEqual(['Title is required']);
+    });
+    it('keeps due date errors if any due date field is filled', () => {
+      const errors = ['The due date must include day, month, year', 'Title is required'];
+      const session = {
+        formData: { 'dueDate-day': '10', 'dueDate-month': '', 'dueDate-year': '' },
+      };
+      expect(getVisibleErrors(errors, session)).toEqual(errors);
+    });
+    it('keeps non-due date errors regardless of formData', () => {
+      const errors = ['Title is required'];
+      expect(getVisibleErrors(errors, { formData: {} })).toEqual(['Title is required']);
+      expect(getVisibleErrors(errors, undefined)).toEqual(['Title is required']);
     });
   });
 });

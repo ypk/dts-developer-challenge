@@ -41,25 +41,28 @@
     <% } %>
 
     <% if (typeof messages !== 'undefined' && messages.error && messages.error.length > 0) { %>
-      <div class="govuk-notification-banner govuk-notification-banner--error" role="alert" aria-labelledby="govuk-notification-banner-title" data-module="govuk-notification-banner">
-        <div class="govuk-notification-banner__header">
-          <h2 class="govuk-notification-banner__title" id="govuk-notification-banner-title">
-            Error
-          </h2>
+      <% const visibleErrors = viewHelpers.getVisibleErrors(messages.error, session); %>
+      <% if (visibleErrors.length > 0) { %>
+        <div class="govuk-notification-banner govuk-notification-banner--error" role="alert" aria-labelledby="govuk-notification-banner-title" data-module="govuk-notification-banner">
+          <div class="govuk-notification-banner__header">
+            <h2 class="govuk-notification-banner__title" id="govuk-notification-banner-title">
+              Error
+            </h2>
+          </div>
+          <div class="govuk-notification-banner__content">
+            <% visibleErrors.forEach(function(message) { %>
+              <p class="govuk-notification-banner__heading"><%= message %></p>
+            <% }); %>
+          </div>
         </div>
-        <div class="govuk-notification-banner__content">
-          <% messages.error.forEach(function(message) { %>
-            <p class="govuk-notification-banner__heading"><%= message %></p>
-          <% }); %>
-        </div>
-      </div>
+      <% } %>
     <% } %>
 
     <main class="govuk-main-wrapper" id="main-content" role="main">
       <% if (typeof pageHeading !== 'undefined') { %>
         <h1 class="govuk-heading-xl"><%= pageHeading %></h1>
       <% } %>
-      
+
       <%- body %>
     </main>
   </div>

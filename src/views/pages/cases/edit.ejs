@@ -2,10 +2,11 @@
     <div class="govuk-grid-column-two-thirds">
         <%
             const formData = viewHelpers.getFormData(session, caseData);
+            const hasDueDateError = () => viewHelpers.hasDueDateError(messages, formData);
+            const getDueDateErrorMessage = () => viewHelpers.getDueDateErrorMessage(messages, formData);
             const hasError = (field) => viewHelpers.hasError(messages, field);
             const getErrorMessage = (field) => viewHelpers.getErrorMessage(messages, field);
         %>
-        <% console.log('Debug: formData object in edit.ejs:', formData); %>
         <form action="/cases/<%= caseData.id %>" method="POST" novalidate>
             <input type="hidden" name="_method" value="PUT">
 
@@ -60,17 +61,16 @@
                 </select>
             </div>
 
-            <div class="govuk-form-group <%= hasError('dueDate') ? 'govuk-form-group--error' : '' %>">
+            <div class="govuk-form-group <%= hasDueDateError() ? 'govuk-form-group--error' : '' %>">
                 <label class="govuk-label" for="dueDate">
                     Due Date
                 </label>
                 <span id="dueDate-hint" class="govuk-hint">
-                    Optional field. Format: YYYY-MM-DD
+                    Optional field. Format: DD-MM-YYYY
                 </span>
-                <% if (hasError('dueDate')) { %>
+                <% if (hasDueDateError()) { %>
                     <span id="dueDate-error" class="govuk-error-message">
-                        <span class="govuk-visually-hidden">Error:</span>
-                        <%= getErrorMessage('dueDate') %>
+                        <span class="govuk-visually-hidden">Error:</span> <%= getDueDateErrorMessage() %>
                     </span>
                 <% } %>
                 <div class="govuk-date-input" id="dueDate" aria-describedby="dueDate-hint">
